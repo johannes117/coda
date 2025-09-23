@@ -1,0 +1,27 @@
+import { jsx as _jsx } from "react/jsx-runtime";
+import { render } from 'ink';
+import { App } from './ui/App.js';
+import yargs from 'yargs/yargs';
+import { hideBin } from 'yargs/helpers';
+/**
+ * Main entry point for the Coda CLI application.
+ */
+export async function main() {
+    const argv = await yargs(hideBin(process.argv))
+        .option('prompt', {
+        alias: 'p',
+        type: 'string',
+        description: 'Run a non-interactive prompt.',
+    })
+        .help()
+        .parse();
+    // If a non-interactive prompt is provided, handle it and exit.
+    if (argv.prompt) {
+        console.log(`User Prompt: ${argv.prompt}`);
+        console.log('Coda Response: This is a dummy response for your non-interactive prompt.');
+        process.exit(0);
+    }
+    // Otherwise, start the interactive UI.
+    const instance = render(_jsx(App, {}));
+    await instance.waitUntilExit();
+}
