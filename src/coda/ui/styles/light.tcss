@@ -1,19 +1,18 @@
 Screen {
-  background: #1a1b26;
-  color: #c0caf5;
+  background: #d5d6db;
+  color: #343b59;
 }
 
 #session-card {
   margin: 1 2 0 2;
   padding: 1 2;
-  border: round #414868;
-  background: #24283b;
+  border: round #9699a3;
+  background: #e9e9ed;
   height: auto;
 }
 
 #logo {
-  color: #7aa2f7;
-  width: 38;
+  color: #3d59a1;
 }
 
 #session-meta {
@@ -22,18 +21,18 @@ Screen {
 }
 
 #session-title {
-  color: #bb9af7;
+  color: #7847bd;
 }
 
 #session-version,
 #session-model,
 #session-path {
-  color: #a9b1d6;
+  color: #343b59;
 }
 
 #session-model,
 #session-path {
-  color: #565f89;
+  color: #848899;
 }
 
 #command-help {
@@ -43,7 +42,7 @@ Screen {
 }
 
 #help-text {
-  color: #a9b1d6;
+  color: #343b59;
   padding-bottom: 1;
 }
 
@@ -58,17 +57,17 @@ Screen {
 }
 
 .command-key {
-  color: #bb9af7;
+  color: #7847bd;
   min-width: 12;
 }
 
 .command-name {
-  color: #a9b1d6;
+  color: #343b59;
   width: 1fr;
 }
 
 .command-hint {
-  color: #565f89;
+  color: #848899;
   padding-left: 2;
 }
 
@@ -84,30 +83,30 @@ Screen {
 }
 
 .user-message {
-  color: #a9b1d6;
+  color: #343b59;
 }
 
 .agent-message {
-  color: #c0caf5;
+  color: #343b59;
 }
 
 .system-message {
-  color: #f7768e;
+  color: #b13c4b;
 }
 
 .prefix {
-  color: #bb9af7;
+  color: #7847bd;
 }
 
 .prefix-user {
-  color: #7aa2f7;
+  color: #3d59a1;
 }
 
 #prompt {
   height: auto;
   margin: 0 1 1 1;
   padding: 0 1;
-  border: round #7aa2f7;
+  border: round #3d59a1;
 }
 
 #prompt-row {
@@ -118,7 +117,7 @@ Screen {
 
 #prompt-symbol {
   padding: 1 1 0 0;
-  color: #7aa2f7;
+  color: #3d59a1;
 }
 
 #prompt-row Input {
@@ -131,7 +130,7 @@ Screen {
 #status {
   align: right middle;
   padding: 1 0 0 1;
-  color: #565f89;
+  color: #848899;
   width: auto;
   height: 100%;
 }
@@ -139,7 +138,7 @@ Screen {
 #prompt-hints {
   layout: horizontal;
   height: 1;
-  color: #565f89;
+  color: #848899;
   margin-top: 1;
   padding: 0 1 1 1;
 }
@@ -149,9 +148,9 @@ Screen {
 }
 
 .prompt-hint-key {
-  color: #c0caf5;
+  color: #343b59;
 }
 
 Rule {
-  color: #414868;
+  color: #9699a3;
 }

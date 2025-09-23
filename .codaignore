@@ -1,0 +1,62 @@
+# Coda ignore patterns
+# Add files and directories that Coda should not read or modify
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Cache directories
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+.temporary/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Secrets and keys
+secrets.json
+*.key
+*.pem
+*.crt
+
+# Coverage reports
+.coverage
+htmlcov/
+coverage.xml
+
+# Documentation build
+docs/_build/
+site/

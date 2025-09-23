@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
+import importlib.resources
 
 from rich.markdown import Markdown
 from rich.text import Text
@@ -11,8 +12,9 @@ from textual.containers import Container, Horizontal, Vertical
 from textual.reactive import reactive
 from textual.widgets import Input, Label, RichLog, Static
 
-from __init__ import __version__
-from theme import get_theme
+from coda import __version__
+from coda.core.agent import CodaAgent
+from coda.core.config import CodaConfig
 
 
 DEFAULT_MODEL = "gpt-5-coda"
@@ -49,10 +51,16 @@ def ascii_logo() -> str:
     return "\n".join(lines)
 
 
+class CodaApp(App):
+    def __init__(self, config_path: Optional[Path] = None, debug: bool = False):
+        super().__init__()
+        self.config = CodaConfig.load(config_path)
+        self.agent = CodaAgent(self.config)
+        self.debug_mode = debug
 
-
-class Coda(App):
-    CSS_PATH = "styles_dark.tcss"
+        # Set CSS path using package resources
+        styles_path = importlib.resources.files("coda.ui.styles")
+        self.CSS_PATH = str(styles_path / "dark.tcss")
 
     BINDINGS = [
         ("t", "toggle_theme", "theme"),
@@ -86,7 +94,7 @@ class Coda(App):
         info = Vertical(
             Label(" >_ Coda Agent", id="session-title"),
             Label(f" (v{__version__})", id="session-version"),
-            Label(f" model: {DEFAULT_MODEL} (/model to change)", id="session-model"),
+            Label(f" model: {self.config.model} (/model to change)", id="session-model"),
             Label(f" directory: {workspace}", id="session-path"),
             id="session-meta",
         )
@@ -148,7 +156,9 @@ class Coda(App):
 
     def action_toggle_theme(self) -> None:
         self.is_dark = not self.is_dark
-        self.CSS_PATH = "styles_dark.tcss" if self.is_dark else "styles_light.tcss"
+        styles_path = importlib.resources.files("coda.ui.styles")
+        theme_file = "dark.tcss" if self.is_dark else "light.tcss"
+        self.CSS_PATH = str(styles_path / theme_file)
         self.load_css(self.CSS_PATH)
         self.refresh_css()
 
@@ -175,7 +185,14 @@ class Coda(App):
         event.input.value = ""
 
         self.generating = True
-        await self._push_dummy_agent_response()
+
+        # Process with agent
+        try:
+            response = await self.agent.process_message(text)
+            self._push_agent(response)
+        except Exception as e:
+            self._push_system(f"Error: {e}")
+
         self.generating = False
         self._focus_input()
 
@@ -197,29 +214,3 @@ class Coda(App):
         chat = self.query_one("#chat", RichLog)
         message = Text.from_markup(f"[#f7768e]■[/] [dim]{text}[/]")
         chat.write(message)
-
-    async def _push_dummy_agent_response(self) -> None:
-        await asyncio.sleep(0.5)
-        self._push_agent(
-            "I'm going to scan the workspace and Cargo manifests to see build "
-            "profiles and dependencies that impact binary size. Then I'll "
-            "summarize the main causes."
-        )
-        await asyncio.sleep(1)
-        self._push_agent(Markdown("- **Exploring**\n  - List `ls -la`\n  - Read `Cargo.toml`"))
-        await asyncio.sleep(1)
-        self._push_agent("Here is what I found:")
-        self._push_agent(
-            Markdown(
-                """
-- **Static linking style**: Each binary statically links its full dependency graph.
-- **Heavy deps (HTTP/TLS)**: `reqwest` brings in a large transitive dependency set.
-- **Image/terminal stack**: `codex-tui` includes `image`, `ratatui`, and `crossterm`.
-"""
-            )
-        )
-
-
-def main() -> None:
-    get_theme(is_dark=True)
-    Coda().run()
