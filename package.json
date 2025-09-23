@@ -1,6 +1,7 @@
 {
   "name": "coda-cli",
   "version": "0.1.0",
+  "packageManager": "pnpm@10.14.0",
   "description": "Coda - Your AI Coding Agent",
   "type": "module",
   "main": "dist/index.js",
