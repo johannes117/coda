@@ -1,18 +1,24 @@
+/*
+ * Base stylesheet for Coda.
+ * Colors are injected by the CssManager.
+ */
+
 Screen {
-  background: #d5d6db;
-  color: #343b59;
+  background: $background1;
+  color: $foreground2;
 }
 
 #session-card {
   margin: 1 2 0 2;
   padding: 1 2;
-  border: round #9699a3;
-  background: #e9e9ed;
+  border: round $background3;
+  background: $background2;
   height: auto;
 }
 
 #logo {
-  color: #3d59a1;
+  color: $primary;
+  width: 38;
 }
 
 #session-meta {
@@ -21,18 +27,18 @@ Screen {
 }
 
 #session-title {
-  color: #7847bd;
+  color: $secondary;
 }
 
 #session-version,
 #session-model,
 #session-path {
-  color: #343b59;
+  color: $foreground1;
 }
 
 #session-model,
 #session-path {
-  color: #848899;
+  color: $background3;
 }
 
 #command-help {
@@ -42,7 +48,7 @@ Screen {
 }
 
 #help-text {
-  color: #343b59;
+  color: $foreground1;
   padding-bottom: 1;
 }
 
@@ -57,17 +63,17 @@ Screen {
 }
 
 .command-key {
-  color: #7847bd;
+  color: $secondary;
   min-width: 12;
 }
 
 .command-name {
-  color: #343b59;
+  color: $foreground1;
   width: 1fr;
 }
 
 .command-hint {
-  color: #848899;
+  color: $background3;
   padding-left: 2;
 }
 
@@ -83,30 +89,30 @@ Screen {
 }
 
 .user-message {
-  color: #343b59;
+  color: $foreground1;
 }
 
 .agent-message {
-  color: #343b59;
+  color: $foreground2;
 }
 
 .system-message {
-  color: #b13c4b;
+  color: $red;
 }
 
 .prefix {
-  color: #7847bd;
+  color: $secondary;
 }
 
 .prefix-user {
-  color: #3d59a1;
+  color: $primary;
 }
 
 #prompt {
   height: auto;
   margin: 0 1 1 1;
   padding: 0 1;
-  border: round #3d59a1;
+  border: round $primary;
 }
 
 #prompt-row {
@@ -117,7 +123,7 @@ Screen {
 
 #prompt-symbol {
   padding: 1 1 0 0;
-  color: #3d59a1;
+  color: $primary;
 }
 
 #prompt-row Input {
@@ -130,7 +136,7 @@ Screen {
 #status {
   align: right middle;
   padding: 1 0 0 1;
-  color: #848899;
+  color: $background3;
   width: auto;
   height: 100%;
 }
@@ -138,7 +144,7 @@ Screen {
 #prompt-hints {
   layout: horizontal;
   height: 1;
-  color: #848899;
+  color: $background3;
   margin-top: 1;
   padding: 0 1 1 1;
 }
@@ -148,11 +154,11 @@ Screen {
 }
 
 .prompt-hint-key {
-  color: #343b59;
+  color: $foreground2;
 }
 
 Rule {
-  color: #9699a3;
+  color: $background3;
 }
 
 #welcome-screen {

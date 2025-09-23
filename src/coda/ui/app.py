@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
-import importlib.resources
 import logging
 
 from rich.markdown import Markdown
@@ -16,9 +15,11 @@ from textual.widgets import Input, Label, RichLog, Static
 from coda import __version__
 from coda.core.agent import CodaAgent
 from coda.core.config import CodaConfig
+from coda.ui.theme import TokyoNightTheme
+from coda.utils.css_manager import CssManager
 
 
-DEFAULT_MODEL = "gpt-5-coda"
+DEFAULT_MODEL = "gpt-5-medium"
 
 
 @dataclass
@@ -56,6 +57,10 @@ class CodaApp(App):
         self.agent = CodaAgent(self.config)
         self.debug_mode = debug
 
+        self.css_manager = CssManager(theme=TokyoNightTheme())
+        self.css_manager.refresh()
+        self.CSS_PATH = self.css_manager.css_file
+
         if debug:
             log_path = Path("/tmp/coda_app.log")
             log_path.write_text("")
@@ -68,17 +73,11 @@ class CodaApp(App):
             self.logger = logging.getLogger('CodaApp')
             self.logger.info("Debug mode enabled")
 
-        # Set CSS path using package resources
-        styles_path = importlib.resources.files("coda.ui.styles")
-        self.CSS_PATH = str(styles_path / "dark.tcss")
-
     BINDINGS = [
-        ("t", "toggle_theme", "theme"),
         ("escape", "interrupt", "interrupt"),
         ("ctrl+c", "quit", "quit"),
     ]
 
-    is_dark = reactive(True)
     generating = reactive(False)
 
     def compose(self) -> ComposeResult:
@@ -166,13 +165,6 @@ class CodaApp(App):
         self.query_one("#welcome-screen").display = home
         self.query_one("#chat").display = not home
 
-    def action_toggle_theme(self) -> None:
-        self.is_dark = not self.is_dark
-        styles_path = importlib.resources.files("coda.ui.styles")
-        theme_file = "dark.tcss" if self.is_dark else "light.tcss"
-        self.CSS_PATH = str(styles_path / theme_file)
-        self.load_css(self.CSS_PATH)
-        self.refresh_css()
 
     def watch_generating(self, generating: bool) -> None:
         status_label = self.query_one("#status", Label)

@@ -1,52 +1,57 @@
-from dataclasses import dataclass
-
-# Tokyo Night colors
-TOKYO_NIGHT = {
-    "dark": {
-        "bg": "#1a1b26",
-        "bg_secondary": "#24283b",
-        "bg_tertiary": "#414868",
-        "border": "#16161e",
-        "text": "#c0caf5",
-        "text_muted": "#a9b1d6",
-        "text_comment": "#565f89",
-        "primary": "#bb9af7",
-        "accent": "#7aa2f7",
-        "error": "#f7768e",
-        "green": "#9ece6a",
-    },
-    "light": {
-        "bg": "#d5d6db",
-        "bg_secondary": "#e9e9ed",
-        "bg_tertiary": "#d5d6db",
-        "border": "#c8c8d0",
-        "text": "#343b59",
-        "text_muted": "#9699a3",
-        "text_comment": "#848899",
-        "primary": "#7847bd",
-        "accent": "#3d59a1",
-        "error": "#b13c4b",
-        "green": "#587539",
-    },
-}
+"""Theme definition for Coda TUI."""
 
 
-@dataclass(frozen=True)
-class CodaTheme:
-    bg: str
-    bg_secondary: str
-    bg_tertiary: str
-    border: str
-    text: str
-    text_muted: str
-    text_comment: str
-    primary: str
-    accent: str
-    error: str
-    green: str
+class CodaThemeBase:
+    """Base class for Coda themes."""
+
+    _name: str = "coda-base"
+
+    # background colors
+    background1: str = "#1a1b26"  # Darkest
+    background2: str = "#24283b"  # Lighter
+    background3: str = "#414868"  # Lightest
+
+    # foreground colors
+    foreground1: str = "#a9b1d6"  # Darkest
+    foreground2: str = "#c0caf5"  # Lighter
+    foreground3: str = "#c0caf5"  # Lightest
+
+    # other colors
+    red: str = "#f7768e"
+    orange: str = "#ff9e64"
+    yellow: str = "#e0af68"
+    green: str = "#9ece6a"
+    blue: str = "#7aa2f7"
+    purple: str = "#bb9af7"
+
+    # accent colors
+    primary: str = blue
+    secondary: str = purple
+
+    @classmethod
+    def to_css(cls) -> str:
+        """Generate CSS variables from the theme."""
+        return f"""
+$background1: {cls.background1};
+$background2: {cls.background2};
+$background3: {cls.background3};
+
+$foreground1: {cls.foreground1};
+$foreground2: {cls.foreground2};
+$foreground3: {cls.foreground3};
+
+$red: {cls.red};
+$orange: {cls.orange};
+$yellow: {cls.yellow};
+$green: {cls.green};
+$blue: {cls.blue};
+$purple: {cls.purple};
+
+$primary: {cls.primary};
+$secondary: {cls.secondary};
+"""
 
 
-def get_theme(is_dark: bool) -> CodaTheme:
-    theme_name = "dark" if is_dark else "light"
-    t = TOKYO_NIGHT[theme_name]
-    return CodaTheme(**t)
+class TokyoNightTheme(CodaThemeBase):
+    """The default Tokyo Night theme."""
+    _name: str = "tokyo-night"

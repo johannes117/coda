@@ -8,6 +8,7 @@ dependencies = [
     "textual>=0.60.0",
     "rich>=13.7.0",
     "openai>=1.0.0",
+    "platformdirs>=4.0.0",
     "gitpython>=3.1.0",
     "tomli-w>=1.0.0",
 ]
