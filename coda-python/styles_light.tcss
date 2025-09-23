@@ -1,19 +1,18 @@
-/* Tokyo Night Light */
 Screen {
-  background: #e6e7ed;
+  background: #d5d6db;
   color: #343b59;
 }
 
 #session-card {
-  layout: horizontal;
-  padding: 1 2;
   margin: 1 2 0 2;
-  border: solid #c1c2c7;
-  background: #d6d8df;
+  padding: 1 2;
+  border: round #9699a3;
+  background: #e9e9ed;
+  height: auto;
 }
 
 #logo {
-  color: #65359d;
+  color: #3d59a1;
 }
 
 #session-meta {
@@ -22,20 +21,24 @@ Screen {
 }
 
 #session-title {
-  color: #65359d;
+  color: #7847bd;
 }
 
 #session-version,
 #session-model,
 #session-path {
-  color: #888b94;
+  color: #343b59;
+}
+
+#session-model,
+#session-path {
+  color: #848899;
 }
 
 #command-help {
   padding: 1 2;
   margin: 1 2;
-  border: solid #c1c2c7;
-  background: #d6d8df;
+  height: auto;
 }
 
 #help-text {
@@ -48,103 +51,106 @@ Screen {
 }
 
 .command-row {
-  padding: 0 0 1 0;
+  layout: horizontal;
+  height: 1;
   margin-bottom: 1;
 }
 
 .command-key {
-  color: #006c86;
-  min-width: 8;
+  color: #7847bd;
+  min-width: 12;
 }
 
 .command-name {
   color: #343b59;
   width: 1fr;
-  padding-left: 2;
 }
 
 .command-hint {
-  color: #888b94;
+  color: #848899;
   padding-left: 2;
 }
 
 #chat {
   height: 1fr;
-  border: tall #c1c2c7;
-  background: #d6d8df;
+  padding: 0 1;
 }
 
 .message {
-  padding: 1 2;
-  margin: 1 2;
-  border: solid #c1c2c7;
-  background: #e6e7ed;
+  padding: 0 1;
+  margin: 1 0;
+  height: auto;
 }
 
-.message.user {
-  border: solid #65359d;
+.user-message {
+  color: #343b59;
 }
 
-.message.agent {
-  border: solid #006c86;
+.agent-message {
+  color: #343b59;
 }
 
-.message .title {
-  color: #65359d;
+.system-message {
+  color: #b13c4b;
 }
 
-.message .error {
-  color: #8c4351;
+.prefix {
+  color: #7847bd;
+}
+
+.prefix-user {
+  color: #3d59a1;
 }
 
 #prompt {
-  padding: 1 2;
-  margin: 1 2;
-  border: tall #c1c2c7;
-  background: #d6d8df;
+  height: auto;
+  margin: 0 1 1 1;
+  padding: 0 1;
+  border: round #3d59a1;
 }
 
 #prompt-row {
   layout: horizontal;
-  align: center middle;
+  align: left top;
+  height: auto;
 }
 
 #prompt-symbol {
-  padding-right: 1;
-  color: #65359d;
-}
-
-#status-left,
-#status-right {
-  color: #888b94;
-  padding-left: 1;
-}
-
-#prompt-hints {
-  layout: horizontal;
-  padding-top: 1;
-  color: #888b94;
-}
-
-.prompt-hint {
-  color: #888b94;
-  padding-right: 2;
-}
-
-Input {
-  background: #e6e7ed;
-  border: solid #c1c2c7;
-  color: #343b59;
+  padding: 1 1 0 0;
+  color: #3d59a1;
 }
 
 #prompt-row Input {
   width: 1fr;
+  border: none;
+  background: transparent;
+  padding: 1 0;
 }
 
-.prompt-input {
-  width: 1fr;
+#status {
+  align: right middle;
+  padding: 1 0 0 1;
+  color: #848899;
+  width: auto;
+  height: 100%;
+}
+
+#prompt-hints {
+  layout: horizontal;
+  height: 1;
+  color: #848899;
+  margin-top: 1;
+  padding: 0 1 1 1;
+}
+
+.prompt-hint {
+  padding-right: 2;
+}
+
+.prompt-hint-key {
+  color: #343b59;
 }
 
 Rule {
-  color: #c1c2c7;
+  color: #9699a3;
 }

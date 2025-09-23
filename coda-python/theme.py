@@ -1,82 +1,52 @@
 from dataclasses import dataclass
 
-# Tokyo Night colors (ported from your TS theme)
+# Tokyo Night colors
 TOKYO_NIGHT = {
-    "light": {
-        "bg": "#e6e7ed",
-        "bgSecondary": "#d6d8df",
-        "text": "#343b59",
-        "textMuted": "#888b94",
-        "border": "#c1c2c7",
-        "primary": "#65359d",
-        "accent": "#006c86",
-        "string": "#385f0d",
-        "keyword": "#65359d",
-        "function": "#2959aa",
-        "comment": "#888b94",
-        "operator": "#006C86",
-        "number": "#965027",
-        "builtin": "#006c86",
-        "error": "#8c4351",
-    },
     "dark": {
-        "bg": "#24283b",
-        "bgSecondary": "#1f2335",
-        "bgTertiary": "#2c324a",
-        "border": "#1b1e2e",
-        "text": "#a9b1d6",
-        "textMuted": "#8089b3",
-        "textComment": "#5f6996",
-        "primary": "#7aa2f7",
-        "accent": "#bb9af7",
-        "string": "#9ece6a",
-        "keyword": "#bb9af7",
-        "function": "#7aa2f7",
-        "operator": "#89ddff",
-        "number": "#ff9e64",
-        "builtin": "#2ac3de",
+        "bg": "#1a1b26",
+        "bg_secondary": "#24283b",
+        "bg_tertiary": "#414868",
+        "border": "#16161e",
+        "text": "#c0caf5",
+        "text_muted": "#a9b1d6",
+        "text_comment": "#565f89",
+        "primary": "#bb9af7",
+        "accent": "#7aa2f7",
         "error": "#f7768e",
+        "green": "#9ece6a",
+    },
+    "light": {
+        "bg": "#d5d6db",
+        "bg_secondary": "#e9e9ed",
+        "bg_tertiary": "#d5d6db",
+        "border": "#c8c8d0",
+        "text": "#343b59",
+        "text_muted": "#9699a3",
+        "text_comment": "#848899",
+        "primary": "#7847bd",
+        "accent": "#3d59a1",
+        "error": "#b13c4b",
+        "green": "#587539",
     },
 }
 
 
 @dataclass(frozen=True)
-class TokyoColors:
+class CodaTheme:
     bg: str
     bg_secondary: str
     bg_tertiary: str
     border: str
     text: str
     text_muted: str
+    text_comment: str
     primary: str
     accent: str
     error: str
-    number: str
-    operator: str
-    string: str
-    keyword: str
-    function: str
-    builtin: str
+    green: str
 
 
-def get_colors(is_dark: bool) -> TokyoColors:
-    t = TOKYO_NIGHT["dark" if is_dark else "light"]
-    # Fill missing keys for light mode with sensible defaults
-    bg_tertiary = t.get("bgTertiary", t["bgSecondary"])
-    return TokyoColors(
-        bg=t["bg"],
-        bg_secondary=t["bgSecondary"],
-        bg_tertiary=bg_tertiary,
-        border=t.get("border", "#1b1e2e"),
-        text=t.get("text", "#343b59"),
-        text_muted=t.get("textMuted", "#888b94"),
-        primary=t.get("primary", "#7aa2f7"),
-        accent=t.get("accent", "#bb9af7"),
-        error=t.get("error", "#f7768e"),
-        number=t.get("number", "#ff9e64"),
-        operator=t.get("operator", "#89ddff"),
-        string=t.get("string", "#9ece6a"),
-        keyword=t.get("keyword", "#bb9af7"),
-        function=t.get("function", "#7aa2f7"),
-        builtin=t.get("builtin", "#2ac3de"),
-    )
+def get_theme(is_dark: bool) -> CodaTheme:
+    theme_name = "dark" if is_dark else "light"
+    t = TOKYO_NIGHT[theme_name]
+    return CodaTheme(**t)
