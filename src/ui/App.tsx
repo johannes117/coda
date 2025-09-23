@@ -2,9 +2,10 @@ import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { Box, Text, useApp, useInput, useStdout } from 'ink';
 import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
-import { agent } from '../agent/graph.js';
+import { createAgent } from '../agent/graph.js';
 import { AIMessage, HumanMessage, ToolMessage } from '@langchain/core/messages';
 import { BaseMessage } from '@langchain/core/messages';
+import { getStoredApiKey, storeApiKey } from '../utils/apiKey.js';
 
 /** ---------- Types ---------- */
 type Author = 'user' | 'agent' | 'system' | 'tool';
@@ -92,14 +93,14 @@ const HeaderBar = ({ title, mode }: { title: string; mode: Mode }) => {
         <Box>
           <Text>
             <Text bold color="cyan">model:</Text>
-            <Text>     gpt-5   </Text>
+            <Text> gpt-5 </Text>
             <Text dimColor>/model to change</Text>
           </Text>
         </Box>
         <Box>
           <Text>
             <Text bold color="cyan">mode:</Text>
-            <Text>      {mode}   </Text>
+            <Text> {mode} </Text>
             <Text dimColor>tab to switch</Text>
           </Text>
         </Box>
@@ -211,12 +212,12 @@ const Footer = ({ working, mode }: { working: boolean; mode: Mode }) => {
     >
       <Text>
         <Text dimColor>{working ? (blink ? 'working..' : 'working.') : ''}</Text>
-        {working ? <Text dimColor>{'   '}</Text> : null}
+        {working ? <Text dimColor>{' '}</Text> : null}
         <Text dimColor>esc</Text>
         <Text> interrupt</Text>
       </Text>
       <Text dimColor>
-        coda v0.1.0  ~
+        coda v0.1.0 ~
       </Text>
       <Text>
         <Text dimColor>tab | </Text>
@@ -230,30 +231,62 @@ const Footer = ({ working, mode }: { working: boolean; mode: Mode }) => {
 
 export const App = () => {
   const { exit } = useApp();
-  const [cols, rows] = useTerminalDimensions();
-
+  const [cols] = useTerminalDimensions();
   const [mode, setMode] = useState<Mode>('agent');
   const [title, setTitle] = useState('AI-Powered Development Assistant');
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      author: 'system',
-      chunks: [{ kind: 'text', text: 'Welcome to Coda! I can help you with your coding tasks. What should we work on?' }],
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
+  const [apiKey, setApiKeyState] = useState<string | null>(null);
+  const [showApiKeyPrompt, setShowApiKeyPrompt] = useState(true);
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [agentInstance, setAgentInstance] = useState<any>(null);
   const conversationHistory = useRef<BaseMessage[]>([]);
+
+  useEffect(() => {
+    getStoredApiKey().then((key) => {
+      if (key) {
+        setApiKeyState(key);
+        setShowApiKeyPrompt(false);
+        setMessages([
+          {
+            author: 'system',
+            chunks: [{ kind: 'text', text: 'Welcome to Coda! I can help you with your coding tasks. What should we work on?' }],
+          },
+        ]);
+        setAgentInstance(createAgent(key));
+      } else {
+        setShowApiKeyPrompt(true);
+      }
+    });
+  }, []);
+
+  const handleApiKeySubmit = useCallback((value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    setApiKeyState(trimmed);
+    storeApiKey(trimmed);
+    setShowApiKeyPrompt(false);
+    setMessages([
+      {
+        author: 'system',
+        chunks: [{ kind: 'text', text: 'Welcome to Coda! I can help you with your coding tasks. What should we work on?' }],
+      },
+    ]);
+    setAgentInstance(createAgent(trimmed));
+    setApiKeyInput('');
+  }, []);
 
   useInput((input, key) => {
     if (key.escape) {
-      if (busy) {
+      if (busy || showApiKeyPrompt) {
         // TODO: Implement agent interruption
         setBusy(false);
       } else {
         exit();
       }
     }
-    if (key.tab) {
+    if (key.tab && !showApiKeyPrompt) {
       setMode(prev => prev === 'agent' ? 'plan' : 'agent');
     }
   });
@@ -264,15 +297,13 @@ export const App = () => {
 
   const handleSubmit = useCallback(
     async (value: string) => {
-      if (!value.trim() || busy) return;
-
+      if (!value.trim() || busy || !agentInstance) return;
       const normalizedInput = value.trim().toLowerCase();
       if (normalizedInput === '/quit' || normalizedInput === '/exit') {
         push({ author: 'system', chunks: [{ kind: 'text', text: 'Goodbye!' }] });
         setTimeout(() => exit(), 100);
         return;
       }
-
       const userMessage = new HumanMessage(value);
       conversationHistory.current.push(userMessage);
       push({
@@ -282,7 +313,6 @@ export const App = () => {
       });
       setQuery('');
       setBusy(true);
-
       try {
         if (mode === 'plan') {
           // Plan mode: just show what the agent would do
@@ -295,17 +325,14 @@ export const App = () => {
           }, 600);
           return;
         }
-
         // Agent mode: use the real LangGraph agent
-        const stream = await agent.stream({ messages: conversationHistory.current });
+        const stream = await agentInstance.stream({ messages: conversationHistory.current });
         for await (const chunk of stream) {
           const nodeName = Object.keys(chunk)[0];
           const update = chunk[nodeName as keyof typeof chunk];
-
           if (update && 'messages' in update && update.messages) {
             const newMessages: BaseMessage[] = update.messages;
             conversationHistory.current.push(...newMessages);
-
             for (const message of newMessages) {
               if (message._getType() === 'ai') {
                 const aiMessage = message as AIMessage;
@@ -352,18 +379,43 @@ export const App = () => {
         setBusy(false);
       }
     },
-    [busy, push, mode, exit]
+    [busy, push, mode, exit, agentInstance]
   );
+
+  if (showApiKeyPrompt) {
+    return (
+      <Box flexDirection="column" width={cols} flexGrow={1} justifyContent="center" alignItems="center" paddingY={2}>
+        <HeaderBar title="Setup" mode={mode} />
+        <Box marginTop={2} flexDirection="column" alignItems="center">
+          <Text bold color="cyan">Welcome to Coda!</Text>
+          <Box marginTop={1}>
+            <Text dimColor>Enter your OpenAI API key to get started:</Text>
+          </Box>
+          <Box marginTop={1} width="80%">
+            <TextInput
+              value={apiKeyInput}
+              onChange={setApiKeyInput}
+              onSubmit={handleApiKeySubmit}
+              placeholder="sk-..."
+              showCursor
+              mask="•"
+            />
+          </Box>
+          <Box marginTop={1}>
+            <Text dimColor>Press esc to quit.</Text>
+          </Box>
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box flexDirection="column" width={cols} flexGrow={1}>
       <HeaderBar title={title} mode={mode} />
-
       <Box flexDirection="column" flexGrow={1} flexShrink={1}>
         {messages.map((message, index) => (
           <MessageView key={index} msg={message} />
         ))}
-
         {busy && (
           <Box marginTop={1}>
             <Text color="green">
@@ -373,7 +425,6 @@ export const App = () => {
           </Box>
         )}
       </Box>
-
       {!busy && (
         <Box marginTop={1} alignItems="center">
           <Text color="cyan" bold>{'>'} </Text>
@@ -385,7 +436,6 @@ export const App = () => {
           />
         </Box>
       )}
-
       <Footer working={busy} mode={mode} />
     </Box>
   );
