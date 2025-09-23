@@ -6,12 +6,15 @@ import { createAgent } from '../agent/graph.js';
 import { AIMessage, HumanMessage, ToolMessage } from '@langchain/core/messages';
 import { BaseMessage } from '@langchain/core/messages';
 import { getStoredApiKey, storeApiKey } from '../utils/apiKey.js';
-
+import { randomUUID } from 'crypto';
+import { existsSync } from 'fs';
+import { Logo } from './Logo.js';
 /** ---------- Types ---------- */
 type Author = 'user' | 'agent' | 'system' | 'tool';
 type ChunkKind = 'text' | 'code' | 'error' | 'list' | 'status' | 'divider' | 'tool-call' | 'tool-result';
 type Mode = 'agent' | 'plan';
-
+type ModelOption = { id: number; label: string; name: string; effort: string };
+type ModelConfig = { name: string; effort: string };
 type Chunk = {
   kind: ChunkKind;
   text?: string;
@@ -19,39 +22,30 @@ type Chunk = {
   tool?: string;
   toolInput?: Record<string, any>;
 };
-
 type Message = {
   author: Author;
   timestamp?: string;
   chunks: Chunk[];
 };
-
 /** ---------- Utilities ---------- */
 const nowTime = () =>
   new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
 const useTerminalDimensions = (): [number, number] => {
   const { stdout } = useStdout();
   const [size, setSize] = useState<[number, number]>([stdout?.columns ?? 80, stdout?.rows ?? 24]);
-
   useEffect(() => {
     if (!stdout) return;
-
     const updateSize = () => {
       setSize([stdout.columns ?? 80, stdout.rows ?? 24]);
     };
-
     updateSize();
     stdout.on('resize', updateSize);
-
     return () => {
       stdout.removeListener('resize', updateSize);
     };
   }, [stdout]);
-
   return size;
 };
-
 const useBlink = () => {
   const [on, setOn] = useState(true);
   useEffect(() => {
@@ -60,30 +54,25 @@ const useBlink = () => {
   }, []);
   return on;
 };
-
+const modelOptions: ModelOption[] = [
+  { id: 1, label: 'gpt-5-codex low', name: 'gpt-5-codex', effort: 'low' },
+  { id: 2, label: 'gpt-5-codex medium', name: 'gpt-5-codex', effort: 'medium' },
+  { id: 3, label: 'gpt-5-codex high', name: 'gpt-5-codex', effort: 'high' },
+  { id: 4, label: 'gpt-5 minimal', name: 'gpt-5', effort: 'minimal' },
+  { id: 5, label: 'gpt-5 low', name: 'gpt-5', effort: 'low' },
+  { id: 6, label: 'gpt-5 medium', name: 'gpt-5', effort: 'medium' },
+  { id: 7, label: 'gpt-5 high', name: 'gpt-5', effort: 'high' },
+];
 /** ---------- Presentational bits ---------- */
-
-const HeaderBar = ({ title, mode }: { title: string; mode: Mode }) => {
+const HeaderBar = ({ title, mode, modelConfig }: { title: string; mode: Mode; modelConfig: ModelConfig }) => {
   const [cwd, setCwd] = useState('');
   useEffect(() => {
     setCwd(process.cwd().replace(process.env.HOME || '', '~'));
   }, []);
-
   return (
     <Box flexDirection="column" alignSelf="flex-start">
       <Box marginBottom={1}>
-        <Text color="cyan">
-          {'                             ░██            \n'}
-          {'                             ░██            \n'}
-          {' ░███████   ░███████   ░████████  ░██████   \n'}
-          {'░██    ░██ ░██    ░██ ░██    ░██       ░██  \n'}
-          {'░██        ░██    ░██ ░██    ░██  ░███████  \n'}
-          {'░██    ░██ ░██    ░██ ░██   ░███ ░██   ░██  \n'}
-          {' ░███████   ░███████   ░█████░██  ░█████░██ \n'}
-          {'                                            \n'}
-          {'                                            \n'}
-          {'                                            '}
-        </Text>
+        <Logo />
       </Box>
       <Box
         borderStyle="single"
@@ -93,7 +82,7 @@ const HeaderBar = ({ title, mode }: { title: string; mode: Mode }) => {
         <Box>
           <Text>
             <Text bold color="cyan">model:</Text>
-            <Text> gpt-5 </Text>
+            <Text> {modelConfig.name} {modelConfig.effort} </Text>
             <Text dimColor>/model to change</Text>
           </Text>
         </Box>
@@ -114,20 +103,17 @@ const HeaderBar = ({ title, mode }: { title: string; mode: Mode }) => {
     </Box>
   );
 };
-
 const Divider = () => (
   <Box marginY={0}>
     <Text color="gray">{'─'.repeat(80)}</Text>
   </Box>
 );
-
 const BubblePrefix = ({ author }: { author: Author }) => {
   if (author === 'user') return <Text color="cyan" bold>{'> '}</Text>;
   if (author === 'agent') return <Text color="green" bold>{'✦ '}</Text>;
   if (author === 'tool') return <Text color="#ffcc00" bold>{'⚡ '}</Text>;
   return <Text color="magenta" bold>{'• '}</Text>;
 };
-
 const CodeBlock = ({ lines }: { lines: string[] }) => (
   <Box
     flexDirection="column"
@@ -144,11 +130,9 @@ const CodeBlock = ({ lines }: { lines: string[] }) => (
     ))}
   </Box>
 );
-
 const ErrorLine = ({ text }: { text: string }) => (
   <Text color="redBright">Error: {text}</Text>
 );
-
 const StatusLine = ({ text }: { text: string }) => (
   <Text>
     <Text dimColor>Generating... </Text>
@@ -156,21 +140,18 @@ const StatusLine = ({ text }: { text: string }) => (
     <Text dimColor> ({nowTime()})</Text>
   </Text>
 );
-
 const ToolCall = ({ tool, input }: { tool: string; input: any }) => (
   <Box flexDirection="column" borderStyle="round" paddingX={1} borderColor="yellow" marginY={1}>
     <Text color="yellow" dimColor>Using tool: {tool}</Text>
     <Text color="gray">{JSON.stringify(input, null, 2)}</Text>
   </Box>
 );
-
 const ToolResult = ({ result }: { result: string }) => (
   <Box flexDirection="column" borderStyle="single" paddingX={1} borderColor="gray" marginY={1}>
     <Text dimColor>Tool Output:</Text>
     <Text color="gray">{result}</Text>
   </Box>
 );
-
 const MessageView = ({ msg }: { msg: Message }) => (
   <Box flexDirection="column" marginTop={1}>
     {msg.chunks.map((c, i) => {
@@ -200,7 +181,6 @@ const MessageView = ({ msg }: { msg: Message }) => (
     })}
   </Box>
 );
-
 const Footer = ({ working, mode }: { working: boolean; mode: Mode }) => {
   const blink = useBlink();
   return (
@@ -226,9 +206,7 @@ const Footer = ({ working, mode }: { working: boolean; mode: Mode }) => {
     </Box>
   );
 };
-
 /** ---------- Main App ---------- */
-
 export const App = () => {
   const { exit } = useApp();
   const [cols] = useTerminalDimensions();
@@ -239,9 +217,19 @@ export const App = () => {
   const [busy, setBusy] = useState(false);
   const [apiKey, setApiKeyState] = useState<string | null>(null);
   const [showApiKeyPrompt, setShowApiKeyPrompt] = useState(true);
+  const [showModelPrompt, setShowModelPrompt] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState('');
+  const [modelInput, setModelInput] = useState('');
   const [agentInstance, setAgentInstance] = useState<any>(null);
+  const [currentModel, setCurrentModel] = useState<ModelConfig>({ name: 'gpt-5', effort: 'medium' });
+  const [sessionId] = useState(() => randomUUID());
   const conversationHistory = useRef<BaseMessage[]>([]);
+  const currentOption = modelOptions.find(o => o.name === currentModel.name && o.effort === currentModel.effort);
+  const currentId = currentOption ? currentOption.id : 6;
+
+  const push = useCallback((message: Message) => {
+    setMessages(prev => [...prev, message]);
+  }, []);
 
   useEffect(() => {
     getStoredApiKey().then((key) => {
@@ -254,12 +242,12 @@ export const App = () => {
             chunks: [{ kind: 'text', text: 'Welcome to Coda! I can help you with your coding tasks. What should we work on?' }],
           },
         ]);
-        setAgentInstance(createAgent(key));
+        setAgentInstance(createAgent(key, currentModel));
       } else {
         setShowApiKeyPrompt(true);
       }
     });
-  }, []);
+  }, [currentModel]);
 
   const handleApiKeySubmit = useCallback((value: string) => {
     const trimmed = value.trim();
@@ -273,36 +261,102 @@ export const App = () => {
         chunks: [{ kind: 'text', text: 'Welcome to Coda! I can help you with your coding tasks. What should we work on?' }],
       },
     ]);
-    setAgentInstance(createAgent(trimmed));
+    setAgentInstance(createAgent(trimmed, currentModel));
     setApiKeyInput('');
-  }, []);
+  }, [currentModel]);
+
+  const handleModelSubmit = useCallback((value: string) => {
+    const num = parseInt(value.trim(), 10);
+    if (num >= 1 && num <= 7 && apiKey) {
+      const option = modelOptions[num - 1];
+      const newConfig: ModelConfig = { name: option.name, effort: option.effort };
+      setCurrentModel(newConfig);
+      setAgentInstance(createAgent(apiKey, newConfig));
+      setShowModelPrompt(false);
+      push({
+        author: 'system',
+        chunks: [{ kind: 'text', text: `Model switched to ${option.label}` }],
+      });
+    }
+    setModelInput('');
+  }, [apiKey, push]);
 
   useInput((input, key) => {
     if (key.escape) {
-      if (busy || showApiKeyPrompt) {
-        // TODO: Implement agent interruption
+      if (busy) {
         setBusy(false);
+      } else if (showModelPrompt) {
+        setShowModelPrompt(false);
       } else {
         exit();
       }
+      return;
     }
-    if (key.tab && !showApiKeyPrompt) {
+    if (key.tab && !showApiKeyPrompt && !showModelPrompt) {
       setMode(prev => prev === 'agent' ? 'plan' : 'agent');
     }
   });
 
-  const push = useCallback((message: Message) => {
-    setMessages(prev => [...prev, message]);
-  }, []);
-
   const handleSubmit = useCallback(
     async (value: string) => {
       if (!value.trim() || busy || !agentInstance) return;
-      const normalizedInput = value.trim().toLowerCase();
-      if (normalizedInput === '/quit' || normalizedInput === '/exit') {
-        push({ author: 'system', chunks: [{ kind: 'text', text: 'Goodbye!' }] });
-        setTimeout(() => exit(), 100);
-        return;
+      const command = value.trim().toLowerCase();
+      if (command.startsWith('/')) {
+        const cmd = command.slice(1);
+        if (cmd === 'quit' || cmd === 'exit') {
+          push({ author: 'system', chunks: [{ kind: 'text', text: 'Goodbye!' }] });
+          setTimeout(() => exit(), 100);
+          return;
+        } else if (cmd === 'status') {
+          const cwd = process.cwd().replace(process.env.HOME || '', '~');
+          const agentsFile = existsSync('AGENTS.md') ? 'AGENTS.md' : 'none';
+          const statusText = `📂 Workspace
+  • Path: ${cwd}
+  • Approval Mode: auto
+  • Sandbox: full
+  • AGENTS files: ${agentsFile}
+👤 Account
+  • Signed in with OpenAI API
+  • Login: N/A
+  • Plan: API
+🧠 Model
+  • Name: ${currentModel.name}
+  • Provider: OpenAI
+  • Reasoning Effort: ${currentModel.effort}
+  • Reasoning Summaries: Auto
+💻 Client
+  • CLI Version: 0.1.0
+📊 Token Usage
+  • Session ID: ${sessionId}
+  • Input: 0
+  • Output: 0
+  • Total: 0`;
+          push({ author: 'system', chunks: [{ kind: 'text', text: statusText }] });
+          setQuery('');
+          return;
+        } else if (cmd === 'clear' || cmd === 'new') {
+          setMessages([
+            {
+              author: 'system',
+              chunks: [{ kind: 'text', text: 'Welcome to Coda! I can help you with your coding tasks. What should we work on?' }],
+            },
+          ]);
+          conversationHistory.current = [];
+          push({ author: 'system', chunks: [{ kind: 'text', text: 'New conversation started.' }] });
+          setQuery('');
+          return;
+        } else if (cmd === 'model') {
+          setShowModelPrompt(true);
+          setQuery('');
+          return;
+        } else {
+          push({
+            author: 'system',
+            chunks: [{ kind: 'error', text: `Unknown command: ${command}. Available: /status, /model, /clear, /new, /quit` }],
+          });
+          setQuery('');
+          return;
+        }
       }
       const userMessage = new HumanMessage(value);
       conversationHistory.current.push(userMessage);
@@ -379,13 +433,12 @@ export const App = () => {
         setBusy(false);
       }
     },
-    [busy, push, mode, exit, agentInstance]
+    [busy, push, mode, exit, agentInstance, apiKey, currentModel, sessionId]
   );
-
   if (showApiKeyPrompt) {
     return (
       <Box flexDirection="column" width={cols} flexGrow={1} justifyContent="center" alignItems="center" paddingY={2}>
-        <HeaderBar title="Setup" mode={mode} />
+        <HeaderBar title="Setup" mode={mode} modelConfig={currentModel} />
         <Box marginTop={2} flexDirection="column" alignItems="center">
           <Text bold color="cyan">Welcome to Coda!</Text>
           <Box marginTop={1}>
@@ -408,10 +461,43 @@ export const App = () => {
       </Box>
     );
   }
-
+  if (showModelPrompt) {
+    return (
+      <Box flexDirection="column" width={cols} flexGrow={1} justifyContent="center" alignItems="center" paddingY={2}>
+        <HeaderBar title="Select Model" mode={mode} modelConfig={currentModel} />
+        <Box marginTop={2} flexDirection="column" width="80%">
+          <Text bold color="cyan">Select model and reasoning level</Text>
+          <Box marginTop={1}>
+            <Text dimColor>Switch between OpenAI models for this and future Coda sessions</Text>
+          </Box>
+          <Box marginTop={1} flexDirection="column">
+            {modelOptions.map((opt) => (
+              <Text key={opt.id}>
+                {opt.id === currentId ? <Text color="cyan">▌&gt; </Text> : <Text>▌ </Text>}
+                {opt.id}. {opt.label}
+                {opt.id === currentId ? <Text color="yellow">(current)</Text> : null}
+              </Text>
+            ))}
+          </Box>
+          <Box marginTop={1}>
+            <TextInput
+              value={modelInput}
+              onChange={setModelInput}
+              onSubmit={handleModelSubmit}
+              placeholder="Enter number (1-7)"
+              showCursor
+            />
+          </Box>
+          <Box marginTop={1}>
+            <Text dimColor>Press esc to cancel.</Text>
+          </Box>
+        </Box>
+      </Box>
+    );
+  }
   return (
     <Box flexDirection="column" width={cols} flexGrow={1}>
-      <HeaderBar title={title} mode={mode} />
+      <HeaderBar title={title} mode={mode} modelConfig={currentModel} />
       <Box flexDirection="column" flexGrow={1} flexShrink={1}>
         {messages.map((message, index) => (
           <MessageView key={index} msg={message} />
@@ -425,9 +511,9 @@ export const App = () => {
           </Box>
         )}
       </Box>
-      {!busy && (
+      {!busy && !showModelPrompt && (
         <Box marginTop={1} alignItems="center">
-          <Text color="cyan" bold>{'>'} </Text>
+          <Text color="cyan" bold>&gt; </Text>
           <TextInput
             value={query}
             onChange={setQuery}

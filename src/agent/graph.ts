@@ -25,18 +25,18 @@ Follow this process:
 6. **Conclude:** When the task is complete, respond to the user with a summary of what you have done. Do not call any more tools.`;
 
 /**
- * Factory for creating the agent with a given API key.
+ * Factory for creating the agent with a given API key and model config.
  */
-export const createAgent = (apiKey: string) => {
+export const createAgent = (apiKey: string, modelConfig: { name: string; effort: string }) => {
   // Initialize the OpenAI model with tool-calling capabilities.
   // Using GPT-5 with medium reasoning effort for complex coding tasks
   const model = new ChatOpenAI({
     openAIApiKey: apiKey,
-    model: 'gpt-5',
+    model: modelConfig.name,
     temperature: 1,
     // Configure for medium reasoning effort - good balance for coding tasks
     modelKwargs: {
-      reasoning_effort: 'medium',
+      reasoning_effort: modelConfig.effort,
       verbosity: 'medium'
     }
   }).bindTools(tools);
