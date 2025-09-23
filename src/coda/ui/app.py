@@ -28,26 +28,23 @@ class Command:
 
 
 COMMANDS: list[Command] = [
-    Command("/init", "create an AGENTS.md file with instructions for Coda"),
-    Command("/status", "show current session configuration"),
-    Command("/approvals", "choose what Coda can do without approval"),
-    Command("/model", "choose what model and reasoning effort to use"),
+    Command("/init", " create an AGENTS.md file with instructions for Coda"),
+    Command("/status", " show current session configuration"),
+    Command("/approvals", " choose what Coda can do without approval"),
+    Command("/model", " choose what model and reasoning effort to use"),
 ]
 
 
 def ascii_logo() -> str:
     lines = [
-        r"    ___           ___           ___     ",
-        r"   /  /\         /  /\         /  /\    ",
-        r"  /  /::\       /  /::\       /  /::\   ",
-        r" /  /:/\:\     /  /:/\:\     /  /:/\:\  ",
-        r"/  /:/  \:\   /  /:/  \:\   /  /:/  \:\ ",
-        r"/__/:/ \__\:\ /__/:/ \__\:\ /__/:/ \__\:\ ",
-        r"\  \:\ /  /:/ \  \:\ /  /:/ \  \:\ /  /:/",
-        r" \  \:\  /:/   \  \:\  /:/   \  \:\  /:/ ",
-        r"  \  \:\/::     \  \:\/::     \  \:\/::  ",
-        r"   \  \::/       \  \::/       \  \::/   ",
-        r"    \__\/         \__\/         \__\/    ",
+        "                                             ",   
+        "  ░██████    ░██████   ░███████      ░███    ",
+        " ░██   ░██  ░██   ░██  ░██   ░██    ░██░██   ",
+        "░██        ░██     ░██ ░██    ░██  ░██  ░██  ",
+        "░██        ░██     ░██ ░██    ░██ ░█████████ ",
+        "░██        ░██     ░██ ░██    ░██ ░██    ░██ ",
+        " ░██   ░██  ░██   ░██  ░██   ░██  ░██    ░██ ",
+        "  ░██████    ░██████   ░███████   ░██    ░██",
     ]
     return "\n".join(lines)
 
@@ -112,15 +109,17 @@ class CodaApp(App):
             id="session-meta",
         )
         return Container(
-            Static(ascii_logo(), id="logo"),
-            info,
+            Horizontal(
+                Static(ascii_logo(), id="logo"),
+                info,
+            ),
             id="session-card",
         )
 
     def _command_palette(self) -> Container:
         return Container(
             Label(
-                "To get started, describe a task or try one of these commands:",
+                "To get started, describe a task or try one of these commands:\n",
                 id="help-text",
             ),
             self._commands_block(),

@@ -154,3 +154,9 @@ Screen {
 Rule {
   color: #9699a3;
 }
+
+#welcome-screen {
+  layout: vertical;
+  height: 1fr;
+  overflow-y: auto;
+}
