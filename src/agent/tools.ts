@@ -1,0 +1,103 @@
+import { DynamicStructuredTool } from '@langchain/core/tools';
+import { z } from 'zod';
+import { promises as fs } from 'fs';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execPromise = promisify(exec);
+
+// Define schemas separately for proper type inference
+const listFilesSchema = z.object({
+  path: z.string().describe('The path of the directory to list.'),
+});
+
+const readFileSchema = z.object({
+  path: z.string().describe('The path of the file to read.'),
+});
+
+const writeFileSchema = z.object({
+  path: z.string().describe('The path of the file to write to.'),
+  content: z.string().describe('The content to write to the file.'),
+});
+
+const shellCommandSchema = z.object({
+  command: z.string().describe('The shell command to execute.'),
+});
+
+/**
+ * A tool for listing files in a directory.
+ */
+export const listFilesTool = new DynamicStructuredTool({
+  name: 'list_files',
+  description: 'Lists all files and directories in a given path.',
+  schema: listFilesSchema,
+  func: async ({ path }: z.infer<typeof listFilesSchema>) => {
+    try {
+      const files = await fs.readdir(path, { withFileTypes: true });
+      return files.map(file => `${file.name}${file.isDirectory() ? '/' : ''}`).join('\n');
+    } catch (e: any) {
+      return `Error listing files: ${e.message}`;
+    }
+  },
+});
+
+/**
+ * A tool for reading the content of a file.
+ */
+export const readFileTool = new DynamicStructuredTool({
+  name: 'read_file',
+  description: 'Reads the content of a file at a given path.',
+  schema: readFileSchema,
+  func: async ({ path }: z.infer<typeof readFileSchema>) => {
+    try {
+      return await fs.readFile(path, 'utf-8');
+    } catch (e: any) {
+      return `Error reading file: ${e.message}`;
+    }
+  },
+});
+
+/**
+ * A tool for writing content to a file.
+ */
+export const writeFileTool = new DynamicStructuredTool({
+  name: 'write_file',
+  description: 'Writes content to a file at a given path. Creates the file if it does not exist.',
+  schema: writeFileSchema,
+  func: async ({ path, content }: z.infer<typeof writeFileSchema>) => {
+    try {
+      await fs.writeFile(path, content, 'utf-8');
+      return `Successfully wrote ${content.length} characters to ${path}`;
+    } catch (e: any) {
+      return `Error writing to file: ${e.message}`;
+    }
+  },
+});
+
+/**
+ * A tool for executing shell commands.
+ * SECURITY: This tool is powerful and can execute any command. Use with caution.
+ */
+export const shellCommandTool = new DynamicStructuredTool({
+  name: 'execute_shell_command',
+  description: 'Executes a shell command. Use this for tasks like installing dependencies, running tests, or managing git.',
+  schema: shellCommandSchema,
+  func: async ({ command }: z.infer<typeof shellCommandSchema>) => {
+    try {
+      const { stdout, stderr } = await execPromise(command);
+      let result = '';
+      if (stdout) result += `STDOUT:\n${stdout}\n`;
+      if (stderr) result += `STDERR:\n${stderr}\n`;
+      return result || 'Command executed successfully.';
+    } catch (e: any) {
+      return `Error executing command: ${e.message}\nSTDOUT:\n${e.stdout}\nSTDERR:\n${e.stderr}`;
+    }
+  },
+});
+
+export const tools = [
+  listFilesTool,
+  readFileTool,
+  writeFileTool,
+  shellCommandTool,
+];

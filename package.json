@@ -10,16 +10,21 @@
   },
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "bun run dist/index.js",
     "dev": "tsc --watch",
     "test": "vitest run"
   },
   "dependencies": {
+    "@langchain/core": "^0.3.71",
+    "@langchain/langgraph": "^0.0.51",
+    "@langchain/openai": "^0.6.7",
     "ink": "^6.2.3",
     "ink-spinner": "^5.0.0",
     "ink-text-input": "^6.0.0",
+    "langsmith": "^0.1.72",
     "react": "^19.1.0",
-    "yargs": "^17.7.2"
+    "yargs": "^17.7.2",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20.11.24",
