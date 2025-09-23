@@ -1,5 +1,5 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {Box, Text, useApp, useInput} from 'ink';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {Box, Text, useApp, useInput, useStdout} from 'ink';
 import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
 
@@ -22,6 +22,75 @@ type Message = {
 /** ---------- Utilities ---------- */
 const nowTime = () =>
   new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+
+// Approximate terminal height consumption for each chunk type.
+const chunkHeight = (c: Chunk): number => {
+  switch (c.kind) {
+    case 'code':
+    case 'list':
+      return (c.lines?.length ?? 0) + 2; // bordered block adds two lines
+    case 'divider':
+      return 1;
+    case 'error':
+    case 'status':
+    case 'text':
+    default:
+      return 1;
+  }
+};
+
+const messageHeight = (m: Message): number =>
+  m.chunks.reduce((sum, chunk) => sum + chunkHeight(chunk), 0);
+
+type ViewportSlice = {
+  visible: Message[];
+  totalLines: number;
+  maxScroll: number;
+};
+
+const sliceForViewport = (items: Message[], viewportLines: number, scroll: number): ViewportSlice => {
+  const heights = items.map(messageHeight);
+  const totalLines = heights.reduce((acc, value) => acc + value, 0);
+  const effectiveViewport = Math.max(0, viewportLines);
+  const maxScroll = Math.max(0, totalLines - effectiveViewport);
+  const clampedScroll = Math.max(0, Math.min(scroll, maxScroll));
+  const windowStart = Math.max(0, totalLines - effectiveViewport - clampedScroll);
+  const windowEnd = windowStart + effectiveViewport;
+
+  const visible: Message[] = [];
+  let cumulative = 0;
+
+  for (let i = 0; i < items.length; i++) {
+    const next = cumulative + heights[i];
+    const overlaps = next > windowStart && cumulative < windowEnd;
+    if (overlaps) visible.push(items[i]);
+    cumulative = next;
+  }
+
+  return {visible, totalLines, maxScroll};
+};
+
+const useTerminalDimensions = (): [number, number] => {
+  const {stdout} = useStdout();
+  const [size, setSize] = useState<[number, number]>([stdout?.columns ?? 80, stdout?.rows ?? 24]);
+
+  useEffect(() => {
+    if (!stdout) return;
+
+    const updateSize = () => {
+      setSize([stdout.columns ?? 80, stdout.rows ?? 24]);
+    };
+
+    updateSize();
+    stdout.on('resize', updateSize);
+
+    return () => {
+      stdout.removeListener('resize', updateSize);
+    };
+  }, [stdout]);
+
+  return size;
+};
 
 const useBlink = () => {
   const [on, setOn] = useState(true);
@@ -130,10 +199,13 @@ const Footer = ({working}: {working: boolean}) => {
       justifyContent="space-between"
       alignItems="center"
     >
-      <Text dimColor>
-        {working ? (blink ? 'working..' : 'working.') : ''}
-        {working ? '   ' : ''}
-        <Text dimColor>esc</Text> <Text> interrupt</Text>
+      <Text>
+        <Text dimColor>{working ? (blink ? 'working..' : 'working.') : ''}</Text>
+        {working ? <Text dimColor>{'   '}</Text> : null}
+        <Text dimColor>esc</Text>
+        <Text> interrupt  ·  </Text>
+        <Text dimColor>↑/↓ PgUp/PgDn Home/End</Text>
+        <Text> scroll</Text>
       </Text>
       <Text dimColor>
         coda v0.1.0  ~
@@ -150,6 +222,8 @@ const Footer = ({working}: {working: boolean}) => {
 
 export const App = () => {
   const {exit} = useApp();
+  const [cols, rows] = useTerminalDimensions();
+
   const [title, setTitle] = useState('Implementing coin change in Python');
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -159,105 +233,128 @@ export const App = () => {
   ]);
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
-  const scrollRef = useRef<number>(0); // placeholder to keep React happy (Ink doesn’t scroll yet)
+  const [scroll, setScroll] = useState(0);
 
-  useInput((input, key) => {
-    if (key.escape) exit();
-  });
+  const reservedBottom = 1 /* input */ + 1 /* footer */ + 1 /* spinner */ + 1 /* margin */;
+  const reservedTop = 3;
+  const viewportLines = Math.max(3, rows - reservedTop - reservedBottom);
 
-  const push = useCallback((m: Message) => {
-    setMessages(prev => [...prev, m]);
+  const {visible: visibleMessages, maxScroll} = useMemo(
+    () => sliceForViewport(messages, viewportLines, scroll),
+    [messages, viewportLines, scroll]
+  );
+
+  useEffect(() => {
+    setScroll(prev => (prev === 0 ? 0 : Math.min(prev, maxScroll)));
+  }, [messages, maxScroll]);
+
+  useInput(
+    (input, key) => {
+      if (key.escape) exit();
+
+      if (key.upArrow) setScroll(prev => Math.min(maxScroll, prev + 1));
+      if (key.downArrow) setScroll(prev => Math.max(0, prev - 1));
+      if (key.pageUp) setScroll(prev => Math.min(maxScroll, prev + viewportLines));
+      if (key.pageDown) setScroll(prev => Math.max(0, prev - viewportLines));
+
+      const isHomeKey = input === '\u001b[H' || input === '\u001b[1~';
+      const isEndKey = input === '\u001b[F' || input === '\u001b[4~';
+
+      if (isHomeKey) setScroll(maxScroll);
+      if (isEndKey) setScroll(0);
+    });
+
+  const push = useCallback((message: Message) => {
+    setMessages(prev => [...prev, message]);
   }, []);
 
-  const demoTranscript = useCallback((originalPrompt: string) => {
-    // Header context
-    setTitle('Implementing coin change in Python');
+  const demoTranscript = useCallback(
+    (originalPrompt: string) => {
+      setTitle('Implementing coin change in Python');
+      setScroll(0);
 
-    // 1) user asks
-    push({
-      author: 'user',
-      timestamp: nowTime(),
-      chunks: [{kind: 'text', text: 'write a python implementation for coin change'}],
-    });
+      push({
+        author: 'user',
+        timestamp: nowTime(),
+        chunks: [{kind: 'text', text: 'write a python implementation for coin change'}],
+      });
 
-    // 2) "Write coin_change.py" + code
-    push({
-      author: 'agent',
-      chunks: [{kind: 'text', text: 'Write coin_change.py'}],
-    });
+      push({
+        author: 'agent',
+        chunks: [{kind: 'text', text: 'Write coin_change.py'}],
+      });
 
-    push({
-      author: 'agent',
-      chunks: [
-        {
-          kind: 'code',
-          lines: [
-            'def coin_change(coins, amount):',
-            '    if amount == 0:',
-            "        return 0",
-            "    dp = [float('inf')] * (amount + 1)",
-            '    dp[0] = 0',
-            '    for coin in coins:',
-            '        for i in range(coin, amount + 1):',
-            '            dp[i] = min(dp[i], dp[i - coin] + 1)',
-            "    return dp[amount] if dp[amount] != float('inf') else -1",
-          ],
-        },
-      ],
-    });
+      push({
+        author: 'agent',
+        chunks: [
+          {
+            kind: 'code',
+            lines: [
+              'def coin_change(coins, amount):',
+              '    if amount == 0:',
+              "        return 0",
+              "    dp = [float('inf')] * (amount + 1)",
+              '    dp[0] = 0',
+              '    for coin in coins:',
+              '        for i in range(coin, amount + 1):',
+              '            dp[i] = min(dp[i], dp[i - coin] + 1)',
+              "    return dp[amount] if dp[amount] != float('inf') else -1",
+            ],
+          },
+        ],
+      });
 
-    // 3) error message like in screenshot
-    push({
-      author: 'agent',
-      chunks: [
-        {
-          kind: 'error',
-          text:
-            'You must read the file /Users/johannes.duplessis/coin_change.py before overwriting it. Use the Read tool first',
-        },
-      ],
-    });
+      push({
+        author: 'agent',
+        chunks: [
+          {
+            kind: 'error',
+            text:
+              'You must read the file /Users/johannes.duplessis/coin_change.py before overwriting it. Use the Read tool first',
+          },
+        ],
+      });
 
-    // 4) "List /Users/..." with directory listing
-    push({
-      author: 'agent',
-      chunks: [
-        {kind: 'text', text: 'List /Users/johannes.duplessis'},
-        {
-          kind: 'list',
-          lines: [
-            '',
-            '/Users/johannes.duplessis/',
-            '  .azure/',
-            '  bin/',
-            '  bicep',
-            '  logs/',
-            '    telemetry.log',
-            '  az.json',
-            '  az.sess',
-            '  az_survey.json',
-            '  azureProfile.json',
-            '',
-          ],
-        },
-      ],
-    });
+      push({
+        author: 'agent',
+        chunks: [
+          {kind: 'text', text: 'List /Users/johannes.duplessis'},
+          {
+            kind: 'list',
+            lines: [
+              '',
+              '/Users/johannes.duplessis/',
+              '  .azure/',
+              '  bin/',
+              '  bicep',
+              '  logs/',
+              '    telemetry.log',
+              '  az.json',
+              '  az.sess',
+              '  az_survey.json',
+              '  azureProfile.json',
+              '',
+            ],
+          },
+        ],
+      });
 
-    // 5) Status line
-    push({
-      author: 'agent',
-      chunks: [{kind: 'status', text: 'Build grok-code'}],
-    });
+      push({
+        author: 'agent',
+        chunks: [{kind: 'status', text: 'Build grok-code'}],
+      });
 
-    // 6) Prompt returns
-    setBusy(false);
-  }, [push]);
+      setBusy(false);
+    },
+    [push]
+  );
 
   const handleSubmit = useCallback(
     (value: string) => {
       if (!value.trim()) return;
 
-      if (value.trim().toLowerCase() === '/quit' || value.trim().toLowerCase() === '/exit') {
+      const normalizedInput = value.trim().toLowerCase();
+      if (normalizedInput === '/quit' || normalizedInput === '/exit') {
         push({author: 'system', chunks: [{kind: 'text', text: 'Goodbye!'}]});
         setTimeout(() => exit(), 100);
         return;
@@ -265,19 +362,14 @@ export const App = () => {
 
       setQuery('');
       setBusy(true);
+      setScroll(0);
 
-      // For the demo we recreate the screenshot when the prompt mentions coin change or when "/demo"
-      const normalized = value.trim().toLowerCase();
-      const shouldDemo =
-        normalized.includes('coin change') || normalized === '/demo';
-
+      const shouldDemo = normalizedInput.includes('coin change') || normalizedInput === '/demo';
       if (shouldDemo) {
-        // simulate a tiny delay to let spinner show
         setTimeout(() => demoTranscript(value), 400);
         return;
       }
 
-      // Fallback: simple echo conversation bubble
       push({
         author: 'user',
         timestamp: nowTime(),
@@ -295,46 +387,28 @@ export const App = () => {
     [demoTranscript, exit, push]
   );
 
-  // keep the cursor near bottom on updates (visual nicety)
-  useEffect(() => {
-    scrollRef.current++;
-  }, [messages.length]);
-
-  const leftPrompt = useMemo(
-    () => (
-      <Box>
-        <Text color="cyan" bold>
-          {'>'}{' '}
-        </Text>
-      </Box>
-    ),
-    []
-  );
-
   return (
-    <Box flexDirection="column" paddingX={1} paddingY={1}>
+    <Box flexDirection="column" paddingX={1} paddingY={1} height={rows} width={cols}>
       <HeaderBar title={title} />
-      {/* Conversation */}
-      <Box flexDirection="column" marginTop={1}>
-        {messages.map((m, i) => (
-          <MessageView key={i} msg={m} />
+
+      <Box flexDirection="column" marginTop={1} flexGrow={1}>
+        {visibleMessages.map((message, index) => (
+          <MessageView key={`${messages.indexOf(message)}-${index}`} msg={message} />
         ))}
+
+        {busy && (
+          <Box marginTop={1}>
+            <Text color="green">
+              <Spinner type="dots" />
+            </Text>
+            <Text> Coda is thinking...</Text>
+          </Box>
+        )}
       </Box>
 
-      {/* Loading indicator */}
-      {busy && (
-        <Box marginTop={1}>
-          <Text color="green">
-            <Spinner type="dots" />
-          </Text>
-          <Text> Coda is thinking...</Text>
-        </Box>
-      )}
-
-      {/* Input */}
       {!busy && (
         <Box marginTop={1} alignItems="center">
-          {leftPrompt}
+          <Text color="cyan" bold>{'>'} </Text>
           <TextInput
             value={query}
             onChange={setQuery}
@@ -344,7 +418,6 @@ export const App = () => {
         </Box>
       )}
 
-      {/* Footer */}
       <Footer working={busy} />
     </Box>
   );
