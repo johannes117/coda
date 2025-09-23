@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 import importlib.resources
+import logging
 
 from rich.markdown import Markdown
 from rich.text import Text
@@ -57,6 +58,18 @@ class CodaApp(App):
         self.config = CodaConfig.load(config_path)
         self.agent = CodaAgent(self.config)
         self.debug_mode = debug
+
+        if debug:
+            log_path = Path("/tmp/coda_app.log")
+            log_path.write_text("")
+            logging.basicConfig(
+                level=logging.DEBUG,
+                format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                filename=str(log_path),
+                filemode='w'
+            )
+            self.logger = logging.getLogger('CodaApp')
+            self.logger.info("Debug mode enabled")
 
         # Set CSS path using package resources
         styles_path = importlib.resources.files("coda.ui.styles")
@@ -172,6 +185,15 @@ class CodaApp(App):
             self._push_system("Generation interrupted.")
         else:
             self._push_system("Nothing to interrupt.")
+
+    def action_quit(self) -> None:
+        self.exit()
+
+    def on_key(self, event) -> None:
+        """Handle Ctrl+C directly since Textual intercepts it."""
+        if event.key == "ctrl+c":
+            self.exit()
+            return
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         text = event.value.strip()
