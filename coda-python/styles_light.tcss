@@ -1,0 +1,150 @@
+/* Tokyo Night Light */
+Screen {
+  background: #e6e7ed;
+  color: #343b59;
+}
+
+#session-card {
+  layout: horizontal;
+  padding: 1 2;
+  margin: 1 2 0 2;
+  border: solid #c1c2c7;
+  background: #d6d8df;
+}
+
+#logo {
+  color: #65359d;
+}
+
+#session-meta {
+  layout: vertical;
+  padding-left: 2;
+}
+
+#session-title {
+  color: #65359d;
+}
+
+#session-version,
+#session-model,
+#session-path {
+  color: #888b94;
+}
+
+#command-help {
+  padding: 1 2;
+  margin: 1 2;
+  border: solid #c1c2c7;
+  background: #d6d8df;
+}
+
+#help-text {
+  color: #343b59;
+  padding-bottom: 1;
+}
+
+#commands-list {
+  layout: vertical;
+}
+
+.command-row {
+  padding: 0 0 1 0;
+  margin-bottom: 1;
+}
+
+.command-key {
+  color: #006c86;
+  min-width: 8;
+}
+
+.command-name {
+  color: #343b59;
+  width: 1fr;
+  padding-left: 2;
+}
+
+.command-hint {
+  color: #888b94;
+  padding-left: 2;
+}
+
+#chat {
+  height: 1fr;
+  border: tall #c1c2c7;
+  background: #d6d8df;
+}
+
+.message {
+  padding: 1 2;
+  margin: 1 2;
+  border: solid #c1c2c7;
+  background: #e6e7ed;
+}
+
+.message.user {
+  border: solid #65359d;
+}
+
+.message.agent {
+  border: solid #006c86;
+}
+
+.message .title {
+  color: #65359d;
+}
+
+.message .error {
+  color: #8c4351;
+}
+
+#prompt {
+  padding: 1 2;
+  margin: 1 2;
+  border: tall #c1c2c7;
+  background: #d6d8df;
+}
+
+#prompt-row {
+  layout: horizontal;
+  align: center middle;
+}
+
+#prompt-symbol {
+  padding-right: 1;
+  color: #65359d;
+}
+
+#status-left,
+#status-right {
+  color: #888b94;
+  padding-left: 1;
+}
+
+#prompt-hints {
+  layout: horizontal;
+  padding-top: 1;
+  color: #888b94;
+}
+
+.prompt-hint {
+  color: #888b94;
+  padding-right: 2;
+}
+
+Input {
+  background: #e6e7ed;
+  border: solid #c1c2c7;
+  color: #343b59;
+}
+
+#prompt-row Input {
+  width: 1fr;
+}
+
+.prompt-input {
+  width: 1fr;
+}
+
+Rule {
+  color: #c1c2c7;
+}

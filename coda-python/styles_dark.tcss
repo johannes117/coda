@@ -1,0 +1,152 @@
+/* Tokyo Night Dark */
+Screen {
+  background: #24283b;
+  color: #a9b1d6;
+}
+
+#session-card {
+  layout: horizontal;
+  padding: 1 2;
+  margin: 1 2 0 2;
+  border: solid #1b1e2e;
+  background: #1f2335;
+}
+
+#logo {
+  color: #7aa2f7;
+}
+
+#session-meta {
+  layout: vertical;
+  padding-left: 2;
+}
+
+#session-title {
+  color: #bb9af7;
+}
+
+#session-version,
+#session-model,
+#session-path {
+  color: #8089b3;
+}
+
+#command-help {
+  padding: 1 2;
+  margin: 1 2;
+  border: solid #1b1e2e;
+  background: #1f2335;
+}
+
+#help-text {
+  color: #a9b1d6;
+  padding-bottom: 1;
+}
+
+#commands-list {
+  layout: vertical;
+}
+
+.command-row {
+  padding: 0 0 1 0;
+  margin-bottom: 1;
+}
+
+.command-key {
+  color: #bb9af7;
+  min-width: 8;
+}
+
+.command-name {
+  color: #a9b1d6;
+  width: 1fr;
+  padding-left: 2;
+}
+
+.command-hint {
+  color: #8089b3;
+  padding-left: 2;
+}
+
+#chat {
+  height: 1fr;
+  border: tall #1b1e2e;
+  background: #1f2335;
+}
+
+.message {
+  padding: 1 2;
+  margin: 1 2;
+  border: solid #1b1e2e;
+  background: #2c324a;
+}
+
+.message.user {
+  border: solid #7aa2f7;
+  background: #2c324a;
+}
+
+.message.agent {
+  border: solid #bb9af7;
+  background: #1f2335;
+}
+
+.message .title {
+  color: #bb9af7;
+}
+
+.message .error {
+  color: #f7768e;
+}
+
+#prompt {
+  padding: 1 2;
+  margin: 1 2;
+  border: tall #1b1e2e;
+  background: #1f2335;
+}
+
+#prompt-row {
+  layout: horizontal;
+  align: center middle;
+}
+
+#prompt-symbol {
+  padding-right: 1;
+  color: #7aa2f7;
+}
+
+#status-left,
+#status-right {
+  color: #8089b3;
+  padding-left: 1;
+}
+
+#prompt-hints {
+  layout: horizontal;
+  padding-top: 1;
+  color: #5f6996;
+}
+
+.prompt-hint {
+  color: #5f6996;
+  padding-right: 2;
+}
+
+Input {
+  background: #2c324a;
+  border: solid #1b1e2e;
+  color: #a9b1d6;
+}
+
+#prompt-row Input {
+  width: 1fr;
+}
+
+.prompt-input {
+  width: 1fr;
+}
+
+Rule {
+  color: #1b1e2e;
+}

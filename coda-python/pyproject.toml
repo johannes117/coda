@@ -1,0 +1,20 @@
+[project]
+name = "coda"
+version = "0.1.0"
+description = "Python CLI Coding agent UI (Tokyo Night)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "textual>=0.60.0",
+    "rich>=13.7.0",
+]
+
+[tool.setuptools]
+py-modules = ["app", "theme", "__init__"]
+
+[project.scripts]
+coda = "app:main"
+
+[tool.uv]
+# uv will manage a local environment automatically on uv run
+package = true
