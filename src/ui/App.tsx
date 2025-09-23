@@ -59,17 +59,40 @@ const useBlink = () => {
 
 const HeaderBar = ({title}: {title: string}) => {
   return (
-    <Box
-      borderStyle="single"
-      paddingX={1}
-      justifyContent="space-between"
-      width="100%"
-    >
-      <Text>
-        <Text color="gray"># </Text>
-        <Text bold>{title}</Text>
-      </Text>
-      <Text dimColor>share to create a shareable link</Text>
+    <Box flexDirection="column" alignSelf="flex-start">
+      <Box marginBottom={1}>
+        <Text color="cyan">
+          {'                             ░██            \n'}
+          {'                             ░██            \n'}
+          {' ░███████   ░███████   ░████████  ░██████   \n'}
+          {'░██    ░██ ░██    ░██ ░██    ░██       ░██  \n'}
+          {'░██        ░██    ░██ ░██    ░██  ░███████  \n'}
+          {'░██    ░██ ░██    ░██ ░██   ░███ ░██   ░██  \n'}
+          {' ░███████   ░███████   ░█████░██  ░█████░██ \n'}
+          {'                                            \n'}
+          {'                                            \n'}
+          {'                                            '}
+        </Text>
+      </Box>
+      <Box
+        borderStyle="single"
+        paddingX={1}
+        flexDirection="column"
+      >
+        <Box>
+          <Text>
+            <Text bold color="cyan">model:</Text>
+            <Text>     gpt-5-medium   </Text>
+            <Text dimColor>/model to change</Text>
+          </Text>
+        </Box>
+        <Box>
+          <Text>
+            <Text bold color="cyan">directory:</Text>
+            <Text> ~/Documents/Dev/coda</Text>
+          </Text>
+        </Box>
+      </Box>
     </Box>
   );
 };
@@ -176,7 +199,7 @@ export const App = () => {
   const { exit } = useApp();
   const [cols, rows] = useTerminalDimensions();
 
-  const [title, setTitle] = useState('Implementing coin change in Python');
+  const [title, setTitle] = useState('AI-Powered Development Assistant');
   const [messages, setMessages] = useState<Message[]>([
     {
       author: 'system',
@@ -197,7 +220,7 @@ export const App = () => {
 
   const demoTranscript = useCallback(
     (originalPrompt: string) => {
-      setTitle('Implementing coin change in Python');
+      setTitle('Building Python Applications');
 
       push({
         author: 'user',
