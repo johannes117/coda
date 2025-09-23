@@ -136,7 +136,7 @@ const Footer = ({working}: {working: boolean}) => {
         <Text dimColor>esc</Text> <Text> interrupt</Text>
       </Text>
       <Text dimColor>
-        opencode v0.11.1  ~
+        coda v0.1.0  ~
       </Text>
       <Text>
         <Text dimColor>tab | </Text>
