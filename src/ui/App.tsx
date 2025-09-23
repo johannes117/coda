@@ -1,5 +1,5 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import {Box, Text, useApp, useInput, useStdout} from 'ink';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Box, Text, useApp, useInput, useStdout } from 'ink';
 import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
 
@@ -21,57 +21,11 @@ type Message = {
 
 /** ---------- Utilities ---------- */
 const nowTime = () =>
-  new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+  new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-// Approximate terminal height consumption for each chunk type.
-const chunkHeight = (c: Chunk): number => {
-  switch (c.kind) {
-    case 'code':
-    case 'list':
-      return (c.lines?.length ?? 0) + 2; // bordered block adds two lines
-    case 'divider':
-      return 1;
-    case 'error':
-    case 'status':
-    case 'text':
-    default:
-      return 1;
-  }
-};
-
-const messageHeight = (m: Message): number =>
-  m.chunks.reduce((sum, chunk) => sum + chunkHeight(chunk), 0);
-
-type ViewportSlice = {
-  visible: Message[];
-  totalLines: number;
-  maxScroll: number;
-};
-
-const sliceForViewport = (items: Message[], viewportLines: number, scroll: number): ViewportSlice => {
-  const heights = items.map(messageHeight);
-  const totalLines = heights.reduce((acc, value) => acc + value, 0);
-  const effectiveViewport = Math.max(0, viewportLines);
-  const maxScroll = Math.max(0, totalLines - effectiveViewport);
-  const clampedScroll = Math.max(0, Math.min(scroll, maxScroll));
-  const windowStart = Math.max(0, totalLines - effectiveViewport - clampedScroll);
-  const windowEnd = windowStart + effectiveViewport;
-
-  const visible: Message[] = [];
-  let cumulative = 0;
-
-  for (let i = 0; i < items.length; i++) {
-    const next = cumulative + heights[i];
-    const overlaps = next > windowStart && cumulative < windowEnd;
-    if (overlaps) visible.push(items[i]);
-    cumulative = next;
-  }
-
-  return {visible, totalLines, maxScroll};
-};
 
 const useTerminalDimensions = (): [number, number] => {
-  const {stdout} = useStdout();
+  const { stdout } = useStdout();
   const [size, setSize] = useState<[number, number]>([stdout?.columns ?? 80, stdout?.rows ?? 24]);
 
   useEffect(() => {
@@ -203,9 +157,7 @@ const Footer = ({working}: {working: boolean}) => {
         <Text dimColor>{working ? (blink ? 'working..' : 'working.') : ''}</Text>
         {working ? <Text dimColor>{'   '}</Text> : null}
         <Text dimColor>esc</Text>
-        <Text> interrupt  ·  </Text>
-        <Text dimColor>↑/↓ PgUp/PgDn Home/End</Text>
-        <Text> scroll</Text>
+        <Text> interrupt</Text>
       </Text>
       <Text dimColor>
         coda v0.1.0  ~
@@ -221,48 +173,23 @@ const Footer = ({working}: {working: boolean}) => {
 /** ---------- Main App ---------- */
 
 export const App = () => {
-  const {exit} = useApp();
+  const { exit } = useApp();
   const [cols, rows] = useTerminalDimensions();
 
   const [title, setTitle] = useState('Implementing coin change in Python');
   const [messages, setMessages] = useState<Message[]>([
     {
       author: 'system',
-      chunks: [{kind: 'text', text: 'Welcome to Coda! How can I help you today?'}],
+      chunks: [{ kind: 'text', text: 'Welcome to Coda! How can I help you today?' }],
     },
   ]);
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
-  const [scroll, setScroll] = useState(0);
 
-  const reservedBottom = 1 /* input */ + 1 /* footer */ + 1 /* spinner */ + 1 /* margin */;
-  const reservedTop = 3;
-  const viewportLines = Math.max(3, rows - reservedTop - reservedBottom);
-
-  const {visible: visibleMessages, maxScroll} = useMemo(
-    () => sliceForViewport(messages, viewportLines, scroll),
-    [messages, viewportLines, scroll]
-  );
-
-  useEffect(() => {
-    setScroll(prev => (prev === 0 ? 0 : Math.min(prev, maxScroll)));
-  }, [messages, maxScroll]);
-
-  useInput(
-    (input, key) => {
-      if (key.escape) exit();
-
-      if (key.upArrow) setScroll(prev => Math.min(maxScroll, prev + 1));
-      if (key.downArrow) setScroll(prev => Math.max(0, prev - 1));
-      if (key.pageUp) setScroll(prev => Math.min(maxScroll, prev + viewportLines));
-      if (key.pageDown) setScroll(prev => Math.max(0, prev - viewportLines));
-
-      const isHomeKey = input === '\u001b[H' || input === '\u001b[1~';
-      const isEndKey = input === '\u001b[F' || input === '\u001b[4~';
-
-      if (isHomeKey) setScroll(maxScroll);
-      if (isEndKey) setScroll(0);
-    });
+  // Remove manual keyboard scrolling logic
+  useInput((input, key) => {
+    if (key.escape) exit();
+  });
 
   const push = useCallback((message: Message) => {
     setMessages(prev => [...prev, message]);
@@ -271,7 +198,6 @@ export const App = () => {
   const demoTranscript = useCallback(
     (originalPrompt: string) => {
       setTitle('Implementing coin change in Python');
-      setScroll(0);
 
       push({
         author: 'user',
@@ -362,7 +288,6 @@ export const App = () => {
 
       setQuery('');
       setBusy(true);
-      setScroll(0);
 
       const shouldDemo = normalizedInput.includes('coin change') || normalizedInput === '/demo';
       if (shouldDemo) {
@@ -388,37 +313,38 @@ export const App = () => {
   );
 
   return (
-    <Box flexDirection="column" paddingX={1} paddingY={1} height={rows} width={cols}>
-      <HeaderBar title={title} />
+    <Box flexDirection="column" width={cols} flexGrow={1}>
+        <HeaderBar title={title} />
 
-      <Box flexDirection="column" marginTop={1} flexGrow={1}>
-        {visibleMessages.map((message, index) => (
-          <MessageView key={`${messages.indexOf(message)}-${index}`} msg={message} />
-        ))}
+        <Box flexDirection="column" flexGrow={1} flexShrink={1}>
+            {/* Render all messages and let the terminal handle scrolling */}
+            {messages.map((message, index) => (
+                <MessageView key={index} msg={message} />
+            ))}
 
-        {busy && (
-          <Box marginTop={1}>
-            <Text color="green">
-              <Spinner type="dots" />
-            </Text>
-            <Text> Coda is thinking...</Text>
-          </Box>
-        )}
-      </Box>
-
-      {!busy && (
-        <Box marginTop={1} alignItems="center">
-          <Text color="cyan" bold>{'>'} </Text>
-          <TextInput
-            value={query}
-            onChange={setQuery}
-            onSubmit={handleSubmit}
-            placeholder=" Ask Coda anything..."
-          />
+            {busy && (
+                <Box marginTop={1}>
+                    <Text color="green">
+                        <Spinner type="dots" />
+                    </Text>
+                    <Text> Coda is thinking...</Text>
+                </Box>
+            )}
         </Box>
-      )}
 
-      <Footer working={busy} />
+        {!busy && (
+            <Box marginTop={1} alignItems="center">
+                <Text color="cyan" bold>{'>'} </Text>
+                <TextInput
+                    value={query}
+                    onChange={setQuery}
+                    onSubmit={handleSubmit}
+                    placeholder=" Ask Coda anything..."
+                />
+            </Box>
+        )}
+
+        <Footer working={busy} />
     </Box>
   );
 };
