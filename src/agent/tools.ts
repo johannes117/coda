@@ -6,7 +6,6 @@ import { promisify } from 'util';
 
 const execPromise = promisify(exec);
 
-// Define schemas separately for proper type inference
 const listFilesSchema = z.object({
   path: z.string().describe('The path of the directory to list.'),
 });
@@ -24,9 +23,6 @@ const shellCommandSchema = z.object({
   command: z.string().describe('The shell command to execute.'),
 });
 
-/**
- * A tool for listing files in a directory.
- */
 export const listFilesTool = new DynamicStructuredTool({
   name: 'list_files',
   description: 'Lists all files and directories in a given path.',
@@ -41,9 +37,6 @@ export const listFilesTool = new DynamicStructuredTool({
   },
 });
 
-/**
- * A tool for reading the content of a file.
- */
 export const readFileTool = new DynamicStructuredTool({
   name: 'read_file',
   description: 'Reads the content of a file at a given path.',
@@ -57,9 +50,6 @@ export const readFileTool = new DynamicStructuredTool({
   },
 });
 
-/**
- * A tool for writing content to a file.
- */
 export const writeFileTool = new DynamicStructuredTool({
   name: 'write_file',
   description: 'Writes content to a file at a given path. Creates the file if it does not exist.',
@@ -74,10 +64,6 @@ export const writeFileTool = new DynamicStructuredTool({
   },
 });
 
-/**
- * A tool for executing shell commands.
- * SECURITY: This tool is powerful and can execute any command. Use with caution.
- */
 export const shellCommandTool = new DynamicStructuredTool({
   name: 'execute_shell_command',
   description: 'Executes a shell command. Use this for tasks like installing dependencies, running tests, or managing git.',

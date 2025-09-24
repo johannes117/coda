@@ -10,7 +10,7 @@ import { randomUUID } from 'crypto';
 import { existsSync } from 'fs';
 import { Logo } from './Logo.js';
 import { logError } from '../utils/logger.js';
-/** ---------- Types ---------- */
+
 type Author = 'user' | 'agent' | 'system' | 'tool';
 type ChunkKind = 'text' | 'code' | 'error' | 'list' | 'status' | 'divider' | 'tool-call' | 'tool-result';
 type Mode = 'agent' | 'plan';
@@ -28,7 +28,7 @@ type Message = {
   timestamp?: string;
   chunks: Chunk[];
 };
-/** ---------- Utilities ---------- */
+
 const nowTime = () =>
   new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 const useTerminalDimensions = (): [number, number] => {
@@ -55,6 +55,7 @@ const useBlink = () => {
   }, []);
   return on;
 };
+
 const modelOptions: ModelOption[] = [
   { id: 1, label: 'grok-code-fast-1', name: 'x-ai/grok-code-fast-1', effort: 'medium' },
   { id: 2, label: 'claude-sonnet-4', name: 'anthropic/claude-sonnet-4', effort: 'medium' },
@@ -63,7 +64,7 @@ const modelOptions: ModelOption[] = [
   { id: 5, label: 'gpt-5-medium', name: 'openai/gpt-5', effort: 'medium' },
   { id: 6, label: 'gpt-5-high', name: 'openai/gpt-5', effort: 'high' },
 ];
-/** ---------- Presentational bits ---------- */
+
 const HeaderBar = ({ title, mode, modelConfig }: { title: string; mode: Mode; modelConfig: ModelConfig }) => {
   const [cwd, setCwd] = useState('');
   useEffect(() => {
@@ -168,7 +169,7 @@ const MessageView = ({ msg }: { msg: Message }) => (
       if (c.kind === 'list') {
         return <CodeBlock key={i} lines={c.lines ?? []} />;
       }
-      // 'text'
+
       return (
         <Box key={i} flexDirection="row">
           <BubblePrefix author={msg.author} />
@@ -207,7 +208,7 @@ const Footer = ({ working, mode }: { working: boolean; mode: Mode }) => {
     </Box>
   );
 };
-/** ---------- Main App ---------- */
+
 export const App = () => {
   const { exit } = useApp();
   const [cols] = useTerminalDimensions();
@@ -384,7 +385,6 @@ export const App = () => {
       setBusy(true);
       try {
         if (mode === 'plan') {
-          // Plan mode: just show what the agent would do
           setTimeout(() => {
             push({
               author: 'agent',
@@ -394,7 +394,7 @@ export const App = () => {
           }, 600);
           return;
         }
-        // Agent mode: use the real LangGraph agent
+
         const stream = await agentInstance.stream({ messages: conversationHistory.current });
         for await (const chunk of stream) {
           const nodeName = Object.keys(chunk)[0];

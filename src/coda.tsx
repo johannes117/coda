@@ -5,11 +5,8 @@ import { hideBin } from 'yargs/helpers';
 import { getStoredApiKey } from './utils/storage.js';
 import { clearLog, logInfo, logError } from './utils/logger.js';
 
-/**
- * Main entry point for the Coda CLI application.
- */
 export async function main() {
-  await clearLog();  // Clear logs on app start
+  await clearLog();
 
   const argv = await yargs(hideBin(process.argv))
     .option('prompt', {
@@ -20,7 +17,6 @@ export async function main() {
     .help()
     .parse();
 
-  // If a non-interactive prompt is provided, handle it and exit.
   if (argv.prompt) {
     const apiKey = await getStoredApiKey();
     if (!apiKey) {
@@ -32,8 +28,6 @@ export async function main() {
     process.exit(0);
   }
 
-  // Otherwise, start the interactive UI.
-  // Ink handles its own cleanup, so we can render directly.
   const instance = render(<App />);
   await instance.waitUntilExit();
 }

@@ -24,9 +24,6 @@ Follow this process:
 5. **Repeat:** Continue this cycle until you have completed the user's request.
 6. **Conclude:** When the task is complete, respond to the user with a summary of what you have done. Do not call any more tools.`;
 
-/**
- * Factory for creating the agent with a given API key and model config.
- */
 export const createAgent = (apiKey: string, modelConfig: { name: string; effort: string }) => {
   const modelKwargs = modelConfig.name.startsWith('openai/') ? {
     reasoning_effort: modelConfig.effort,
@@ -42,11 +39,6 @@ export const createAgent = (apiKey: string, modelConfig: { name: string; effort:
     }
   }).bindTools(tools);
 
-  /**
-   * The 'callModel' node is the primary "thinker" of our agent.
-   * It invokes the LLM with the current message history and the system prompt.
-   * It returns a partial state update with the AIMessage response.
-   */
   const callModel = async (state: typeof MessagesAnnotation.State) => {
     const messages = [
       { role: 'system', content: systemPrompt },
@@ -56,10 +48,6 @@ export const createAgent = (apiKey: string, modelConfig: { name: string; effort:
     return { messages: [response] };
   };
 
-  /**
-   * The 'shouldContinue' function is a conditional edge that determines
-   * the next step in the graph based on the LLM's response.
-   */
   const shouldContinue = (state: typeof MessagesAnnotation.State) => {
     const { messages } = state;
     const lastMessage = messages[messages.length - 1] as AIMessage;
@@ -71,7 +59,6 @@ export const createAgent = (apiKey: string, modelConfig: { name: string; effort:
 
   const toolNode = new ToolNode<typeof MessagesAnnotation.State>(tools);
 
-  // Define the graph structure using the MessagesAnnotation for state.
   const workflow = new StateGraph(MessagesAnnotation)
     .addNode('agent', callModel)
     .addNode('tools', toolNode)
@@ -79,6 +66,5 @@ export const createAgent = (apiKey: string, modelConfig: { name: string; effort:
     .addConditionalEdges('agent', shouldContinue)
     .addEdge('tools', 'agent');
 
-  // Compile the graph into a runnable agent
   return workflow.compile();
 };
