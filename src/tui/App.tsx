@@ -16,6 +16,20 @@ import { HeaderBar } from './ui/HeaderBar.js';
 import { MessageView } from './ui/MessageView.js';
 import { Footer } from './ui/Footer.js';
 
+const BUSY_TEXT_OPTIONS = [
+  'vibing...',
+  'noodling...',
+  'pondering...',
+  'thinking really hard...',
+  'spinning up...',
+  'connecting the dots...',
+  'brewing ideas...',
+  'cooking...',
+  'crunching...',
+  'scheming...',
+  'processing...'
+] as const;
+
 export const App = () => {
   const { exit } = useApp();
   const cols = useStore((s) => s.terminalCols);
@@ -41,6 +55,11 @@ export const App = () => {
   const conversationHistory = useRef<BaseMessage[]>([]);
   const currentOption = modelOptions.find((o) => o.name === currentModel.name && o.effort === currentModel.effort);
   const currentId = currentOption ? currentOption.id : 5;
+
+  const busyText = useMemo(() => {
+    const idx = Math.floor(Math.random() * BUSY_TEXT_OPTIONS.length);
+    return BUSY_TEXT_OPTIONS[idx];
+  }, [busy]);
 
   const push = useCallback((message: Omit<Message, 'id'>) => {
     addMessage(message);
@@ -272,7 +291,7 @@ export const App = () => {
             <Text color="green">
               <Spinner type="dots" />
             </Text>
-            <Text> coda is thinking...</Text>
+            <Text> {busyText}</Text>
           </Box>
         )}
       </Box>
