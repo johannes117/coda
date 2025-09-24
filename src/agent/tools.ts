@@ -19,6 +19,10 @@ const writeFileSchema = z.object({
   content: z.string().describe('The content to write to the file.'),
 });
 
+const deleteFileSchema = z.object({
+  path: z.string().describe('The path of the file to delete.'),
+});
+
 const shellCommandSchema = z.object({
   command: z.string().describe('The shell command to execute.'),
 });
@@ -64,6 +68,20 @@ export const writeFileTool = new DynamicStructuredTool({
   },
 });
 
+export const deleteFileTool = new DynamicStructuredTool({
+  name: 'delete_file',
+  description: 'Deletes a file at a given path.',
+  schema: deleteFileSchema,
+  func: async ({ path }: z.infer<typeof deleteFileSchema>) => {
+    try {
+      await fs.unlink(path);
+      return `Successfully deleted ${path}`;
+    } catch (e: any) {
+      return `Error deleting file: ${e.message}`;
+    }
+  },
+});
+
 export const shellCommandTool = new DynamicStructuredTool({
   name: 'execute_shell_command',
   description: 'Executes a shell command. Use this for tasks like installing dependencies, running tests, or managing git.',
@@ -85,5 +103,6 @@ export const tools = [
   listFilesTool,
   readFileTool,
   writeFileTool,
+  deleteFileTool,
   shellCommandTool,
 ];

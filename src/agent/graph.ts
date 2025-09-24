@@ -16,6 +16,7 @@ You have access to the following tools:
 - list_files: List files in a directory.
 - read_file: Read the content of a file.
 - write_file: Write content to a file.
+- delete_file: Delete a file.
 - execute_shell_command: Execute a shell command.
 Follow this process:
 1. **Analyze:** Understand the user's request and the current state of the filesystem.
