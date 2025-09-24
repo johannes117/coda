@@ -5,7 +5,7 @@ import Spinner from 'ink-spinner';
 import { createAgent } from '../agent/graph.js';
 import { AIMessage, HumanMessage, ToolMessage } from '@langchain/core/messages';
 import { BaseMessage } from '@langchain/core/messages';
-import { storeApiKey, deleteStoredApiKey, saveSession } from '../utils/storage.js';
+import { deleteStoredApiKey, saveSession } from '../utils/storage.js';
 import { randomUUID } from 'crypto';
 import { existsSync } from 'fs';
 import { logError } from '../utils/logger.js';
@@ -20,20 +20,17 @@ export const App = () => {
   const { exit } = useApp();
   const cols = useStore((s) => s.terminalCols);
   const apiKey = useStore((s) => s.apiKey);
-  const showApiKeyPrompt = !apiKey;
   const currentModel = useStore((s) => s.modelConfig);
   const messages = useStore((s) => s.messages);
   const busy = useStore((s) => s.busy);
   const setBusy = useStore((s) => s.setBusy);
   const addMessage = useStore((s) => s.addMessage);
   const resetMessages = useStore((s) => s.resetMessages);
-  const setApiKeyStore = useStore((s) => s.setApiKey);
   const setModelConfig = useStore((s) => s.setModelConfig);
   const clearApiKeyStore = useStore((s) => s.clearApiKey);
   const [mode, setMode] = useState<Mode>('agent');
   const [query, setQuery] = useState('');
   const [showModelPrompt, setShowModelPrompt] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState('');
   const [modelInput, setModelInput] = useState('');
   const agentInstance = useMemo(
     () => (apiKey ? createAgent(apiKey, currentModel) : null),
@@ -59,7 +56,7 @@ export const App = () => {
       }
       return;
     }
-    if (key.tab && !showApiKeyPrompt && !showModelPrompt) {
+    if (key.tab && !showModelPrompt) {
       setMode(prev => prev === 'agent' ? 'plan' : 'agent');
     }
   });
@@ -80,6 +77,8 @@ export const App = () => {
           resetMessages();
           conversationHistory.current = [];
           setQuery('');
+          useStore.setState({ resetRequested: true });
+          exit();
           return;
         } else if (cmd === 'status') {
           const cwd = process.cwd().replace(process.env.HOME || '', '~');
@@ -206,16 +205,7 @@ export const App = () => {
     [busy, push, mode, exit, agentInstance, currentModel, sessionId, resetMessages, clearApiKeyStore]
   );
 
-  const handleApiKeySubmit = useCallback(
-    async (value: string) => {
-      const trimmed = value.trim();
-      if (!trimmed) return;
-      await storeApiKey(trimmed);
-      setApiKeyStore(trimmed);
-      setApiKeyInput('');
-    },
-    [setApiKeyStore]
-  );
+
 
   const handleModelSubmit = useCallback(
     (value: string) => {

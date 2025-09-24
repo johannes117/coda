@@ -20,6 +20,7 @@ type Store = {
   blink: boolean;
   toggleBlink: () => void;
   terminalCols: number;
+  resetRequested: boolean;
 };
 
 export const useStore = create<Store>((set, get) => ({
@@ -36,4 +37,5 @@ export const useStore = create<Store>((set, get) => ({
   blink: true,
   toggleBlink: () => set((state) => ({ blink: !state.blink })),
   terminalCols: process.stdout.columns ?? 80,
+  resetRequested: false,
 }));
