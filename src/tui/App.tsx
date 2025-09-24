@@ -16,6 +16,7 @@ import { HeaderBar } from './ui/HeaderBar.js';
 import { MessageView } from './ui/MessageView.js';
 import { Footer } from './ui/Footer.js';
 
+
 const BUSY_TEXT_OPTIONS = [
   'vibing...',
   'noodling...',

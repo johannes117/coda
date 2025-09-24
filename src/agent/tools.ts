@@ -60,8 +60,65 @@ export const writeFileTool = new DynamicStructuredTool({
   schema: writeFileSchema,
   func: async ({ path, content }: z.infer<typeof writeFileSchema>) => {
     try {
+      const CONTEXT_LINES = 2;
+      let originalContent = '';
+      try {
+        originalContent = await fs.readFile(path, 'utf-8');
+      } catch (e) {
+        // File doesn't exist, which is fine for a write operation.
+      }
+
+      if (originalContent === content) {
+        return JSON.stringify({ summary: `No changes made to ${path}.`, diff: '' });
+      }
+
       await fs.writeFile(path, content, 'utf-8');
-      return `Successfully wrote ${content.length} characters to ${path}`;
+
+      const originalLines = originalContent.split('\n');
+      const newLines = content.split('\n');
+      let additions = 0;
+      let removals = 0;
+      const newLinesSet = new Set(newLines);
+      const originalLinesSet = new Set(originalLines);
+
+      for (const line of newLines) {
+        if (!originalLinesSet.has(line)) additions++;
+      }
+      for (const line of originalLines) {
+        if (!newLinesSet.has(line)) removals++;
+      }
+
+      let commonPrefix = 0;
+      while (commonPrefix < originalLines.length && commonPrefix < newLines.length && originalLines[commonPrefix] === newLines[commonPrefix]) {
+        commonPrefix++;
+      }
+
+      let commonSuffix = 0;
+      while (commonSuffix < originalLines.length - commonPrefix && commonSuffix < newLines.length - commonPrefix && originalLines[originalLines.length - 1 - commonSuffix] === newLines[newLines.length - 1 - commonSuffix]) {
+        commonSuffix++;
+      }
+
+      const diffSnippet: string[] = [];
+      const prefixStartIndex = Math.max(0, commonPrefix - CONTEXT_LINES);
+      for (let i = prefixStartIndex; i < commonPrefix; i++) {
+        diffSnippet.push(`  ${originalLines[i]}`);
+      }
+
+      for (let i = commonPrefix; i < originalLines.length - commonSuffix; i++) {
+        diffSnippet.push(`- ${originalLines[i]}`);
+      }
+      for (let i = commonPrefix; i < newLines.length - commonSuffix; i++) {
+        diffSnippet.push(`+ ${newLines[i]}`);
+      }
+
+      const suffixStartIndex = newLines.length - commonSuffix;
+      const suffixEndIndex = Math.min(newLines.length, suffixStartIndex + CONTEXT_LINES);
+      for (let i = suffixStartIndex; i < suffixEndIndex; i++) {
+        diffSnippet.push(`  ${newLines[i]}`);
+      }
+
+      const summary = `Updated ${path} with ${additions} addition(s) and ${removals} removal(s).`;
+      return JSON.stringify({ summary, diff: diffSnippet.join('\n') });
     } catch (e: any) {
       return `Error writing to file: ${e.message}`;
     }

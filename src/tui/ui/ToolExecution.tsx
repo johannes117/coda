@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
 import Spinner from 'ink-spinner';
 import type { Chunk } from '../../types/index.js';
+import { DiffView } from './DiffView.js';
 
 const formatArgs = (args: Record<string, any>): string => {
   if (args.command) {
@@ -48,12 +49,46 @@ export const ToolExecution = ({ chunk }: { chunk: Chunk }) => {
   }
 
   if (status === 'success') {
+    if (toolName === 'read_file') {
+      const lineCount = output?.split('\n').length ?? 0;
+      return (
+        <Box flexDirection="column">
+          <Text>
+            <Text color="green">✔</Text> Read <Text bold>{commandString}</Text>
+          </Text>
+          <Box marginLeft={2}>
+            <Text dimColor>Read {lineCount} lines</Text>
+          </Box>
+        </Box>
+      );
+    }
+    if (toolName === 'write_file') {
+      let parsedOutput;
+      try {
+        parsedOutput = JSON.parse(output ?? '{}');
+      } catch (e) {
+        return <Text color="yellow">✔ Wrote to {commandString}</Text>;
+      }
+      return (
+        <Box flexDirection="column">
+          <Text>
+            <Text color="green">✔</Text> Update <Text bold>{commandString}</Text>
+          </Text>
+          <Box marginLeft={2}>
+            <Text dimColor>{parsedOutput.summary ?? 'File updated.'}</Text>
+          </Box>
+          {parsedOutput.diff && <DiffView diff={parsedOutput.diff} />}
+        </Box>
+      );
+    }
+    const showOutput =
+      output && !output.startsWith('Successfully') && toolName !== 'list_files';
     return (
       <Box flexDirection="column">
         <Text>
           <Text color="green">✔</Text> Ran <Text bold>{commandString}</Text>
         </Text>
-        {output && !output.startsWith('Successfully') && (
+        {showOutput && (
           <Box borderStyle="round" paddingX={1} borderColor="gray" marginTop={1}>
             <Text dimColor>{output}</Text>
           </Box>
