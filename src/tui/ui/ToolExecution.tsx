@@ -83,7 +83,7 @@ export const ToolExecution = ({ chunk }: { chunk: Chunk }) => {
       );
     }
     const showOutput =
-      output && !output.startsWith('Successfully') && toolName !== 'list_files';
+      output && !output.startsWith('Successfully') && toolName !== 'list_files' && toolName !== 'execute_shell_command';
     return (
       <Box flexDirection="column">
         <Text>
