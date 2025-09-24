@@ -2,10 +2,12 @@ import { render } from 'ink';
 import { App } from './tui/App.js';
 import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
-import { getStoredApiKey } from './utils/storage.js';
+import { getStoredApiKey, storeApiKey } from './utils/storage.js';
 import { clearLog, logInfo, logError } from './utils/logger.js';
 import { useStore } from './store/index.js';
 import type { Message } from './types/index.js';
+import { createInterface } from 'readline/promises';
+import { stdin, stdout } from 'node:process';
 
 const systemMessage: Message = {
   author: 'system',
@@ -33,6 +35,22 @@ export async function main() {
     process.exit(0);
   }
   const apiKey = await getStoredApiKey();
+  if (!apiKey) {
+    const rl = createInterface({ input: stdin, output: stdout });
+    try {
+      const apiKey = await rl.question('Enter your Openrouter API key: ');
+      await storeApiKey(apiKey.trim());
+      console.log('API key stored. Starting coda...');
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Stdin')){
+        console.error('Error reading API key:', error);
+        process.exit(0);
+      }
+      throw error;
+    } finally {
+      rl.close();
+    }
+  }
   useStore.setState({ apiKey });
   if (apiKey) {
     useStore.setState({ messages: [systemMessage] });

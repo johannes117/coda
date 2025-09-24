@@ -8,6 +8,7 @@ import {
 } from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { tools } from './tools.js';
+import { logInfo } from '../utils/logger.js';
 
 const systemPrompt = `You are coda, an expert AI software engineer.
 Your goal is to help users with their coding tasks by interacting with their local filesystem.
@@ -29,8 +30,9 @@ export const createAgent = (apiKey: string, modelConfig: { name: string; effort:
     reasoning_effort: modelConfig.effort,
     verbosity: 'medium'
   } : {};
+
   const model = new ChatOpenAI({
-    openAIApiKey: apiKey,
+    apiKey: apiKey,
     model: modelConfig.name,
     temperature: 1,
     modelKwargs,

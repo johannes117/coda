@@ -235,32 +235,6 @@ export const App = () => {
     [apiKey, push, setModelConfig]
   );
 
-  if (showApiKeyPrompt) {
-    return (
-      <Box flexDirection="column" width={cols} flexGrow={1} justifyContent="center" alignItems="center" paddingY={2}>
-        <HeaderBar title="Setup" mode={mode} modelConfig={currentModel} />
-        <Box marginTop={2} flexDirection="column" alignItems="center">
-          <Text bold color="cyan">Welcome to coda!</Text>
-          <Box marginTop={1}>
-            <Text dimColor>Enter your Openrouter API key to get started:</Text>
-          </Box>
-          <Box marginTop={1} width="80%">
-            <TextInput
-              value={apiKeyInput}
-              onChange={setApiKeyInput}
-              onSubmit={handleApiKeySubmit}
-              placeholder="sk-..."
-              showCursor
-              mask="•"
-            />
-          </Box>
-          <Box marginTop={1}>
-            <Text dimColor>Press esc to quit.</Text>
-          </Box>
-        </Box>
-      </Box>
-    );
-  }
   if (showModelPrompt) {
     return (
       <Box flexDirection="column" width={cols} flexGrow={1} justifyContent="center" alignItems="center" paddingY={2}>
