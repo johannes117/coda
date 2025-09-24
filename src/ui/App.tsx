@@ -180,6 +180,7 @@ const MessageView = ({ msg }: { msg: Message }) => (
     })}
   </Box>
 );
+
 const Footer = ({ working, mode }: { working: boolean; mode: Mode }) => {
   const blink = useBlink();
   return (
@@ -238,37 +239,13 @@ export const App = () => {
         setShowApiKeyPrompt(false);
         setAgentInstance(createAgent(key, currentModel));
 
-        const lastSession = await loadSession('last_session');
-        if (lastSession.length > 0) {
-          conversationHistory.current = lastSession;
-          const loadedMessages: Message[] = [];
-          lastSession.forEach(msg => {
-            if (msg._getType() === 'human') {
-              loadedMessages.push({ author: 'user', chunks: [{ kind: 'text', text: msg.content as string }] });
-            } else if (msg._getType() === 'ai') {
-              const aiMsg = msg as AIMessage;
-              if (aiMsg.content) {
-                loadedMessages.push({ author: 'agent', chunks: [{ kind: 'text', text: aiMsg.content as string }] });
-              }
-              if (aiMsg.tool_calls) {
-                aiMsg.tool_calls.forEach(toolCall => {
-                  loadedMessages.push({ author: 'agent', chunks: [{ kind: 'tool-call', tool: toolCall.name, toolInput: toolCall.args }] });
-                });
-              }
-            } else if (msg._getType() === 'tool') {
-              const toolMsg = msg as ToolMessage;
-              loadedMessages.push({ author: 'tool', chunks: [{ kind: 'tool-result', text: toolMsg.content as string }] });
-            }
-          });
-          setMessages(loadedMessages);
-        } else {
-          setMessages([
-            {
-              author: 'system',
-              chunks: [{ kind: 'text', text: 'Welcome to Coda! I can help you with your coding tasks. What should we work on?' }],
-            },
-          ]);
-        }
+        conversationHistory.current = [];
+        setMessages([
+          {
+            author: 'system',
+            chunks: [{ kind: 'text', text: 'Welcome to Coda! I can help you with your coding tasks. What should we work on?' }],
+          },
+        ]);
       } else {
         setShowApiKeyPrompt(true);
       }
