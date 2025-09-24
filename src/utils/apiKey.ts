@@ -1,7 +1,7 @@
 import keytar from 'keytar';
 
 const SERVICE = 'coda';
-const ACCOUNT = 'openai-api-key';
+const ACCOUNT = 'openrouter-api-key';
 
 export async function getStoredApiKey(): Promise<string | null> {
   try {
@@ -16,5 +16,13 @@ export async function storeApiKey(key: string): Promise<void> {
     await keytar.setPassword(SERVICE, ACCOUNT, key);
   } catch (e) {
     console.error('Failed to store API key securely:', e);
+  }
+}
+
+export async function deleteStoredApiKey(): Promise<void> {
+  try {
+    await keytar.deletePassword(SERVICE, ACCOUNT);
+  } catch (e) {
+    console.error('Failed to delete API key:', e);
   }
 }

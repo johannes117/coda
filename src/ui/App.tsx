@@ -5,7 +5,7 @@ import Spinner from 'ink-spinner';
 import { createAgent } from '../agent/graph.js';
 import { AIMessage, HumanMessage, ToolMessage } from '@langchain/core/messages';
 import { BaseMessage } from '@langchain/core/messages';
-import { getStoredApiKey, storeApiKey } from '../utils/apiKey.js';
+import { getStoredApiKey, storeApiKey, deleteStoredApiKey } from '../utils/apiKey.js';
 import { randomUUID } from 'crypto';
 import { existsSync } from 'fs';
 import { Logo } from './Logo.js';
@@ -55,13 +55,12 @@ const useBlink = () => {
   return on;
 };
 const modelOptions: ModelOption[] = [
-  { id: 1, label: 'gpt-5-codex low', name: 'gpt-5-codex', effort: 'low' },
-  { id: 2, label: 'gpt-5-codex medium', name: 'gpt-5-codex', effort: 'medium' },
-  { id: 3, label: 'gpt-5-codex high', name: 'gpt-5-codex', effort: 'high' },
-  { id: 4, label: 'gpt-5 minimal', name: 'gpt-5', effort: 'minimal' },
-  { id: 5, label: 'gpt-5 low', name: 'gpt-5', effort: 'low' },
-  { id: 6, label: 'gpt-5 medium', name: 'gpt-5', effort: 'medium' },
-  { id: 7, label: 'gpt-5 high', name: 'gpt-5', effort: 'high' },
+  { id: 1, label: 'grok-code-fast-1', name: 'x-ai/grok-code-fast-1', effort: 'medium' },
+  { id: 2, label: 'claude-sonnet-4', name: 'anthropic/claude-sonnet-4', effort: 'medium' },
+  { id: 3, label: 'grok-4-fast:free', name: 'x-ai/grok-4-fast:free', effort: 'medium' },
+  { id: 4, label: 'gpt-5-low', name: 'openai/gpt-5', effort: 'low' },
+  { id: 5, label: 'gpt-5-medium', name: 'openai/gpt-5', effort: 'medium' },
+  { id: 6, label: 'gpt-5-high', name: 'openai/gpt-5', effort: 'high' },
 ];
 /** ---------- Presentational bits ---------- */
 const HeaderBar = ({ title, mode, modelConfig }: { title: string; mode: Mode; modelConfig: ModelConfig }) => {
@@ -221,11 +220,11 @@ export const App = () => {
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [modelInput, setModelInput] = useState('');
   const [agentInstance, setAgentInstance] = useState<any>(null);
-  const [currentModel, setCurrentModel] = useState<ModelConfig>({ name: 'gpt-5', effort: 'medium' });
+  const [currentModel, setCurrentModel] = useState<ModelConfig>({ name: 'openai/gpt-5', effort: 'medium' });
   const [sessionId] = useState(() => randomUUID());
   const conversationHistory = useRef<BaseMessage[]>([]);
   const currentOption = modelOptions.find(o => o.name === currentModel.name && o.effort === currentModel.effort);
-  const currentId = currentOption ? currentOption.id : 6;
+  const currentId = currentOption ? currentOption.id : 5;
 
   const push = useCallback((message: Message) => {
     setMessages(prev => [...prev, message]);
@@ -267,7 +266,7 @@ export const App = () => {
 
   const handleModelSubmit = useCallback((value: string) => {
     const num = parseInt(value.trim(), 10);
-    if (num >= 1 && num <= 7 && apiKey) {
+    if (num >= 1 && num <= 6 && apiKey) {
       const option = modelOptions[num - 1];
       const newConfig: ModelConfig = { name: option.name, effort: option.effort };
       setCurrentModel(newConfig);
@@ -307,6 +306,14 @@ export const App = () => {
           push({ author: 'system', chunks: [{ kind: 'text', text: 'Goodbye!' }] });
           setTimeout(() => exit(), 100);
           return;
+        } else if (cmd === 'reset') {
+          await deleteStoredApiKey();
+          setApiKeyState(null);
+          setShowApiKeyPrompt(true);
+          setMessages([]);
+          setAgentInstance(null);
+          setQuery('');
+          return;
         } else if (cmd === 'status') {
           const cwd = process.cwd().replace(process.env.HOME || '', '~');
           const agentsFile = existsSync('AGENTS.md') ? 'AGENTS.md' : 'none';
@@ -316,12 +323,12 @@ export const App = () => {
   • Sandbox: full
   • AGENTS files: ${agentsFile}
 👤 Account
-  • Signed in with OpenAI API
+  • Signed in with Openrouter API
   • Login: N/A
   • Plan: API
 🧠 Model
   • Name: ${currentModel.name}
-  • Provider: OpenAI
+  • Provider: Openrouter
   • Reasoning Effort: ${currentModel.effort}
   • Reasoning Summaries: Auto
 💻 Client
@@ -352,7 +359,7 @@ export const App = () => {
         } else {
           push({
             author: 'system',
-            chunks: [{ kind: 'error', text: `Unknown command: ${command}. Available: /status, /model, /clear, /new, /quit` }],
+            chunks: [{ kind: 'error', text: `Unknown command: ${command}. Available: /status, /model, /reset, /clear, /new, /quit` }],
           });
           setQuery('');
           return;
@@ -442,7 +449,7 @@ export const App = () => {
         <Box marginTop={2} flexDirection="column" alignItems="center">
           <Text bold color="cyan">Welcome to Coda!</Text>
           <Box marginTop={1}>
-            <Text dimColor>Enter your OpenAI API key to get started:</Text>
+            <Text dimColor>Enter your Openrouter API key to get started:</Text>
           </Box>
           <Box marginTop={1} width="80%">
             <TextInput
@@ -468,7 +475,7 @@ export const App = () => {
         <Box marginTop={2} flexDirection="column" width="80%">
           <Text bold color="cyan">Select model and reasoning level</Text>
           <Box marginTop={1}>
-            <Text dimColor>Switch between OpenAI models for this and future Coda sessions</Text>
+            <Text dimColor>Switch between Openrouter models for this and future Coda sessions</Text>
           </Box>
           <Box marginTop={1} flexDirection="column">
             {modelOptions.map((opt) => (
@@ -484,7 +491,7 @@ export const App = () => {
               value={modelInput}
               onChange={setModelInput}
               onSubmit={handleModelSubmit}
-              placeholder="Enter number (1-7)"
+              placeholder="Enter number (1-6)"
               showCursor
             />
           </Box>

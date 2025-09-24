@@ -28,16 +28,17 @@ Follow this process:
  * Factory for creating the agent with a given API key and model config.
  */
 export const createAgent = (apiKey: string, modelConfig: { name: string; effort: string }) => {
-  // Initialize the OpenAI model with tool-calling capabilities.
-  // Using GPT-5 with medium reasoning effort for complex coding tasks
+  const modelKwargs = modelConfig.name.startsWith('openai/') ? {
+    reasoning_effort: modelConfig.effort,
+    verbosity: 'medium'
+  } : {};
   const model = new ChatOpenAI({
     openAIApiKey: apiKey,
     model: modelConfig.name,
     temperature: 1,
-    // Configure for medium reasoning effort - good balance for coding tasks
-    modelKwargs: {
-      reasoning_effort: modelConfig.effort,
-      verbosity: 'medium'
+    modelKwargs,
+    configuration: {
+      baseURL: 'https://openrouter.ai/api/v1',
     }
   }).bindTools(tools);
 
