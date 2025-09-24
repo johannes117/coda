@@ -149,7 +149,10 @@ export const App = () => {
           return;
         }
 
-        const stream = await agentInstance.stream({ messages: conversationHistory.current });
+        const stream = await agentInstance.stream(
+          { messages: conversationHistory.current },
+          { recursionLimit: 150 }
+        );
         for await (const chunk of stream) {
           const nodeName = Object.keys(chunk)[0];
           const update = chunk[nodeName as keyof typeof chunk];

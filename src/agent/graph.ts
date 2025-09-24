@@ -46,7 +46,7 @@ export const createAgent = (apiKey: string, modelConfig: { name: string; effort:
       { role: 'system', content: systemPrompt },
       ...state.messages,
     ];
-    const response = await model.invoke(messages, { recursionLimit: 100 });
+    const response = await model.invoke(messages);
     return { messages: [response] };
   };
 
