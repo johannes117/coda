@@ -2,10 +2,12 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import { BaseMessage } from '@langchain/core/messages';
+import type { ModelConfig } from '../types/index.js';
 import { logError } from './logger.js';
 
 const STORAGE_DIR = path.join(os.homedir(), '.coda');
 const AUTH_FILE = path.join(STORAGE_DIR, 'auth.json');
+const CONFIG_FILE = path.join(STORAGE_DIR, 'config.json');
 const SESSIONS_DIR = path.join(STORAGE_DIR, 'sessions');
 
 async function ensureStorageDirs(): Promise<void> {
@@ -46,6 +48,39 @@ export async function deleteStoredApiKey(): Promise<void> {
     if (error.code !== 'ENOENT') {
       await logError(`Failed to delete API key: ${error}`);
     }
+  }
+}
+
+export async function storeModelConfig(modelConfig: ModelConfig): Promise<void> {
+  await ensureStorageDirs();
+  try {
+    let configData: Record<string, unknown> = {};
+    try {
+      const data = await fs.readFile(CONFIG_FILE, 'utf-8');
+      configData = JSON.parse(data);
+    } catch (error: any) {
+      if (error.code !== 'ENOENT') {
+        throw error;
+      }
+    }
+    const updated = { ...configData, modelConfig };
+    await fs.writeFile(CONFIG_FILE, JSON.stringify(updated, null, 2));
+  } catch (error) {
+    await logError(`Failed to store model configuration: ${error}`);
+  }
+}
+
+export async function getStoredModelConfig(): Promise<ModelConfig | null> {
+  try {
+    const data = await fs.readFile(CONFIG_FILE, 'utf-8');
+    const parsed = JSON.parse(data);
+    const stored = parsed.modelConfig;
+    if (stored && typeof stored.name === 'string' && typeof stored.effort === 'string') {
+      return { name: stored.name, effort: stored.effort };
+    }
+    return null;
+  } catch (error) {
+    return null;
   }
 }
 

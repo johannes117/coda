@@ -5,7 +5,7 @@ import Spinner from 'ink-spinner';
 import { createAgent } from '../agent/graph.js';
 import { AIMessage, HumanMessage, ToolMessage } from '@langchain/core/messages';
 import { BaseMessage } from '@langchain/core/messages';
-import { deleteStoredApiKey, saveSession } from '../utils/storage.js';
+import { deleteStoredApiKey, saveSession, storeModelConfig } from '../utils/storage.js';
 import { randomUUID } from 'crypto';
 import { existsSync } from 'fs';
 import { logError } from '../utils/logger.js';
@@ -191,6 +191,7 @@ export const App = () => {
 
         const newConfig: ModelConfig = { name: selectedModel.name, effort: selectedModel.effort };
         setModelConfig(newConfig);
+        await storeModelConfig(newConfig);
         push({
           author: 'system',
           chunks: [{ kind: 'text', text: `Model switched to ${selectedModel.label}` }],
@@ -390,6 +391,7 @@ export const App = () => {
       resetCommandMenu,
       modelOptions,
       setModelConfig,
+      storeModelConfig,
       slashCommands,
     ]
   );

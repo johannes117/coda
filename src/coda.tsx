@@ -2,7 +2,7 @@ import { render } from 'ink';
 import { App } from './tui/App.js';
 import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
-import { getStoredApiKey, storeApiKey, deleteStoredApiKey } from './utils/storage.js';
+import { getStoredApiKey, storeApiKey, deleteStoredApiKey, getStoredModelConfig } from './utils/storage.js';
 import { clearLog, logInfo, logError } from './utils/logger.js';
 import { useStore } from './store/index.js';
 import { createInterface } from 'readline/promises';
@@ -27,6 +27,10 @@ export async function main() {
     await logInfo(`User Prompt: ${argv.prompt}`);
     await logInfo('coda Response: This is a dummy response for your non-interactive prompt.');
     process.exit(0);
+  }
+  const storedModelConfig = await getStoredModelConfig();
+  if (storedModelConfig) {
+    useStore.setState({ modelConfig: storedModelConfig });
   }
   let running = true;
   while (running) {
