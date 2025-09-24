@@ -69,6 +69,7 @@ export const ToolExecution = ({ chunk }: { chunk: Chunk }) => {
       } catch (e) {
         return <Text color="yellow">✔ Wrote to {commandString}</Text>;
       }
+      const diffLines = Array.isArray(parsedOutput.diffLines) ? parsedOutput.diffLines : undefined;
       return (
         <Box flexDirection="column">
           <Text>
@@ -77,7 +78,7 @@ export const ToolExecution = ({ chunk }: { chunk: Chunk }) => {
           <Box marginLeft={2}>
             <Text dimColor>{parsedOutput.summary ?? 'File updated.'}</Text>
           </Box>
-          {parsedOutput.diff && <DiffView diff={parsedOutput.diff} />}
+          {diffLines && <DiffView diffLines={diffLines} />}
         </Box>
       );
     }
