@@ -1,5 +1,5 @@
 import { render } from 'ink';
-import { App } from './ui/App.js';
+import { App } from './tui/App.js';
 import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
 import { getStoredApiKey } from './utils/storage.js';
