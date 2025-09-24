@@ -9,12 +9,15 @@ import { deleteStoredApiKey, saveSession } from '../utils/storage.js';
 import { randomUUID } from 'crypto';
 import { existsSync } from 'fs';
 import { logError } from '../utils/logger.js';
-import type { Mode, ModelConfig, Message, Chunk } from '../types/index.js';
+import type { Mode, ModelConfig, ModelOption, Message, Chunk, SlashCommand } from '../types/index.js';
 import { modelOptions, nowTime } from '../utils/helpers.js';
 import { useStore } from '../store/index.js';
 import { HeaderBar } from './ui/HeaderBar.js';
 import { MessageView } from './ui/MessageView.js';
 import { Footer } from './ui/Footer.js';
+import { CommandMenu } from './ui/CommandMenu.js';
+import { ModelMenu } from './ui/ModelMenu.js';
+import { slashCommands } from '../commands.js';
 
 
 const BUSY_TEXT_OPTIONS = [
@@ -46,8 +49,12 @@ export const App = () => {
   const clearApiKeyStore = useStore((s) => s.clearApiKey);
   const [mode, setMode] = useState<Mode>('agent');
   const [query, setQuery] = useState('');
-  const [showModelPrompt, setShowModelPrompt] = useState(false);
-  const [modelInput, setModelInput] = useState('');
+  const [showCommandMenu, setShowCommandMenu] = useState(false);
+  const [showModelMenu, setShowModelMenu] = useState(false);
+  const [filteredCommands, setFilteredCommands] = useState<SlashCommand[]>(slashCommands);
+  const [commandSelectionIndex, setCommandSelectionIndex] = useState(0);
+  const [filteredModels, setFilteredModels] = useState<ModelOption[]>(modelOptions);
+  const [modelSelectionIndex, setModelSelectionIndex] = useState(0);
   const agentInstance = useMemo(
     () => (apiKey ? createAgent(apiKey, currentModel) : null),
     [apiKey, currentModel]
@@ -66,33 +73,171 @@ export const App = () => {
     addMessage(message);
   }, [addMessage]);
 
+  const resetCommandMenu = useCallback(() => {
+    setShowCommandMenu(false);
+    setFilteredCommands(slashCommands);
+    setCommandSelectionIndex(0);
+  }, [slashCommands]);
+
+  const handleQueryChange = useCallback(
+    (value: string) => {
+      setQuery(value);
+
+      if (showModelMenu) {
+        const input = value.toLowerCase();
+        if (!input) {
+          setFilteredModels(modelOptions);
+          setModelSelectionIndex(0);
+          return;
+        }
+
+        const matches = modelOptions.filter(
+          (option) =>
+            option.label.toLowerCase().includes(input) ||
+            String(option.id).startsWith(input)
+        );
+        setFilteredModels(matches);
+        setModelSelectionIndex(0);
+        return;
+      }
+
+      if (value.startsWith('/')) {
+        const inputCommand = value.slice(1).toLowerCase();
+        const matches = slashCommands.filter((command) => {
+          if (!inputCommand) return true;
+          return (
+            command.name.startsWith(inputCommand) ||
+            command.aliases?.some((alias) => alias.startsWith(inputCommand))
+          );
+        });
+        setFilteredCommands(matches);
+        if (matches.length > 0) {
+          setShowCommandMenu(true);
+          setCommandSelectionIndex(0);
+        } else {
+          setShowCommandMenu(false);
+          setCommandSelectionIndex(0);
+        }
+      } else {
+        resetCommandMenu();
+      }
+    },
+    [modelOptions, resetCommandMenu, showModelMenu, slashCommands]
+  );
+
   useInput((input, key) => {
     if (key.escape) {
       if (busy) {
         setBusy(false);
-      } else if (showModelPrompt) {
-        setShowModelPrompt(false);
+      } else if (showModelMenu) {
+        setShowModelMenu(false);
+        setQuery('');
+        setFilteredModels(modelOptions);
+        setModelSelectionIndex(0);
+        resetCommandMenu();
+      } else if (showCommandMenu) {
+        setShowCommandMenu(false);
       } else {
         exit();
       }
       return;
     }
-    if (key.tab && !showModelPrompt) {
+    if (showModelMenu) {
+      if (key.upArrow) {
+        setModelSelectionIndex((prev) => (prev > 0 ? prev - 1 : prev));
+        return;
+      }
+      if (key.downArrow) {
+        setModelSelectionIndex((prev) =>
+          prev < filteredModels.length - 1 ? prev + 1 : prev
+        );
+        return;
+      }
+    }
+    if (key.tab && !showModelMenu) {
+      if (showCommandMenu) {
+        const selected = filteredCommands[commandSelectionIndex];
+        if (selected) {
+          setQuery(`/${selected.name} `);
+        }
+        resetCommandMenu();
+        return;
+      }
       setMode(prev => prev === 'agent' ? 'plan' : 'agent');
+      return;
+    }
+    if (showCommandMenu) {
+      if (key.upArrow) {
+        setCommandSelectionIndex((prev) => (prev > 0 ? prev - 1 : prev));
+        return;
+      }
+      if (key.downArrow) {
+        setCommandSelectionIndex((prev) => {
+          if (filteredCommands.length === 0) return prev;
+          return prev < filteredCommands.length - 1 ? prev + 1 : prev;
+        });
+        return;
+      }
     }
   });
 
   const handleSubmit = useCallback(
     async (value: string) => {
-      if (!value.trim() || busy || !agentInstance) return;
-      const command = value.trim().toLowerCase();
+      if (showModelMenu) {
+        const selectedModel = filteredModels[modelSelectionIndex];
+        if (!selectedModel) {
+          return;
+        }
+
+        const newConfig: ModelConfig = { name: selectedModel.name, effort: selectedModel.effort };
+        setModelConfig(newConfig);
+        push({
+          author: 'system',
+          chunks: [{ kind: 'text', text: `Model switched to ${selectedModel.label}` }],
+        });
+        setShowModelMenu(false);
+        setFilteredModels(modelOptions);
+        setModelSelectionIndex(0);
+        setQuery('');
+        resetCommandMenu();
+        return;
+      }
+
+      const selected = showCommandMenu ? filteredCommands[commandSelectionIndex] : undefined;
+      const effectiveValue = selected ? `/${selected.name}` : value;
+      const trimmedValue = effectiveValue.trim();
+
+      if (!trimmedValue || busy || !agentInstance) {
+        if (!trimmedValue) {
+          setQuery('');
+          resetCommandMenu();
+        }
+        return;
+      }
+      const command = trimmedValue.toLowerCase();
       if (command.startsWith('/')) {
-        const cmd = command.slice(1);
-        if (cmd === 'quit' || cmd === 'exit') {
+        const cmdName = command.slice(1).split(' ')[0];
+        const cmd = slashCommands.find((c) => c.name === cmdName || c.aliases?.includes(cmdName));
+
+        if (!cmd) {
+          const available = slashCommands.map((c) => `/${c.name}`).join(', ');
+          push({
+            author: 'system',
+            chunks: [{ kind: 'error', text: `Unknown command: ${trimmedValue}. Available commands: ${available}` }],
+          });
+          setQuery('');
+          resetCommandMenu();
+          return;
+        }
+
+        if (cmd.name === 'quit') {
+          resetCommandMenu();
           push({ author: 'system', chunks: [{ kind: 'text', text: 'Goodbye!' }] });
           setTimeout(() => exit(), 100);
           return;
-        } else if (cmd === 'reset') {
+        }
+        if (cmd.name === 'reset') {
+          resetCommandMenu();
           await deleteStoredApiKey();
           clearApiKeyStore();
           resetMessages();
@@ -101,7 +246,9 @@ export const App = () => {
           useStore.setState({ resetRequested: true });
           exit();
           return;
-        } else if (cmd === 'status') {
+        }
+        if (cmd.name === 'status') {
+          resetCommandMenu();
           const cwd = process.cwd().replace(process.env.HOME || '', '~');
           const agentsFile = existsSync('AGENTS.md') ? 'AGENTS.md' : 'none';
           const statusText = `📂 Workspace
@@ -128,25 +275,25 @@ export const App = () => {
           push({ author: 'system', chunks: [{ kind: 'text', text: statusText }] });
           setQuery('');
           return;
-        } else if (cmd === 'clear' || cmd === 'new') {
+        }
+        if (cmd.name === 'clear') {
+          resetCommandMenu();
           resetMessages();
           conversationHistory.current = [];
           push({ author: 'system', chunks: [{ kind: 'text', text: 'New conversation started.' }] });
           setQuery('');
           return;
-        } else if (cmd === 'model') {
-          setShowModelPrompt(true);
-          setQuery('');
-          return;
-        } else {
-          push({
-            author: 'system',
-            chunks: [{ kind: 'error', text: `Unknown command: ${command}. Available: /status, /model, /reset, /clear, /new, /quit` }],
-          });
+        }
+        if (cmd.name === 'model') {
+          resetCommandMenu();
+          setShowModelMenu(true);
+          setFilteredModels(modelOptions);
+          setModelSelectionIndex(0);
           setQuery('');
           return;
         }
       }
+      resetCommandMenu();
       const userMessage = new HumanMessage(value);
       conversationHistory.current.push(userMessage);
       push({
@@ -223,63 +370,29 @@ export const App = () => {
         setBusy(false);
       }
     },
-    [busy, push, mode, exit, agentInstance, currentModel, sessionId, resetMessages, clearApiKeyStore, updateToolExecution]
+    [
+      busy,
+      push,
+      mode,
+      exit,
+      agentInstance,
+      currentModel,
+      sessionId,
+      resetMessages,
+      clearApiKeyStore,
+      updateToolExecution,
+      showCommandMenu,
+      showModelMenu,
+      filteredCommands,
+      filteredModels,
+      commandSelectionIndex,
+      modelSelectionIndex,
+      resetCommandMenu,
+      modelOptions,
+      setModelConfig,
+      slashCommands,
+    ]
   );
-
-
-
-  const handleModelSubmit = useCallback(
-    (value: string) => {
-      const num = parseInt(value.trim(), 10);
-      if (num >= 1 && num <= 6 && apiKey) {
-        const option = modelOptions[num - 1];
-        const newConfig: ModelConfig = { name: option.name, effort: option.effort };
-        setModelConfig(newConfig);
-        setShowModelPrompt(false);
-        push({
-          author: 'system',
-          chunks: [{ kind: 'text', text: `Model switched to ${option.label}` }],
-        });
-      }
-      setModelInput('');
-    },
-    [apiKey, push, setModelConfig]
-  );
-
-  if (showModelPrompt) {
-    return (
-      <Box flexDirection="column" width={cols} flexGrow={1} justifyContent="center" alignItems="center" paddingY={2}>
-        <HeaderBar title="Select Model" mode={mode} modelConfig={currentModel} />
-        <Box marginTop={2} flexDirection="column" width="80%">
-          <Text bold color="cyan">Select model and reasoning level</Text>
-          <Box marginTop={1}>
-            <Text dimColor>Switch between Openrouter models for this and future coda sessions</Text>
-          </Box>
-          <Box marginTop={1} flexDirection="column">
-            {modelOptions.map((opt) => (
-              <Text key={opt.id}>
-                {opt.id === currentId ? <Text color="cyan">▌&gt; </Text> : <Text>▌ </Text>}
-                {opt.id}. {opt.label}
-                {opt.id === currentId ? <Text color="yellow">(current)</Text> : null}
-              </Text>
-            ))}
-          </Box>
-          <Box marginTop={1}>
-            <TextInput
-              value={modelInput}
-              onChange={setModelInput}
-              onSubmit={handleModelSubmit}
-              placeholder="Enter number (1-6)"
-              showCursor
-            />
-          </Box>
-          <Box marginTop={1}>
-            <Text dimColor>Press esc to cancel.</Text>
-          </Box>
-        </Box>
-      </Box>
-    );
-  }
   return (
     <Box flexDirection="column" width={cols} flexGrow={1}>
       <HeaderBar title="AI-Powered Development Assistant" mode={mode} modelConfig={currentModel} />
@@ -296,15 +409,23 @@ export const App = () => {
           </Box>
         )}
       </Box>
-      {!busy && !showModelPrompt && (
-        <Box marginTop={1} alignItems="center">
-          <Text color="cyan" bold>&gt; </Text>
-          <TextInput
-            value={query}
-            onChange={setQuery}
-            onSubmit={handleSubmit}
-            placeholder=" Ask coda anything..."
-          />
+      {!busy && (
+        <Box flexDirection="column">
+          <Box marginTop={1} alignItems="center">
+            <Text color="cyan" bold>&gt; </Text>
+            <TextInput
+              value={query}
+              onChange={handleQueryChange}
+              onSubmit={handleSubmit}
+              placeholder={showModelMenu ? 'Filter models by name or ID...' : ' Ask coda anything...'}
+            />
+          </Box>
+          {showCommandMenu && filteredCommands.length > 0 && (
+            <CommandMenu commands={filteredCommands} selectedIndex={commandSelectionIndex} />
+          )}
+          {showModelMenu && filteredModels.length > 0 && (
+            <ModelMenu models={filteredModels} selectedIndex={modelSelectionIndex} currentModelId={currentId} />
+          )}
         </Box>
       )}
       <Footer working={busy} mode={mode} />

@@ -1,6 +1,11 @@
 export type Author = 'user' | 'agent' | 'system' | 'tool';
 export type ChunkKind = 'text' | 'code' | 'error' | 'list' | 'status' | 'divider' | 'tool-execution';
 export type Mode = 'agent' | 'plan';
+export type SlashCommand = {
+  name: string;
+  description: string;
+  aliases?: string[];
+};
 export type ModelOption = { id: number; label: string; name: string; effort: string };
 export type ModelConfig = { name: string; effort: string };
 
