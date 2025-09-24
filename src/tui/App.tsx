@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState, useRef } from 'react';
 import { Box, Text, useApp, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
-import { createAgent } from '../agent/graph.js';
+import { createAgent, reviewSystemPrompt } from '../agent/graph.js';
 import { AIMessage, HumanMessage, ToolMessage } from '@langchain/core/messages';
 import { BaseMessage } from '@langchain/core/messages';
 import { deleteStoredApiKey, saveSession, storeModelConfig } from '../utils/storage.js';
@@ -291,6 +291,82 @@ export const App = () => {
           setFilteredModels(modelOptions);
           setModelSelectionIndex(0);
           setQuery('');
+          return;
+        }
+        if (cmd.name === 'review') {
+          resetCommandMenu();
+          if (!apiKey) {
+            push({
+              author: 'system',
+              chunks: [{ kind: 'error', text: 'API key not found. Cannot start review.' }],
+            });
+            return;
+          }
+          const reviewAgent = createAgent(apiKey, currentModel, reviewSystemPrompt);
+          const userMessage = new HumanMessage(
+            'Please conduct a code review of the current branch against the base branch (main or master).'
+          );
+          conversationHistory.current.push(userMessage);
+          push({
+            author: 'system',
+            chunks: [{ kind: 'text', text: 'Starting code review...' }],
+          });
+          setQuery('');
+          await saveSession('last_session', conversationHistory.current);
+          setBusy(true);
+          try {
+            const stream = await reviewAgent.stream(
+              { messages: conversationHistory.current },
+              { recursionLimit: 150 }
+            );
+            for await (const chunk of stream) {
+              const nodeName = Object.keys(chunk)[0];
+              const update = chunk[nodeName as keyof typeof chunk];
+              if (update && 'messages' in update && update.messages) {
+                const newMessages: BaseMessage[] = update.messages;
+                conversationHistory.current.push(...newMessages);
+                await saveSession('last_session', conversationHistory.current);
+                for (const message of newMessages) {
+                  if (message._getType() === 'ai') {
+                    const aiMessage = message as AIMessage;
+                    if (aiMessage.content) {
+                      push({
+                        author: 'agent',
+                        chunks: [{ kind: 'text', text: aiMessage.content as string }],
+                      });
+                    }
+                    if (aiMessage.tool_calls && aiMessage.tool_calls.length > 0) {
+                      const toolExecutionChunks: Chunk[] = aiMessage.tool_calls.map((toolCall) => ({
+                        kind: 'tool-execution',
+                        toolCallId: toolCall.id,
+                        toolName: toolCall.name,
+                        toolArgs: toolCall.args,
+                        status: 'running',
+                      }));
+                      push({
+                        author: 'system',
+                        chunks: toolExecutionChunks,
+                      });
+                    }
+                  } else if (message._getType() === 'tool') {
+                    const toolMessage = message as ToolMessage;
+                    const output = toolMessage.content as string;
+                    const isError = output.toLowerCase().startsWith('error');
+                    updateToolExecution(toolMessage.tool_call_id, isError ? 'error' : 'success', output);
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            const errorMsg = `An error occurred: ${error instanceof Error ? error.message : String(error)}`;
+            await logError(errorMsg);
+            push({
+              author: 'system',
+              chunks: [{ kind: 'error', text: errorMsg }],
+            });
+          } finally {
+            setBusy(false);
+          }
           return;
         }
       }

@@ -10,7 +10,7 @@ import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { tools } from './tools.js';
 import { logInfo } from '../utils/logger.js';
 
-const systemPrompt = `You are coda, an expert AI software engineer.
+const defaultSystemPrompt = `You are coda, an expert AI software engineer.
 Your goal is to help users with their coding tasks by interacting with their local filesystem.
 You have access to the following tools:
 - list_files: List files in a directory.
@@ -26,7 +26,24 @@ Follow this process:
 5. **Repeat:** Continue this cycle until you have completed the user's request.
 6. **Conclude:** When the task is complete, respond to the user with a summary of what you have done. Do not call any more tools.`;
 
-export const createAgent = (apiKey: string, modelConfig: { name: string; effort: string }) => {
+export const reviewSystemPrompt = `You are coda, an expert AI software engineer specializing in code reviews.
+Your task is to conduct a review of the current branch against the base branch (main or master).
+You have access to the following tools:
+- read_file: Read the content of a file.
+- execute_shell_command: Execute a shell command (e.g., for git diff).
+
+Follow this process:
+1. **Identify branches:** Find the current git branch and the base branch (main or master).
+2. **Get diff:** Use 'git diff' to see the changes between the base branch and the current branch.
+3. **Analyze:** Examine the changed files and the diff.
+4. **Review:** Provide a constructive review of the changes, focusing on code quality, bugs, and best practices.
+5. **Conclude:** Respond to the user with the review. Do not call any more tools after you have provided the review.`;
+
+export const createAgent = (
+  apiKey: string,
+  modelConfig: { name: string; effort: string },
+  prompt: string = defaultSystemPrompt
+) => {
   const modelKwargs = modelConfig.name.startsWith('openai/') ? {
     reasoning_effort: modelConfig.effort,
     verbosity: 'medium'
@@ -44,7 +61,7 @@ export const createAgent = (apiKey: string, modelConfig: { name: string; effort:
 
   const callModel = async (state: typeof MessagesAnnotation.State) => {
     const messages = [
-      { role: 'system', content: systemPrompt },
+      { role: 'system', content: prompt },
       ...state.messages,
     ];
     const response = await model.invoke(messages);
