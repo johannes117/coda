@@ -5,7 +5,7 @@ import Spinner from 'ink-spinner';
 import { createAgent } from '../agent/graph.js';
 import { AIMessage, HumanMessage, ToolMessage } from '@langchain/core/messages';
 import { BaseMessage } from '@langchain/core/messages';
-import { getStoredApiKey, storeApiKey, deleteStoredApiKey } from '../utils/apiKey.js';
+import { getStoredApiKey, storeApiKey, deleteStoredApiKey, saveSession, loadSession } from '../utils/storage.js';
 import { randomUUID } from 'crypto';
 import { existsSync } from 'fs';
 import { Logo } from './Logo.js';
@@ -231,21 +231,49 @@ export const App = () => {
   }, []);
 
   useEffect(() => {
-    getStoredApiKey().then((key) => {
+    const loadData = async () => {
+      const key = await getStoredApiKey();
       if (key) {
         setApiKeyState(key);
         setShowApiKeyPrompt(false);
-        setMessages([
-          {
-            author: 'system',
-            chunks: [{ kind: 'text', text: 'Welcome to Coda! I can help you with your coding tasks. What should we work on?' }],
-          },
-        ]);
         setAgentInstance(createAgent(key, currentModel));
+
+        const lastSession = await loadSession('last_session');
+        if (lastSession.length > 0) {
+          conversationHistory.current = lastSession;
+          const loadedMessages: Message[] = [];
+          lastSession.forEach(msg => {
+            if (msg._getType() === 'human') {
+              loadedMessages.push({ author: 'user', chunks: [{ kind: 'text', text: msg.content as string }] });
+            } else if (msg._getType() === 'ai') {
+              const aiMsg = msg as AIMessage;
+              if (aiMsg.content) {
+                loadedMessages.push({ author: 'agent', chunks: [{ kind: 'text', text: aiMsg.content as string }] });
+              }
+              if (aiMsg.tool_calls) {
+                aiMsg.tool_calls.forEach(toolCall => {
+                  loadedMessages.push({ author: 'agent', chunks: [{ kind: 'tool-call', tool: toolCall.name, toolInput: toolCall.args }] });
+                });
+              }
+            } else if (msg._getType() === 'tool') {
+              const toolMsg = msg as ToolMessage;
+              loadedMessages.push({ author: 'tool', chunks: [{ kind: 'tool-result', text: toolMsg.content as string }] });
+            }
+          });
+          setMessages(loadedMessages);
+        } else {
+          setMessages([
+            {
+              author: 'system',
+              chunks: [{ kind: 'text', text: 'Welcome to Coda! I can help you with your coding tasks. What should we work on?' }],
+            },
+          ]);
+        }
       } else {
         setShowApiKeyPrompt(true);
       }
-    });
+    };
+    loadData();
   }, [currentModel]);
 
   const handleApiKeySubmit = useCallback((value: string) => {
@@ -373,6 +401,8 @@ export const App = () => {
         chunks: [{ kind: 'text', text: value }],
       });
       setQuery('');
+
+      await saveSession('last_session', conversationHistory.current);
       setBusy(true);
       try {
         if (mode === 'plan') {
@@ -394,6 +424,7 @@ export const App = () => {
           if (update && 'messages' in update && update.messages) {
             const newMessages: BaseMessage[] = update.messages;
             conversationHistory.current.push(...newMessages);
+            await saveSession('last_session', conversationHistory.current);
             for (const message of newMessages) {
               if (message._getType() === 'ai') {
                 const aiMessage = message as AIMessage;

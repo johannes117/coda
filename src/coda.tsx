@@ -2,7 +2,7 @@ import { render } from 'ink';
 import { App } from './ui/App.js';
 import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
-import { getStoredApiKey } from './utils/apiKey.js';
+import { getStoredApiKey } from './utils/storage.js';
 
 /**
  * Main entry point for the Coda CLI application.
