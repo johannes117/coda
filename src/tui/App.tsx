@@ -1,98 +1,52 @@
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useMemo, useState, useRef } from 'react';
 import { Box, Text, useApp, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
 import { createAgent } from '../agent/graph.js';
 import { AIMessage, HumanMessage, ToolMessage } from '@langchain/core/messages';
 import { BaseMessage } from '@langchain/core/messages';
-import { getStoredApiKey, storeApiKey, deleteStoredApiKey, saveSession, loadSession } from '../utils/storage.js';
+import { storeApiKey, deleteStoredApiKey, saveSession } from '../utils/storage.js';
 import { randomUUID } from 'crypto';
 import { existsSync } from 'fs';
 import { logError } from '../utils/logger.js';
 import type { Mode, ModelConfig, Message } from '../types/index.js';
 import { modelOptions, nowTime } from '../utils/helpers.js';
-import { useTerminalDimensions } from './hooks/useTerminalDimensions.js';
+import { useStore } from '../store/index.js';
 import { HeaderBar } from './ui/HeaderBar.js';
 import { MessageView } from './ui/MessageView.js';
 import { Footer } from './ui/Footer.js';
 
 export const App = () => {
   const { exit } = useApp();
-  const [cols] = useTerminalDimensions();
+  const cols = useStore((s) => s.terminalCols);
+  const apiKey = useStore((s) => s.apiKey);
+  const showApiKeyPrompt = !apiKey;
+  const currentModel = useStore((s) => s.modelConfig);
+  const messages = useStore((s) => s.messages);
+  const busy = useStore((s) => s.busy);
+  const setBusy = useStore((s) => s.setBusy);
+  const addMessage = useStore((s) => s.addMessage);
+  const resetMessages = useStore((s) => s.resetMessages);
+  const setApiKeyStore = useStore((s) => s.setApiKey);
+  const setModelConfig = useStore((s) => s.setModelConfig);
+  const clearApiKeyStore = useStore((s) => s.clearApiKey);
   const [mode, setMode] = useState<Mode>('agent');
-  const [title, setTitle] = useState('AI-Powered Development Assistant');
-  const [messages, setMessages] = useState<Message[]>([]);
   const [query, setQuery] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [apiKey, setApiKeyState] = useState<string | null>(null);
-  const [showApiKeyPrompt, setShowApiKeyPrompt] = useState(true);
   const [showModelPrompt, setShowModelPrompt] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [modelInput, setModelInput] = useState('');
-  const [agentInstance, setAgentInstance] = useState<any>(null);
-  const [currentModel, setCurrentModel] = useState<ModelConfig>({ name: 'openai/gpt-5', effort: 'medium' });
+  const agentInstance = useMemo(
+    () => (apiKey ? createAgent(apiKey, currentModel) : null),
+    [apiKey, currentModel]
+  );
   const [sessionId] = useState(() => randomUUID());
   const conversationHistory = useRef<BaseMessage[]>([]);
-  const currentOption = modelOptions.find(o => o.name === currentModel.name && o.effort === currentModel.effort);
+  const currentOption = modelOptions.find((o) => o.name === currentModel.name && o.effort === currentModel.effort);
   const currentId = currentOption ? currentOption.id : 5;
 
   const push = useCallback((message: Message) => {
-    setMessages(prev => [...prev, message]);
-  }, []);
-
-  useEffect(() => {
-    const loadData = async () => {
-      const key = await getStoredApiKey();
-      if (key) {
-        setApiKeyState(key);
-        setShowApiKeyPrompt(false);
-        setAgentInstance(createAgent(key, currentModel));
-
-        conversationHistory.current = [];
-        setMessages([
-          {
-            author: 'system',
-            chunks: [{ kind: 'text', text: 'Welcome to Coda! I can help you with your coding tasks. What should we work on?' }],
-          },
-        ]);
-      } else {
-        setShowApiKeyPrompt(true);
-      }
-    };
-    loadData();
-  }, [currentModel]);
-
-  const handleApiKeySubmit = useCallback((value: string) => {
-    const trimmed = value.trim();
-    if (!trimmed) return;
-    setApiKeyState(trimmed);
-    storeApiKey(trimmed);
-    setShowApiKeyPrompt(false);
-    setMessages([
-      {
-        author: 'system',
-        chunks: [{ kind: 'text', text: 'Welcome to Coda! I can help you with your coding tasks. What should we work on?' }],
-      },
-    ]);
-    setAgentInstance(createAgent(trimmed, currentModel));
-    setApiKeyInput('');
-  }, [currentModel]);
-
-  const handleModelSubmit = useCallback((value: string) => {
-    const num = parseInt(value.trim(), 10);
-    if (num >= 1 && num <= 6 && apiKey) {
-      const option = modelOptions[num - 1];
-      const newConfig: ModelConfig = { name: option.name, effort: option.effort };
-      setCurrentModel(newConfig);
-      setAgentInstance(createAgent(apiKey, newConfig));
-      setShowModelPrompt(false);
-      push({
-        author: 'system',
-        chunks: [{ kind: 'text', text: `Model switched to ${option.label}` }],
-      });
-    }
-    setModelInput('');
-  }, [apiKey, push]);
+    addMessage(message);
+  }, [addMessage]);
 
   useInput((input, key) => {
     if (key.escape) {
@@ -122,10 +76,9 @@ export const App = () => {
           return;
         } else if (cmd === 'reset') {
           await deleteStoredApiKey();
-          setApiKeyState(null);
-          setShowApiKeyPrompt(true);
-          setMessages([]);
-          setAgentInstance(null);
+          clearApiKeyStore();
+          resetMessages();
+          conversationHistory.current = [];
           setQuery('');
           return;
         } else if (cmd === 'status') {
@@ -156,12 +109,7 @@ export const App = () => {
           setQuery('');
           return;
         } else if (cmd === 'clear' || cmd === 'new') {
-          setMessages([
-            {
-              author: 'system',
-              chunks: [{ kind: 'text', text: 'Welcome to Coda! I can help you with your coding tasks. What should we work on?' }],
-            },
-          ]);
+          resetMessages();
           conversationHistory.current = [];
           push({ author: 'system', chunks: [{ kind: 'text', text: 'New conversation started.' }] });
           setQuery('');
@@ -255,14 +203,44 @@ export const App = () => {
         setBusy(false);
       }
     },
-    [busy, push, mode, exit, agentInstance, apiKey, currentModel, sessionId]
+    [busy, push, mode, exit, agentInstance, currentModel, sessionId, resetMessages, clearApiKeyStore]
   );
+
+  const handleApiKeySubmit = useCallback(
+    async (value: string) => {
+      const trimmed = value.trim();
+      if (!trimmed) return;
+      await storeApiKey(trimmed);
+      setApiKeyStore(trimmed);
+      setApiKeyInput('');
+    },
+    [setApiKeyStore]
+  );
+
+  const handleModelSubmit = useCallback(
+    (value: string) => {
+      const num = parseInt(value.trim(), 10);
+      if (num >= 1 && num <= 6 && apiKey) {
+        const option = modelOptions[num - 1];
+        const newConfig: ModelConfig = { name: option.name, effort: option.effort };
+        setModelConfig(newConfig);
+        setShowModelPrompt(false);
+        push({
+          author: 'system',
+          chunks: [{ kind: 'text', text: `Model switched to ${option.label}` }],
+        });
+      }
+      setModelInput('');
+    },
+    [apiKey, push, setModelConfig]
+  );
+
   if (showApiKeyPrompt) {
     return (
       <Box flexDirection="column" width={cols} flexGrow={1} justifyContent="center" alignItems="center" paddingY={2}>
         <HeaderBar title="Setup" mode={mode} modelConfig={currentModel} />
         <Box marginTop={2} flexDirection="column" alignItems="center">
-          <Text bold color="cyan">Welcome to Coda!</Text>
+          <Text bold color="cyan">Welcome to coda!</Text>
           <Box marginTop={1}>
             <Text dimColor>Enter your Openrouter API key to get started:</Text>
           </Box>
@@ -290,7 +268,7 @@ export const App = () => {
         <Box marginTop={2} flexDirection="column" width="80%">
           <Text bold color="cyan">Select model and reasoning level</Text>
           <Box marginTop={1}>
-            <Text dimColor>Switch between Openrouter models for this and future Coda sessions</Text>
+            <Text dimColor>Switch between Openrouter models for this and future coda sessions</Text>
           </Box>
           <Box marginTop={1} flexDirection="column">
             {modelOptions.map((opt) => (
@@ -319,7 +297,7 @@ export const App = () => {
   }
   return (
     <Box flexDirection="column" width={cols} flexGrow={1}>
-      <HeaderBar title={title} mode={mode} modelConfig={currentModel} />
+      <HeaderBar title="AI-Powered Development Assistant" mode={mode} modelConfig={currentModel} />
       <Box flexDirection="column" flexGrow={1} flexShrink={1}>
         {messages.map((message, index) => (
           <MessageView key={index} msg={message} />
@@ -329,7 +307,7 @@ export const App = () => {
             <Text color="green">
               <Spinner type="dots" />
             </Text>
-            <Text> Coda is thinking...</Text>
+            <Text> coda is thinking...</Text>
           </Box>
         )}
       </Box>
@@ -340,7 +318,7 @@ export const App = () => {
             value={query}
             onChange={setQuery}
             onSubmit={handleSubmit}
-            placeholder=" Ask Coda anything..."
+            placeholder=" Ask coda anything..."
           />
         </Box>
       )}

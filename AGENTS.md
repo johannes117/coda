@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-This document summarizes how to work effectively inside the Coda CLI codebase. Keep the CLI responsive, testable, and idiomatic to Ink and TypeScript.
+This document summarizes how to work effectively inside the coda CLI codebase. Keep the CLI responsive, testable, and idiomatic to Ink and TypeScript.
 
 ## Project Structure & Module Organization
 - `index.ts` is the executable entry point and forwards to `src/coda.tsx`.
@@ -19,6 +19,7 @@ This document summarizes how to work effectively inside the Coda CLI codebase. K
 - Stick to strict TypeScript, ES2022 modules, and 2-space indentation.
 - Prefer named exports; reserve default exports for CLI entry files only.
 - Components and hooks follow React conventions: PascalCase for components, camelCase for functions and variables, UPPER_SNAKE for constants.
+- Ban useEffect; use Zustand for shared state and React Query for data fetching.
 - Keep terminal output ASCII, wrap messaging for narrow terminals, and document non-obvious UI flows inline with brief comments.
 
 ## Testing Guidelines

@@ -9,7 +9,7 @@ import {
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { tools } from './tools.js';
 
-const systemPrompt = `You are Coda, an expert AI software engineer.
+const systemPrompt = `You are coda, an expert AI software engineer.
 Your goal is to help users with their coding tasks by interacting with their local filesystem.
 You have access to the following tools:
 - list_files: List files in a directory.
