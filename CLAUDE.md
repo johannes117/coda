@@ -1,0 +1,34 @@
+# Repository Guidelines
+
+This document summarizes how to work effectively inside the Coda CLI codebase. Keep the CLI responsive, testable, and idiomatic to Ink and TypeScript.
+
+## Project Structure & Module Organization
+- `index.ts` is the executable entry point and forwards to `src/coda.tsx`.
+- `src/coda.tsx` wires Yargs parsing with the Ink renderer; UI components live under `src/ui/` (e.g., `App.tsx`).
+- Shared setup for tests sits in `test-setup.ts`; Vitest config resides in `vitest.config.ts`.
+- Transpiled JavaScript lands in `dist/`; treat it as a build artifact only.
+
+## Build, Test, and Development Commands
+- `bun install` syncs dependencies and keeps `bun.lock` authoritative.
+- `bun run build` triggers `tsc` and emits ESM output to `dist/`.
+- `bun run dev` keeps TypeScript in watch mode for local iteration.
+- `bun run start` executes the compiled CLI from `dist/index.js`.
+- `bun run test` invokes `vitest run` with the jsdom environment and shared setup file.
+
+## Coding Style & Naming Conventions
+- Stick to strict TypeScript, ES2022 modules, and 2-space indentation.
+- Prefer named exports; reserve default exports for CLI entry files only.
+- Components and hooks follow React conventions: PascalCase for components, camelCase for functions and variables, UPPER_SNAKE for constants.
+- Keep terminal output ASCII, wrap messaging for narrow terminals, and document non-obvious UI flows inline with brief comments.
+
+## Testing Guidelines
+- Place `*.test.ts` or `*.test.tsx` beside the code they verify (e.g., `src/ui/__tests__/HeaderBar.test.tsx`).
+- Use Vitest with `ink-testing-library` and `@testing-library/react` helpers to validate Ink output.
+- Cover argument parsing, exit codes, and message rendering; update or add snapshots when UI framing changes.
+- Ensure new UI surfaces still render within typical terminal widths (80x24) during tests.
+
+## Commit & Pull Request Guidelines
+- Follow Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`) as seen in recent history; keep subjects under ~72 characters.
+- Scope prefixes like `feat(ui):` help reviewers connect changes to interface layers.
+- Pull requests should include a behavior summary, testing notes, linked issues, and terminal screenshots/gifs for notable UI updates.
+- Flag breaking CLI changes clearly and update this guide whenever contributor expectations shift.

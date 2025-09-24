@@ -10,27 +10,8 @@ import { randomUUID } from 'crypto';
 import { existsSync } from 'fs';
 import { Logo } from './Logo.js';
 import { logError } from '../utils/logger.js';
-
-type Author = 'user' | 'agent' | 'system' | 'tool';
-type ChunkKind = 'text' | 'code' | 'error' | 'list' | 'status' | 'divider' | 'tool-call' | 'tool-result';
-type Mode = 'agent' | 'plan';
-type ModelOption = { id: number; label: string; name: string; effort: string };
-type ModelConfig = { name: string; effort: string };
-type Chunk = {
-  kind: ChunkKind;
-  text?: string;
-  lines?: string[];
-  tool?: string;
-  toolInput?: Record<string, any>;
-};
-type Message = {
-  author: Author;
-  timestamp?: string;
-  chunks: Chunk[];
-};
-
-const nowTime = () =>
-  new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+import type { Author, Mode, ModelConfig, Message } from '../types/index.js';
+import { nowTime, modelOptions } from '../utils/helpers.js';
 const useTerminalDimensions = (): [number, number] => {
   const { stdout } = useStdout();
   const [size, setSize] = useState<[number, number]>([stdout?.columns ?? 80, stdout?.rows ?? 24]);
@@ -55,15 +36,6 @@ const useBlink = () => {
   }, []);
   return on;
 };
-
-const modelOptions: ModelOption[] = [
-  { id: 1, label: 'grok-code-fast-1', name: 'x-ai/grok-code-fast-1', effort: 'medium' },
-  { id: 2, label: 'claude-sonnet-4', name: 'anthropic/claude-sonnet-4', effort: 'medium' },
-  { id: 3, label: 'grok-4-fast:free', name: 'x-ai/grok-4-fast:free', effort: 'medium' },
-  { id: 4, label: 'gpt-5-low', name: 'openai/gpt-5', effort: 'low' },
-  { id: 5, label: 'gpt-5-medium', name: 'openai/gpt-5', effort: 'medium' },
-  { id: 6, label: 'gpt-5-high', name: 'openai/gpt-5', effort: 'high' },
-];
 
 const HeaderBar = ({ title, mode, modelConfig }: { title: string; mode: Mode; modelConfig: ModelConfig }) => {
   const [cwd, setCwd] = useState('');

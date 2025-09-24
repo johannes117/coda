@@ -23,6 +23,14 @@ AI coding agent CLI: Interact with LLM (via OpenRouter) for filesystem ops, shel
 - Test: `bun run test`
 - Logs (debug): `bun run logs:tail` (tail `~/.coda/logs/coda.log` in separate terminal)
 
+
+## Link
+- Build: `bun run build`
+- Link: `bun link`
+
+In your working directory:
+- Run: `coda`
+
 ## Usage
 
 Interactive: `bun run start` (prompt for OpenRouter API key on first run).
