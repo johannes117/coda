@@ -5,14 +5,8 @@ import { hideBin } from 'yargs/helpers';
 import { getStoredApiKey, storeApiKey, deleteStoredApiKey } from './utils/storage.js';
 import { clearLog, logInfo, logError } from './utils/logger.js';
 import { useStore } from './store/index.js';
-import type { Message } from './types/index.js';
 import { createInterface } from 'readline/promises';
 import { stdin, stdout } from 'node:process';
-
-const systemMessage: Message = {
-  author: 'system',
-  chunks: [{ kind: 'text', text: 'Welcome to coda! I can help you with your coding tasks. What should we work on?' }],
-};
 
 export async function main() {
   await clearLog();
@@ -59,7 +53,6 @@ export async function main() {
       }
     }
     useStore.setState({ apiKey });
-    useStore.setState({ messages: [systemMessage] });
     const updateSize = () => {
       useStore.setState({ terminalCols: process.stdout.columns ?? 80 });
     };

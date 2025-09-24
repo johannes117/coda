@@ -3,10 +3,9 @@ import { Divider } from './Divider.js';
 import { CodeBlock } from './CodeBlock.js';
 import { ErrorLine } from './ErrorLine.js';
 import { StatusLine } from './StatusLine.js';
-import { ToolCall } from './ToolCall.js';
-import { ToolResult } from './ToolResult.js';
 import { BubblePrefix } from './BubblePrefix.js';
 import type { Message } from '../../types/index.js';
+import { ToolExecution } from './ToolExecution.js';
 
 export const MessageView = ({ msg }: { msg: Message }) => (
   <Box flexDirection="column" marginTop={1}>
@@ -15,11 +14,8 @@ export const MessageView = ({ msg }: { msg: Message }) => (
       if (c.kind === 'code') return <CodeBlock key={i} lines={c.lines ?? []} />;
       if (c.kind === 'error') return <ErrorLine key={i} text={c.text ?? ''} />;
       if (c.kind === 'status') return <StatusLine key={i} text={c.text ?? ''} />;
-      if (c.kind === 'tool-call' && c.tool && c.toolInput) {
-        return <ToolCall key={i} tool={c.tool} input={c.toolInput} />;
-      }
-      if (c.kind === 'tool-result') {
-        return <ToolResult key={i} result={c.text ?? ''} />;
+      if (c.kind === 'tool-execution') {
+        return <ToolExecution key={c.toolCallId || i} chunk={c} />;
       }
       if (c.kind === 'list') {
         return <CodeBlock key={i} lines={c.lines ?? []} />;

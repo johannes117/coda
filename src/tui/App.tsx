@@ -9,7 +9,7 @@ import { deleteStoredApiKey, saveSession } from '../utils/storage.js';
 import { randomUUID } from 'crypto';
 import { existsSync } from 'fs';
 import { logError } from '../utils/logger.js';
-import type { Mode, ModelConfig, Message } from '../types/index.js';
+import type { Mode, ModelConfig, Message, Chunk } from '../types/index.js';
 import { modelOptions, nowTime } from '../utils/helpers.js';
 import { useStore } from '../store/index.js';
 import { HeaderBar } from './ui/HeaderBar.js';
@@ -25,6 +25,7 @@ export const App = () => {
   const busy = useStore((s) => s.busy);
   const setBusy = useStore((s) => s.setBusy);
   const addMessage = useStore((s) => s.addMessage);
+  const updateToolExecution = useStore((s) => s.updateToolExecution);
   const resetMessages = useStore((s) => s.resetMessages);
   const setModelConfig = useStore((s) => s.setModelConfig);
   const clearApiKeyStore = useStore((s) => s.clearApiKey);
@@ -41,7 +42,7 @@ export const App = () => {
   const currentOption = modelOptions.find((o) => o.name === currentModel.name && o.effort === currentModel.effort);
   const currentId = currentOption ? currentOption.id : 5;
 
-  const push = useCallback((message: Message) => {
+  const push = useCallback((message: Omit<Message, 'id'>) => {
     addMessage(message);
   }, [addMessage]);
 
@@ -169,27 +170,24 @@ export const App = () => {
                     chunks: [{ kind: 'text', text: aiMessage.content as string }],
                   });
                 }
-                if (aiMessage.tool_calls) {
-                  for (const toolCall of aiMessage.tool_calls) {
-                    push({
-                      author: 'agent',
-                      chunks: [{
-                        kind: 'tool-call',
-                        tool: toolCall.name,
-                        toolInput: toolCall.args,
-                      }],
-                    });
-                  }
+                if (aiMessage.tool_calls && aiMessage.tool_calls.length > 0) {
+                  const toolExecutionChunks: Chunk[] = aiMessage.tool_calls.map((toolCall) => ({
+                    kind: 'tool-execution',
+                    toolCallId: toolCall.id,
+                    toolName: toolCall.name,
+                    toolArgs: toolCall.args,
+                    status: 'running',
+                  }));
+                  push({
+                    author: 'system',
+                    chunks: toolExecutionChunks,
+                  });
                 }
               } else if (message._getType() === 'tool') {
                 const toolMessage = message as ToolMessage;
-                push({
-                  author: 'tool',
-                  chunks: [{
-                    kind: 'tool-result',
-                    text: toolMessage.content as string,
-                  }],
-                });
+                const output = toolMessage.content as string;
+                const isError = output.toLowerCase().startsWith('error');
+                updateToolExecution(toolMessage.tool_call_id, isError ? 'error' : 'success', output);
               }
             }
           }
@@ -205,7 +203,7 @@ export const App = () => {
         setBusy(false);
       }
     },
-    [busy, push, mode, exit, agentInstance, currentModel, sessionId, resetMessages, clearApiKeyStore]
+    [busy, push, mode, exit, agentInstance, currentModel, sessionId, resetMessages, clearApiKeyStore, updateToolExecution]
   );
 
 
