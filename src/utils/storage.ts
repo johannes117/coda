@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import { BaseMessage } from '@langchain/core/messages';
+import { logError } from './logger.js';
 
 const STORAGE_DIR = path.join(os.homedir(), '.coda');
 const AUTH_FILE = path.join(STORAGE_DIR, 'auth.json');
@@ -12,7 +13,7 @@ async function ensureStorageDirs(): Promise<void> {
     await fs.mkdir(STORAGE_DIR, { recursive: true });
     await fs.mkdir(SESSIONS_DIR, { recursive: true });
   } catch (error) {
-    console.error('Failed to create storage directories:', error);
+    await logError(`Failed to create storage directories: ${error}`);
   }
 }
 
@@ -24,7 +25,7 @@ export async function storeApiKey(key: string): Promise<void> {
       mode: 0o600,
     });
   } catch (error) {
-    console.error('Failed to store API key:', error);
+    await logError(`Failed to store API key: ${error}`);
   }
 }
 
@@ -43,7 +44,7 @@ export async function deleteStoredApiKey(): Promise<void> {
     await fs.unlink(AUTH_FILE);
   } catch (error: any) {
     if (error.code !== 'ENOENT') {
-      console.error('Failed to delete API key:', error);
+      await logError(`Failed to delete API key: ${error}`);
     }
   }
 }
@@ -54,7 +55,7 @@ export async function saveSession(sessionId: string, history: BaseMessage[]): Pr
   try {
     await fs.writeFile(sessionFile, JSON.stringify(history, null, 2));
   } catch (error) {
-    console.error(`Failed to save session ${sessionId}:`, error);
+    await logError(`Failed to save session ${sessionId}: ${error}`);
   }
 }
 

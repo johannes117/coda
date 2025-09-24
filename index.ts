@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 
 import { main } from './src/coda.js';
+import { logError } from './src/utils/logger.js';
 
 // --- Global Entry Point ---
-main().catch((error) => {
-  console.error('An unexpected critical error occurred:');
+main().catch(async (error) => {
+  await logError('An unexpected critical error occurred:');
   if (error instanceof Error) {
-    console.error(error.stack);
+    await logError(error.stack ?? String(error));
   } else {
-    console.error(String(error));
+    await logError(String(error));
   }
   process.exit(1);
 });

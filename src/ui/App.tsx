@@ -9,6 +9,7 @@ import { getStoredApiKey, storeApiKey, deleteStoredApiKey, saveSession, loadSess
 import { randomUUID } from 'crypto';
 import { existsSync } from 'fs';
 import { Logo } from './Logo.js';
+import { logError } from '../utils/logger.js';
 /** ---------- Types ---------- */
 type Author = 'user' | 'agent' | 'system' | 'tool';
 type ChunkKind = 'text' | 'code' | 'error' | 'list' | 'status' | 'divider' | 'tool-call' | 'tool-result';
@@ -437,12 +438,11 @@ export const App = () => {
           }
         }
       } catch (error) {
+        const errorMsg = `An error occurred: ${error instanceof Error ? error.message : String(error)}`;
+        await logError(errorMsg);
         push({
           author: 'system',
-          chunks: [{
-            kind: 'error',
-            text: `An error occurred: ${error instanceof Error ? error.message : String(error)}`,
-          }],
+          chunks: [{ kind: 'error', text: errorMsg }],
         });
       } finally {
         setBusy(false);
