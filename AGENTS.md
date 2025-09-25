@@ -42,7 +42,7 @@ Path aliases are available in both `tsc` and Vitest via `tsc-alias` and Vite res
 - Place `*.test.ts` or `*.test.tsx` beside the code they verify (e.g., `src/ui/__tests__/HeaderBar.test.tsx`).
 - Use Vitest with `ink-testing-library` and `@testing-library/react` helpers to validate Ink output.
 - Cover argument parsing, exit codes, and message rendering; update or add snapshots when UI framing changes.
-- Ensure new UI surfaces still render within typical terminal widths (80x24) during tests.
+- Ensure new UI surfaces still render within typical terminal widths (80x24) during tests. (We are not adding UI Tests right now due to rapidly changing UI during development)
 
 ## Commit & Pull Request Guidelines
 - Follow Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`) as seen in recent history; keep subjects under ~72 characters.
