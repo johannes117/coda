@@ -10,8 +10,9 @@ import {
 } from '../tools.js';
 
 async function withTempDir<T>(fn: (dir: string) => Promise<T>): Promise<T> {
-  const dir = path.join(process.cwd(), `.tmp-tools-${Date.now()}-${Math.random().toString(16).slice(2)}`);
-  await fs.rm(dir, { recursive: true, force: true });
+  const base = path.join(process.cwd(), '.tmp');
+  const dir = path.join(base, `tools-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  await fs.mkdir(base, { recursive: true });
   await fs.mkdir(dir, { recursive: true });
   try {
     return await fn(dir);

@@ -2,22 +2,24 @@ import { useCallback, useMemo, useState, useRef } from 'react';
 import { Box, Text, useApp, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
-import { createAgent, reviewSystemPrompt } from '../agent/graph.js';
+import { createAgent } from '@agent/graph';
+import { reviewSystemPrompt } from '@agent/prompts';
 import { AIMessage, HumanMessage, ToolMessage } from '@langchain/core/messages';
 import { BaseMessage } from '@langchain/core/messages';
-import { deleteStoredApiKey, saveSession, storeModelConfig } from '../utils/storage.js';
+import { deleteStoredApiKey, saveSession, storeModelConfig } from '@lib/storage';
 import { randomUUID } from 'crypto';
 import { existsSync } from 'fs';
-import { logError } from '../utils/logger.js';
-import type { Mode, ModelConfig, ModelOption, Message, Chunk, SlashCommand } from '../types/index.js';
-import { modelOptions, nowTime } from '../utils/helpers.js';
-import { useStore } from '../store/index.js';
-import { HeaderBar } from './ui/HeaderBar.js';
-import { MessageView } from './ui/MessageView.js';
-import { Footer } from './ui/Footer.js';
-import { CommandMenu } from './ui/CommandMenu.js';
-import { ModelMenu } from './ui/ModelMenu.js';
-import { slashCommands } from '../commands.js';
+import { logError } from '@lib/logger';
+import type { Mode, ModelConfig, ModelOption, Message, Chunk, SlashCommand } from '@types';
+import { modelOptions } from '@config/models';
+import { nowTime } from '@lib/time';
+import { useStore } from '@tui/state';
+import { HeaderBar } from './components/HeaderBar.js';
+import { MessageView } from './components/MessageView.js';
+import { Footer } from './components/Footer.js';
+import { CommandMenu } from './components/CommandMenu.js';
+import { ModelMenu } from './components/ModelMenu.js';
+import { slashCommands } from '@tui/commands';
 
 
 const BUSY_TEXT_OPTIONS = [

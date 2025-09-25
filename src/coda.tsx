@@ -2,9 +2,9 @@ import { render } from 'ink';
 import { App } from './tui/App.js';
 import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
-import { getStoredApiKey, storeApiKey, deleteStoredApiKey, getStoredModelConfig } from './utils/storage.js';
-import { clearLog, logInfo, logError } from './utils/logger.js';
-import { useStore } from './store/index.js';
+import { getStoredApiKey, storeApiKey, deleteStoredApiKey, getStoredModelConfig } from '@lib/storage';
+import { clearLog, logInfo, logError } from '@lib/logger';
+import { useStore } from '@tui/state';
 import { createInterface } from 'readline/promises';
 import { stdin, stdout } from 'node:process';
 

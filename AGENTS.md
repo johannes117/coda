@@ -4,16 +4,32 @@ This document summarizes how to work effectively inside the coda CLI codebase. K
 
 ## Project Structure & Module Organization
 - `index.ts` is the executable entry point and forwards to `src/coda.tsx`.
-- `src/coda.tsx` wires Yargs parsing with the Ink renderer; UI components live under `src/ui/` (e.g., `App.tsx`).
+- `src/coda.tsx` wires Yargs parsing with the Ink renderer.
+- TUI (Ink UI) lives under `src/tui/`:
+  - `src/tui/App.tsx` main UI entry.
+  - `src/tui/components/` presentational components.
+  - `src/tui/state/` Zustand store for UI/session state.
+  - `src/tui/commands/` slash command metadata.
+- Agent logic lives under `src/agent/` (LangGraph, tools, prompts).
+- Framework-agnostic helpers live under `src/lib/` (logger, storage, diff, time).
+- App configuration and constants under `src/config/` (e.g., `models.ts`).
+- Shared types live under `src/types/`.
 - Shared setup for tests sits in `test-setup.ts`; Vitest config resides in `vitest.config.ts`.
 - Transpiled JavaScript lands in `dist/`; treat it as a build artifact only.
 
 ## Build, Test, and Development Commands
 - `bun install` syncs dependencies and keeps `bun.lock` authoritative.
-- `bun run build` triggers `tsc` and emits ESM output to `dist/`.
+- `bun run build` runs `tsc` then `tsc-alias` and emits ESM output to `dist/`.
 - `bun run dev` keeps TypeScript in watch mode for local iteration.
 - `bun run start` executes the compiled CLI from `dist/index.js`.
 - `bun run test` invokes `vitest run` with the jsdom environment and shared setup file.
+
+Path aliases are available in both `tsc` and Vitest via `tsc-alias` and Vite resolve aliases:
+- `@tui/*` → `src/tui/*`
+- `@agent/*` → `src/agent/*`
+- `@lib/*` → `src/lib/*`
+- `@config/*` → `src/config/*`
+- `@types` → `src/types/index.ts`
 
 ## Coding Style & Naming Conventions
 - Stick to strict TypeScript, ES2022 modules, and 2-space indentation.

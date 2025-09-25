@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { main } from './src/coda.js';
-import { logError } from './src/utils/logger.js';
+import { logError } from './src/lib/logger.js';
 
 main().catch(async (error) => {
   await logError('An unexpected critical error occurred:');
