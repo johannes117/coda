@@ -44,6 +44,18 @@ Path aliases are available in both `tsc` and Vitest via `tsc-alias` and Vite res
 - Cover argument parsing, exit codes, and message rendering; update or add snapshots when UI framing changes.
 - Ensure new UI surfaces still render within typical terminal widths (80x24) during tests. (We are not adding UI Tests right now due to rapidly changing UI during development)
 
+## LangSmith Integration
+- LangSmith is configured for agent tracing and evaluation.
+- Environment variables are loaded via dotenv in `index.ts` at startup.
+- Required environment variables for tracing:
+  ```bash
+  LANGSMITH_TRACING=true
+  LANGSMITH_API_KEY=your_api_key_here
+  LANGSMITH_PROJECT=coda
+  ```
+- Agent evaluations use LangSmith for tracking test runs and performance metrics.
+- See `src/evals/` for evaluation test implementations.
+
 ## Commit & Pull Request Guidelines
 - Follow Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`) as seen in recent history; keep subjects under ~72 characters.
 - Scope prefixes like `feat(ui):` help reviewers connect changes to interface layers.

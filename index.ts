@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+import { config } from 'dotenv';
+config();
+
 import { main } from './src/coda.js';
 import { logError } from './src/lib/logger.js';
 

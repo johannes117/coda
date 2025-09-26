@@ -4,9 +4,9 @@
     "": {
       "name": "coda-cli",
       "dependencies": {
-        "@langchain/core": "^0.3.71",
+        "@langchain/core": "^0.3.77",
         "@langchain/langgraph": "^0.4.9",
-        "@langchain/openai": "^0.6.7",
+        "@langchain/openai": "^0.6.13",
         "dotenv": "^17.2.2",
         "ink": "^6.2.3",
         "ink-spinner": "^5.0.0",

@@ -14,6 +14,15 @@ AI coding agent CLI: Interact with LLM (via OpenRouter) for filesystem ops, shel
 1. Install Bun: `curl -fsSL https://bun.sh/install | bash`
 2. Clone: `git clone <repo> && cd coda`
 3. Deps: `bun install`
+4. Set up LangSmith (optional, for tracing):
+   - Sign up at [LangSmith](https://smith.langchain.com)
+   - Create API key in Settings
+   - Add to `.env`:
+     ```bash
+     LANGSMITH_TRACING=true
+     LANGSMITH_API_KEY=your_api_key_here
+     LANGSMITH_PROJECT=coda
+     ```
 
 ## Dev
 
