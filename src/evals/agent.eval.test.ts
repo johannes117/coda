@@ -1,11 +1,16 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
-import { runAgentEvals } from './agent.eval.js';
+import {
+  runAgentEvals,
+  createTargetFunction,
+  createSuccessEvaluator,
+  DATASET_NAME,
+} from './agent.eval.js';
 import type { ModelConfig } from '@types';
 import { config } from 'dotenv';
 import { promises as fs } from 'fs';
 import { existsSync } from 'fs';
 
-describe('Agent Evaluations', () => {
+describe('LangSmith Agent Evaluations', () => {
   let apiKey: string;
   let modelConfig: ModelConfig;
 
@@ -16,6 +21,14 @@ describe('Agent Evaluations', () => {
 
     if (!apiKey) {
       console.warn('No API key found. Set OPENROUTER_API_KEY in .env file to run agent evals.');
+    }
+
+    if (!process.env.LANGSMITH_API_KEY) {
+      console.warn('No LangSmith API key found. Set LANGSMITH_API_KEY in .env file to run LangSmith evals.');
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn('No OpenAI API key found. Set OPENAI_API_KEY in .env file for evaluators.');
     }
 
     modelConfig = {
@@ -47,63 +60,75 @@ describe('Agent Evaluations', () => {
     }
   });
 
-  it('should run basic agent evaluations', async () => {
+
+  it('should create target function that invokes agent', async () => {
     if (!apiKey) {
-      console.log('Skipping agent eval test - no API key provided');
+      console.log('Skipping target function test - no API key provided');
       return;
     }
 
-    const results = await runAgentEvals(apiKey, modelConfig);
+    const target = createTargetFunction(apiKey, modelConfig);
+    const result = await target({ question: "Say hello" });
 
-    expect(results).toBeDefined();
-    expect(results.summary).toBeDefined();
-    expect(results.results).toBeInstanceOf(Array);
-    expect(results.summary.totalTests).toBeGreaterThan(0);
-    expect(results.summary.avgScore).toBeGreaterThanOrEqual(0);
-    expect(results.summary.avgScore).toBeLessThanOrEqual(1);
-    expect(results.summary.successRate).toBeGreaterThanOrEqual(0);
-    expect(results.summary.successRate).toBeLessThanOrEqual(1);
+    expect(result).toBeDefined();
+    expect(result.answer).toBeDefined();
+    expect(typeof result.answer).toBe('string');
+  }, 30000);
 
-    console.log('Agent Eval Results:', {
-      totalTests: results.summary.totalTests,
-      avgScore: results.summary.avgScore.toFixed(2),
-      successRate: `${(results.summary.successRate * 100).toFixed(1)}%`,
-      avgDuration: `${results.summary.avgDuration.toFixed(0)}ms`
+  it('should evaluate with success evaluator', async () => {
+    const successEvaluator = createSuccessEvaluator();
+
+    // Test successful case
+    const successResult = await successEvaluator({
+      inputs: { question: "Test query" },
+      outputs: { answer: "Task completed successfully" },
+      referenceOutputs: { expected: "Should complete task" }
     });
-  }, 60000); // 60 second timeout for all test cases (5 cases x 10s + buffer)
 
-  it('should handle evaluation errors gracefully', async () => {
-    // Test with invalid API key to ensure error handling
-    const results = await runAgentEvals('invalid-key', modelConfig);
+    expect(successResult.key).toBe('success');
+    expect(successResult.score).toBe(1);
+    expect(successResult.comment).toContain('successful');
 
-    expect(results).toBeDefined();
-    expect(results.results).toBeInstanceOf(Array);
-    expect(results.results.length).toBeGreaterThan(0);
-
-    // All results should have score of 0 due to errors
-    results.results.forEach((result: any) => {
-      expect(result.score).toBe(0);
-      expect(result.success).toBe(false);
-      expect(result.actualOutput).toContain('Error:');
+    // Test error case
+    const errorResult = await successEvaluator({
+      inputs: { question: "Test query" },
+      outputs: { answer: "Error: Something went wrong" },
+      referenceOutputs: { expected: "Should complete task" }
     });
+
+    expect(errorResult.score).toBe(0);
+    expect(errorResult.comment).toContain('error');
   });
 
-  it('should process custom evaluation datasets', async () => {
-    if (!apiKey) {
-      console.log('Skipping custom dataset test - no API key provided');
+  it('should run full LangSmith evaluation', async () => {
+    if (!apiKey || !process.env.LANGSMITH_API_KEY || !process.env.OPENAI_API_KEY) {
+      console.log('Skipping full evaluation test - missing required API keys');
       return;
     }
 
-    const customDataset = [
-      {
-        input: "Say hello",
-        expectedOutput: "Should respond with greeting"
-      }
-    ];
+    const experimentPrefix = `test-experiment-${Date.now()}`;
+    const results = await runAgentEvals(
+      apiKey,
+      modelConfig,
+      DATASET_NAME,
+      experimentPrefix
+    );
 
-    const results = await runAgentEvals(apiKey, modelConfig, customDataset);
+    expect(results).toBeDefined();
+    expect(results.experimentName).toContain(experimentPrefix);
+    expect(results.results).toBeDefined();
 
-    expect(results.summary.totalTests).toBe(1);
-    expect(results.results[0].input).toBe("Say hello");
-  }, 15000);
+    console.log('LangSmith Evaluation Results:', {
+      experimentName: results.experimentName,
+      resultsCount: results.results?.length || 0
+    });
+  }, 120000); // 2 minute timeout for full evaluation
+
+  it('should handle target function errors gracefully', async () => {
+    const target = createTargetFunction('invalid-key', modelConfig);
+    const result = await target({ question: "Test query" });
+
+    expect(result).toBeDefined();
+    expect(result.answer).toContain('Error:');
+  }, 30000);
 });

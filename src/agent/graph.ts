@@ -28,6 +28,10 @@ export const createAgent = (
     modelKwargs,
     configuration: {
       baseURL: 'https://openrouter.ai/api/v1',
+      defaultHeaders: {
+        'HTTP-Referer': 'http://localhost:3000',
+        'X-Title': 'coda',
+      },
     }
   }).bindTools(tools);
 
