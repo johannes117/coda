@@ -8,7 +8,8 @@ import { AIMessage, HumanMessage, ToolMessage } from '@langchain/core/messages';
 import { BaseMessage } from '@langchain/core/messages';
 import { deleteStoredApiKey, saveSession, storeModelConfig } from '@lib/storage';
 import { randomUUID } from 'crypto';
-import { existsSync } from 'fs';
+import { existsSync, promises as fs } from 'fs';
+import path from 'path';
 import { logError } from '@lib/logger';
 import type {
   Mode,
@@ -21,12 +22,14 @@ import type {
 } from '@types';
 import { modelOptions } from '@config/models';
 import { nowTime } from '@lib/time';
+import { searchFiles } from '@lib/file-search.js';
 import { useStore } from '@tui/state';
 import { HeaderBar } from './components/HeaderBar.js';
 import { MessageView } from './components/MessageView.js';
 import { Footer } from './components/Footer.js';
 import { CommandMenu } from './components/CommandMenu.js';
 import { ModelMenu } from './components/ModelMenu.js';
+import { FileSearchMenu } from './components/FileSearchMenu.js';
 import { slashCommands } from '@tui/commands';
 
 const BUSY_TEXT_OPTIONS = [
@@ -118,6 +121,11 @@ export const App = () => {
   const [commandSelectionIndex, setCommandSelectionIndex] = useState(0);
   const [filteredModels, setFilteredModels] = useState<ModelOption[]>(modelOptions);
   const [modelSelectionIndex, setModelSelectionIndex] = useState(0);
+  const [showFileSearchMenu, setShowFileSearchMenu] = useState(false);
+  const [fileSearchMatches, setFileSearchMatches] = useState<string[]>([]);
+  const [fileSearchSelectionIndex, setFileSearchSelectionIndex] = useState(0);
+  const fileSearchQueryRef = useRef<string | null>(null);
+  const fileSearchDebounceTimer = useRef<NodeJS.Timeout | null>(null);
   const agentInstance = useMemo(
     () => (apiKey ? createAgent(apiKey, currentModel) : null),
     [apiKey, currentModel]
@@ -142,9 +150,30 @@ export const App = () => {
     setCommandSelectionIndex(0);
   }, [slashCommands]);
 
+  const resetFileSearchMenu = useCallback(() => {
+    setShowFileSearchMenu(false);
+    setFileSearchMatches([]);
+    setFileSearchSelectionIndex(0);
+    fileSearchQueryRef.current = null;
+  }, []);
+
+  const triggerFileSearch = useCallback((query: string) => {
+    if (fileSearchDebounceTimer.current) {
+      clearTimeout(fileSearchDebounceTimer.current);
+    }
+    fileSearchDebounceTimer.current = setTimeout(async () => {
+      const results = await searchFiles(query, process.cwd());
+      setFileSearchMatches(results);
+      setShowFileSearchMenu(results.length > 0);
+      setFileSearchSelectionIndex(0);
+    }, 150); // 150ms debounce
+  }, []);
+
   const handleQueryChange = useCallback(
     (value: string) => {
       setQuery(value);
+      resetFileSearchMenu();
+      resetCommandMenu();
 
       if (showModelMenu) {
         const input = value.toLowerCase();
@@ -164,7 +193,17 @@ export const App = () => {
         return;
       }
 
-      if (value.startsWith('/')) {
+      const lastWordMatch = value.match(/@(\S*)$/);
+      if (lastWordMatch) {
+        const fileQuery = lastWordMatch[1];
+        fileSearchQueryRef.current = lastWordMatch[0];
+        setShowFileSearchMenu(true);
+        if (fileQuery) {
+          triggerFileSearch(fileQuery);
+        } else {
+          setFileSearchMatches([]); // Show menu, but no results yet
+        }
+      } else if (value.startsWith('/')) {
         const inputCommand = value.slice(1).toLowerCase();
         const matches = slashCommands.filter((command) => {
           if (!inputCommand) return true;
@@ -182,10 +221,10 @@ export const App = () => {
           setCommandSelectionIndex(0);
         }
       } else {
-        resetCommandMenu();
+        // Handled by resets at top of function
       }
     },
-    [modelOptions, resetCommandMenu, showModelMenu, slashCommands]
+    [modelOptions, resetCommandMenu, showModelMenu, slashCommands, resetFileSearchMenu, triggerFileSearch]
   );
 
   useInput((input, key) => {
@@ -200,6 +239,8 @@ export const App = () => {
         resetCommandMenu();
       } else if (showCommandMenu) {
         setShowCommandMenu(false);
+      } else if (showFileSearchMenu) {
+        resetFileSearchMenu();
       } else {
         exit();
       }
@@ -217,17 +258,46 @@ export const App = () => {
         return;
       }
     }
-    if (key.tab && !showModelMenu) {
-      if (showCommandMenu) {
-        const selected = filteredCommands[commandSelectionIndex];
-        if (selected) {
-          setQuery(`/${selected.name} `);
-        }
-        resetCommandMenu();
+
+    if (showFileSearchMenu) {
+      if (key.upArrow) {
+        setFileSearchSelectionIndex((prev) => (prev > 0 ? prev - 1 : prev));
         return;
       }
-      setMode(prev => prev === 'agent' ? 'plan' : 'agent');
-      return;
+      if (key.downArrow) {
+        setFileSearchSelectionIndex((prev) =>
+          prev < fileSearchMatches.length - 1 ? prev + 1 : prev
+        );
+        return;
+      }
+    }
+
+    if (key.tab) {
+      if (showFileSearchMenu) {
+        const selectedFile = fileSearchMatches[fileSearchSelectionIndex];
+        if (selectedFile && fileSearchQueryRef.current) {
+          const currentQuery = query;
+          const queryStart = currentQuery.lastIndexOf(fileSearchQueryRef.current);
+          if (queryStart !== -1) {
+            const newQuery =
+              currentQuery.substring(0, queryStart) + `@${selectedFile} `;
+            setQuery(newQuery);
+          }
+        }
+        resetFileSearchMenu();
+        return;
+      } else if (!showModelMenu) {
+        if (showCommandMenu) {
+          const selected = filteredCommands[commandSelectionIndex];
+          if (selected) {
+            setQuery(`/${selected.name} `);
+          }
+          resetCommandMenu();
+          return;
+        }
+        setMode(prev => prev === 'agent' ? 'plan' : 'agent');
+        return;
+      }
     }
     if (showCommandMenu) {
       if (key.upArrow) {
@@ -264,6 +334,19 @@ export const App = () => {
         setModelSelectionIndex(0);
         setQuery('');
         resetCommandMenu();
+        return;
+      }
+
+      if (showFileSearchMenu) {
+        const selectedFile = fileSearchMatches[fileSearchSelectionIndex];
+        if (selectedFile && fileSearchQueryRef.current) {
+          const queryStart = value.lastIndexOf(fileSearchQueryRef.current);
+          if (queryStart !== -1) {
+            const newQuery = value.substring(0, queryStart) + `@${selectedFile} `;
+            setQuery(newQuery);
+          }
+        }
+        resetFileSearchMenu();
         return;
       }
 
@@ -400,8 +483,34 @@ export const App = () => {
           return;
         }
       }
+
       resetCommandMenu();
-      const userMessage = new HumanMessage(value);
+
+      let finalPrompt = value;
+      const fileRegex = /(?<![\w`])@(\S+)/g;
+      const matches = [...value.matchAll(fileRegex)];
+
+      if (matches.length > 0) {
+        const augmentedContent: string[] = [];
+        const filesToRead = matches.map(match => ({
+          alias: match[0],
+          filePath: path.resolve(process.cwd(), match[1]),
+          relativePath: match[1],
+        }));
+
+        for (const file of filesToRead) {
+          try {
+            const content = await fs.readFile(file.filePath, 'utf-8');
+            augmentedContent.push(`Content from ${file.relativePath}:\n---\n${content}\n---`);
+          } catch (e) {
+            augmentedContent.push(`Could not read file ${file.relativePath}. Error: ${e instanceof Error ? e.message : String(e)}`);
+          }
+        }
+        finalPrompt = `${augmentedContent.join('\n\n')}\n\nUser request: ${value}`;
+      }
+      // --- End @ File Reference Processing ---
+
+      const userMessage = new HumanMessage(finalPrompt);
       conversationHistory.current.push(userMessage);
       push({
         author: 'user',
@@ -465,6 +574,10 @@ export const App = () => {
       setModelConfig,
       storeModelConfig,
       slashCommands,
+      resetFileSearchMenu,
+      showFileSearchMenu,
+      fileSearchMatches,
+      fileSearchSelectionIndex
     ]
   );
   return (
@@ -496,6 +609,9 @@ export const App = () => {
           </Box>
           {showCommandMenu && filteredCommands.length > 0 && (
             <CommandMenu commands={filteredCommands} selectedIndex={commandSelectionIndex} />
+          )}
+          {showFileSearchMenu && (
+            <FileSearchMenu matches={fileSearchMatches} selectedIndex={fileSearchSelectionIndex} />
           )}
           {showModelMenu && filteredModels.length > 0 && (
             <ModelMenu models={filteredModels} selectedIndex={modelSelectionIndex} currentModelId={currentId} />
