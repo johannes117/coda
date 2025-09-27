@@ -77,3 +77,83 @@ export const buildDiffLines = (original: string[], updated: string[]): DiffLine[
   return diffLines;
 };
 
+export function applyPatch(originalContent: string, patch: string): { newContent: string } {
+    let lines = originalContent.split('\n');
+    const patchLines = patch.split('\n');
+
+    // Extract hunks from patch
+    const hunks: string[][] = [];
+    let currentHunk: string[] = [];
+    let inHunk = false;
+
+    for (const line of patchLines) {
+        if (line.startsWith('@@')) {
+            if (currentHunk.length > 0) {
+                hunks.push(currentHunk);
+            }
+            currentHunk = [line];
+            inHunk = true;
+        } else if (inHunk && (line.startsWith(' ') || line.startsWith('+') || line.startsWith('-'))) {
+            currentHunk.push(line);
+        } else if (line.startsWith('---') || line.startsWith('+++') || line.startsWith('Index:')) {
+            // Skip header lines
+            continue;
+        }
+    }
+    if (currentHunk.length > 0) {
+        hunks.push(currentHunk);
+    }
+
+    // Process hunks in reverse order to maintain line indices
+    for (let i = hunks.length - 1; i >= 0; i--) {
+        const hunk = hunks[i];
+        const header = hunk[0];
+        const match = /@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(header);
+
+        if (!match) {
+            throw new Error(`Invalid hunk header: ${header}`);
+        }
+
+        const oldStart = parseInt(match[1], 10) - 1; // Convert to 0-based
+        const hunkLines = hunk.slice(1);
+
+        // Build the new section from the hunk
+        const newSection: string[] = [];
+        let oldLineIndex = oldStart;
+
+        for (const line of hunkLines) {
+            if (line.startsWith(' ')) {
+                // Context line - include as-is
+                newSection.push(line.substring(1));
+                oldLineIndex++;
+            } else if (line.startsWith('-')) {
+                // Remove line - skip it, advance old index
+                oldLineIndex++;
+            } else if (line.startsWith('+')) {
+                // Add line - include in new section
+                newSection.push(line.substring(1));
+            }
+        }
+
+        // Count how many old lines this hunk replaces
+        let oldLineCount = 0;
+        for (const line of hunkLines) {
+            if (line.startsWith(' ') || line.startsWith('-')) {
+                oldLineCount++;
+            }
+        }
+
+        // Replace the old lines with the new section
+        lines.splice(oldStart, oldLineCount, ...newSection);
+    }
+
+    let result = lines.join('\n');
+
+    // Handle special case: if original was empty and we're creating a file
+    if (originalContent === '' && result.endsWith('\n')) {
+        result = result.slice(0, -1);
+    }
+
+    return { newContent: result };
+}
+

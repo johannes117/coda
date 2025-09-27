@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { 
-  listFilesTool, 
-  readFileTool, 
-  writeFileTool, 
-  deleteFileTool, 
-  shellCommandTool 
+import {
+  listFilesTool,
+  readFileTool,
+  writeFileTool,
+  deleteFileTool,
+  shellCommandTool,
+  applyDiffTool
 } from '../tools.js';
 
 const getToolSchema = (tool: any) => tool.schema;
@@ -76,6 +77,23 @@ describe('Tool Schema Validation', () => {
 
     it('should throw an error for a missing command', () => {
       expect(() => schema.parse({})).toThrow();
+    });
+  });
+
+  describe('applyDiffTool', () => {
+    const schema = getToolSchema(applyDiffTool);
+
+    it('should validate a correct path and diff object', () => {
+      const data = { path: 'file.txt', diff: '...' };
+      expect(() => schema.parse(data)).not.toThrow();
+    });
+
+    it('should throw an error for a missing path', () => {
+      expect(() => schema.parse({ diff: '...' })).toThrow();
+    });
+
+    it('should throw an error for a missing diff', () => {
+      expect(() => schema.parse({ path: 'file.txt' })).toThrow();
     });
   });
 });

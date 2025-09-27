@@ -7,6 +7,7 @@ import {
   writeFileTool,
   deleteFileTool,
   shellCommandTool,
+  applyDiffTool,
 } from '../tools.js';
 
 async function withTempDir<T>(fn: (dir: string) => Promise<T>): Promise<T> {
@@ -58,6 +59,43 @@ describe('Agent Tools - functional behavior', () => {
       expect(secondParsed.summary).toBe(`No changes made to ${file}.`);
       expect(secondParsed.diffLines).toEqual([]);
     });
+  });
+
+  it('applies a diff to an existing file', async () => {
+    await withTempDir(async (dir) => {
+      const file = path.join(dir, 'test.txt');
+      await fs.writeFile(file, 'line 1\nline 2\nline 3', 'utf8');
+
+      const diff = `--- a/test.txt
++++ b/test.txt
+@@ -1,3 +1,3 @@
+ line 1
+-line 2
++new line 2
+ line 3`;
+
+      const result = await applyDiffTool.func({ path: file, diff } as any);
+      const parsed = JSON.parse(String(result));
+      expect(parsed.summary).toContain('1 addition(s) and 1 removal(s)');
+
+      const content = await fs.readFile(file, 'utf8');
+      expect(content).toBe('line 1\nnew line 2\nline 3');
+    });
+  });
+
+  it('creates a new file from a diff', async () => {
+      await withTempDir(async (dir) => {
+        const file = path.join(dir, 'new.txt');
+        const diff = `--- /dev/null
++++ b/new.txt
+@@ -0,0 +1,2 @@
++hello
++world`;
+
+        await applyDiffTool.func({ path: file, diff } as any);
+        const content = await fs.readFile(file, 'utf8');
+        expect(content).toBe('hello\nworld');
+      });
   });
 
   it('deletes existing file and reports error on missing', async () => {

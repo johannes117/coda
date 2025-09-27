@@ -3,8 +3,9 @@ import { readFileTool } from './readFile.js';
 import { writeFileTool } from './writeFile.js';
 import { deleteFileTool } from './deleteFile.js';
 import { shellCommandTool } from './shell.js';
+import { applyDiffTool } from './applyDiff.js';
 
-export { listFilesTool, readFileTool, writeFileTool, deleteFileTool, shellCommandTool };
+export { listFilesTool, readFileTool, writeFileTool, deleteFileTool, shellCommandTool, applyDiffTool };
 
 export const tools = [
   // Keep ordering explicit and readable
@@ -15,6 +16,7 @@ export const tools = [
   listFilesTool,
   readFileTool,
   writeFileTool,
+  applyDiffTool,
   deleteFileTool,
   shellCommandTool,
 ];

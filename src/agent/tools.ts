@@ -5,5 +5,6 @@ export {
   writeFileTool,
   deleteFileTool,
   shellCommandTool,
+  applyDiffTool,
   tools,
 } from './tools/index.js';

@@ -9,8 +9,8 @@ const formatArgs = (args: Record<string, any>): string => {
     return args.command;
   }
   if (args.path) {
-    if (args.content) {
-      return `${args.path}`; // Don't show content for write_file
+    if (args.content || args.diff) {
+      return `${args.path}`; // Don't show content/diff for write_file/apply_diff
     }
     return args.path;
   }
@@ -62,7 +62,7 @@ export const ToolExecution = ({ chunk }: { chunk: Chunk }) => {
         </Box>
       );
     }
-    if (toolName === 'write_file') {
+    if (toolName === 'write_file' || toolName === 'apply_diff') {
       let parsedOutput;
       try {
         parsedOutput = JSON.parse(output ?? '{}');
