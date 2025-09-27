@@ -12,7 +12,8 @@
     "build": "tsc && tsc-alias -p tsconfig.json",
     "start": "bun run dist/index.js",
     "dev": "tsc --watch",
-    "test": "vitest run",
+    "test": "vitest run --exclude '**/evals/**'",
+    "eval": "vitest run src/evals/",
     "evals:seed": "bun run src/evals/seed-dataset.ts",
     "logs:tail": "tail -f ~/.coda/logs/coda.log"
   },
