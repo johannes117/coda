@@ -22,6 +22,9 @@ describe('modelOptions config', () => {
       const parts = m.name.split('/');
       expect(parts[0].length).toBeGreaterThan(0);
       expect(parts[1].length).toBeGreaterThan(0);
+
+      expect(typeof m.contextWindow).toBe('number');
+      expect(m.contextWindow).toBeGreaterThan(0);
     }
   });
 });

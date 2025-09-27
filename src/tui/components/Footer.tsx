@@ -1,6 +1,7 @@
 import { Box, Text } from 'ink';
 import { useStore } from '@tui/state';
 import type { Mode } from '@types';
+import { modelOptions } from '@config/models';
 
 const useBlink = () => useStore((s) => s.blink);
 
@@ -15,6 +16,14 @@ export const Footer = ({ working, mode }: { working: boolean; mode: Mode }) => {
   const blink = useBlink();
   const busy = useStore((s) => s.busy);
   const tokenUsage = useStore((s) => s.tokenUsage);
+  const modelConfig = useStore((s) => s.modelConfig);
+
+  const currentModel = modelOptions.find(
+    (o) => o.name === modelConfig.name && o.effort === modelConfig.effort
+  );
+
+  const contextWindow = currentModel?.contextWindow ?? 0;
+  const contextLeftPercentage = contextWindow > 0 ? Math.round((contextWindow - tokenUsage.total) / contextWindow * 100) : 0;
   return (
     <Box
       width="100%"
@@ -31,6 +40,12 @@ export const Footer = ({ working, mode }: { working: boolean; mode: Mode }) => {
           <Text>
             <Text dimColor> | tokens used: </Text>
             <Text>{formatTokenCount(tokenUsage.total)}</Text>
+          </Text>
+        )}
+        {tokenUsage.total > 0 && contextWindow > 0 && (
+          <Text>
+            <Text dimColor> | </Text>
+            <Text>{contextLeftPercentage}% context left</Text>
           </Text>
         )}
       </Text>

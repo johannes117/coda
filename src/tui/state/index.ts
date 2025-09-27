@@ -32,7 +32,7 @@ export const useStore = create<Store>((set, get) => ({
   apiKey: null,
   setApiKey: (key: string) => set({ apiKey: key }),
   clearApiKey: () => set({ apiKey: null }),
-  modelConfig: { name: 'openai/gpt-5', effort: 'medium' },
+  modelConfig: { name: 'anthropic/claude-sonnet-4', effort: 'medium' },
   setModelConfig: (config: ModelConfig) => set({ modelConfig: config }),
   messages: [createWelcomeMessage()],
   addMessage: (msg: Omit<Message, 'id'>) => set((state) => ({ messages: [...state.messages, { ...msg, id: randomUUID() }] })),
