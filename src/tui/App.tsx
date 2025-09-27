@@ -10,7 +10,15 @@ import { deleteStoredApiKey, saveSession, storeModelConfig } from '@lib/storage'
 import { randomUUID } from 'crypto';
 import { existsSync } from 'fs';
 import { logError } from '@lib/logger';
-import type { Mode, ModelConfig, ModelOption, Message, Chunk, SlashCommand } from '@types';
+import type {
+  Mode,
+  ModelConfig,
+  ModelOption,
+  Message,
+  Chunk,
+  SlashCommand,
+  ToolExecutionStatus,
+} from '@types';
 import { modelOptions } from '@config/models';
 import { nowTime } from '@lib/time';
 import { useStore } from '@tui/state';
@@ -20,7 +28,6 @@ import { Footer } from './components/Footer.js';
 import { CommandMenu } from './components/CommandMenu.js';
 import { ModelMenu } from './components/ModelMenu.js';
 import { slashCommands } from '@tui/commands';
-
 
 const BUSY_TEXT_OPTIONS = [
   'vibing...',
@@ -36,6 +43,59 @@ const BUSY_TEXT_OPTIONS = [
   'processing...'
 ] as const;
 
+const processStreamUpdate = async (
+  chunk: Record<string, any>,
+  conversationHistory: { current: BaseMessage[] },
+  actions: {
+    push: (message: Omit<Message, 'id'>) => void;
+    updateToolExecution: (toolCallId: string, status: ToolExecutionStatus, output: string) => void;
+    updateTokenUsage: (usage: { input: number; output: number }) => void;
+  }
+) => {
+  const nodeName = Object.keys(chunk)[0];
+  const update = chunk[nodeName as keyof typeof chunk];
+  if (update && 'messages' in update && update.messages) {
+    const newMessages: BaseMessage[] = update.messages;
+    conversationHistory.current.push(...newMessages);
+    await saveSession('last_session', conversationHistory.current);
+    for (const message of newMessages) {
+      if (message._getType() === 'ai') {
+        const aiMessage = message as AIMessage;
+        if (aiMessage.usage_metadata) {
+          actions.updateTokenUsage({
+            input: aiMessage.usage_metadata.input_tokens,
+            output: aiMessage.usage_metadata.output_tokens,
+          });
+        }
+        if (aiMessage.content) {
+          actions.push({
+            author: 'agent',
+            chunks: [{ kind: 'text', text: aiMessage.content as string }],
+          });
+        }
+        if (aiMessage.tool_calls && aiMessage.tool_calls.length > 0) {
+          const toolExecutionChunks: Chunk[] = aiMessage.tool_calls.map((toolCall) => ({
+            kind: 'tool-execution',
+            toolCallId: toolCall.id,
+            toolName: toolCall.name,
+            toolArgs: toolCall.args,
+            status: 'running',
+          }));
+          actions.push({
+            author: 'system',
+            chunks: toolExecutionChunks,
+          });
+        }
+      } else if (message._getType() === 'tool') {
+        const toolMessage = message as ToolMessage;
+        const output = toolMessage.content as string;
+        const isError = output.toLowerCase().startsWith('error');
+        actions.updateToolExecution(toolMessage.tool_call_id, isError ? 'error' : 'success', output);
+      }
+    }
+  }
+};
+
 export const App = () => {
   const { exit } = useApp();
   const cols = useStore((s) => s.terminalCols);
@@ -45,6 +105,7 @@ export const App = () => {
   const busy = useStore((s) => s.busy);
   const setBusy = useStore((s) => s.setBusy);
   const addMessage = useStore((s) => s.addMessage);
+  const updateTokenUsage = useStore((s) => s.updateTokenUsage);
   const updateToolExecution = useStore((s) => s.updateToolExecution);
   const resetMessages = useStore((s) => s.resetMessages);
   const setModelConfig = useStore((s) => s.setModelConfig);
@@ -253,6 +314,7 @@ export const App = () => {
         if (cmd.name === 'status') {
           resetCommandMenu();
           const cwd = process.cwd().replace(process.env.HOME || '', '~');
+          const tokenUsage = useStore.getState().tokenUsage;
           const agentsFile = existsSync('AGENTS.md') ? 'AGENTS.md' : 'none';
           const statusText = `📂 Workspace
   • Path: ${cwd}
@@ -272,9 +334,9 @@ export const App = () => {
   • CLI Version: 0.1.0
 📊 Token Usage
   • Session ID: ${sessionId}
-  • Input: 0
-  • Output: 0
-  • Total: 0`;
+  • Input: ${tokenUsage.input}
+  • Output: ${tokenUsage.output}
+  • Total: ${tokenUsage.total}`;
           push({ author: 'system', chunks: [{ kind: 'text', text: statusText }] });
           setQuery('');
           return;
@@ -317,47 +379,13 @@ export const App = () => {
           await saveSession('last_session', conversationHistory.current);
           setBusy(true);
           try {
+            const actions = { push, updateToolExecution, updateTokenUsage };
             const stream = await reviewAgent.stream(
               { messages: conversationHistory.current },
               { recursionLimit: 150 }
             );
             for await (const chunk of stream) {
-              const nodeName = Object.keys(chunk)[0];
-              const update = chunk[nodeName as keyof typeof chunk];
-              if (update && 'messages' in update && update.messages) {
-                const newMessages: BaseMessage[] = update.messages;
-                conversationHistory.current.push(...newMessages);
-                await saveSession('last_session', conversationHistory.current);
-                for (const message of newMessages) {
-                  if (message._getType() === 'ai') {
-                    const aiMessage = message as AIMessage;
-                    if (aiMessage.content) {
-                      push({
-                        author: 'agent',
-                        chunks: [{ kind: 'text', text: aiMessage.content as string }],
-                      });
-                    }
-                    if (aiMessage.tool_calls && aiMessage.tool_calls.length > 0) {
-                      const toolExecutionChunks: Chunk[] = aiMessage.tool_calls.map((toolCall) => ({
-                        kind: 'tool-execution',
-                        toolCallId: toolCall.id,
-                        toolName: toolCall.name,
-                        toolArgs: toolCall.args,
-                        status: 'running',
-                      }));
-                      push({
-                        author: 'system',
-                        chunks: toolExecutionChunks,
-                      });
-                    }
-                  } else if (message._getType() === 'tool') {
-                    const toolMessage = message as ToolMessage;
-                    const output = toolMessage.content as string;
-                    const isError = output.toLowerCase().startsWith('error');
-                    updateToolExecution(toolMessage.tool_call_id, isError ? 'error' : 'success', output);
-                  }
-                }
-              }
+              await processStreamUpdate(chunk, conversationHistory, actions);
             }
           } catch (error) {
             const errorMsg = `An error occurred: ${error instanceof Error ? error.message : String(error)}`;
@@ -396,47 +424,13 @@ export const App = () => {
           return;
         }
 
+        const actions = { push, updateToolExecution, updateTokenUsage };
         const stream = await agentInstance.stream(
           { messages: conversationHistory.current },
           { recursionLimit: 150 }
         );
         for await (const chunk of stream) {
-          const nodeName = Object.keys(chunk)[0];
-          const update = chunk[nodeName as keyof typeof chunk];
-          if (update && 'messages' in update && update.messages) {
-            const newMessages: BaseMessage[] = update.messages;
-            conversationHistory.current.push(...newMessages);
-            await saveSession('last_session', conversationHistory.current);
-            for (const message of newMessages) {
-              if (message._getType() === 'ai') {
-                const aiMessage = message as AIMessage;
-                if (aiMessage.content) {
-                  push({
-                    author: 'agent',
-                    chunks: [{ kind: 'text', text: aiMessage.content as string }],
-                  });
-                }
-                if (aiMessage.tool_calls && aiMessage.tool_calls.length > 0) {
-                  const toolExecutionChunks: Chunk[] = aiMessage.tool_calls.map((toolCall) => ({
-                    kind: 'tool-execution',
-                    toolCallId: toolCall.id,
-                    toolName: toolCall.name,
-                    toolArgs: toolCall.args,
-                    status: 'running',
-                  }));
-                  push({
-                    author: 'system',
-                    chunks: toolExecutionChunks,
-                  });
-                }
-              } else if (message._getType() === 'tool') {
-                const toolMessage = message as ToolMessage;
-                const output = toolMessage.content as string;
-                const isError = output.toLowerCase().startsWith('error');
-                updateToolExecution(toolMessage.tool_call_id, isError ? 'error' : 'success', output);
-              }
-            }
-          }
+          await processStreamUpdate(chunk, conversationHistory, actions);
         }
       } catch (error) {
         const errorMsg = `An error occurred: ${error instanceof Error ? error.message : String(error)}`;

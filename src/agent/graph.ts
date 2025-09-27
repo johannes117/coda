@@ -25,7 +25,10 @@ export const createAgent = (
     apiKey: apiKey,
     model: modelConfig.name,
     temperature: 1,
-    modelKwargs,
+    modelKwargs: {
+      ...modelKwargs,
+      usage: { include: true },
+    },
     configuration: {
       baseURL: 'https://openrouter.ai/api/v1',
       defaultHeaders: {
