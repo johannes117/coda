@@ -4,16 +4,9 @@ import { reviewSystemPrompt } from '@agent/prompts';
 import { processStreamUpdate } from '@tui/core/stream-processor.js';
 import { saveSession } from '@lib/storage';
 import { logError } from '@lib/logger';
+import { AGENT_RECURSION_LIMIT } from '@lib/constants';
 import type { Message } from '@types';
-
-export type RunnerDeps = {
-  apiKey: string;
-  modelConfig: { name: string; effort: string };
-  push: (message: Omit<Message, 'id'>) => void;
-  updateToolExecution: (toolCallId: string, status: any, output: string) => void;
-  updateTokenUsage: (usage: { input: number; output: number }) => void;
-  setBusy: (busy: boolean) => void;
-};
+import type { RunnerDeps } from '../../types/agent.js';
 
 export async function runAgentStream(
   deps: RunnerDeps,
@@ -29,7 +22,7 @@ export async function runAgentStream(
     const actions = { push, updateToolExecution, updateTokenUsage };
     const stream = await agentInstance.stream(
       { messages: conversationHistory.current },
-      { recursionLimit: 150 }
+      { recursionLimit: AGENT_RECURSION_LIMIT }
     );
     for await (const chunk of stream) {
       await processStreamUpdate(chunk, conversationHistory, actions);
@@ -60,7 +53,7 @@ export async function runReview(
     const actions = { push, updateToolExecution, updateTokenUsage };
     const stream = await reviewAgent.stream(
       { messages: conversationHistory.current },
-      { recursionLimit: 150 }
+      { recursionLimit: AGENT_RECURSION_LIMIT }
     );
     for await (const chunk of stream) {
       await processStreamUpdate(chunk, conversationHistory, actions);

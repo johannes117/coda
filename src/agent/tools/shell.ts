@@ -2,6 +2,7 @@ import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { createSuccessResult, createErrorResult } from '@lib/tool-result';
 
 const execPromise = promisify(exec);
 
@@ -16,12 +17,16 @@ export const shellCommandTool = new DynamicStructuredTool({
   func: async ({ command }: z.infer<typeof shellCommandSchema>) => {
     try {
       const { stdout, stderr } = await execPromise(command);
-      let result = '';
-      if (stdout) result += `STDOUT:\n${stdout}\n`;
-      if (stderr) result += `STDERR:\n${stderr}\n`;
-      return result || 'Command executed successfully.';
+      let output = '';
+      if (stdout) output += `STDOUT:\n${stdout}\n`;
+      if (stderr) output += `STDERR:\n${stderr}\n`;
+      return createSuccessResult({
+        message: output || 'Command executed successfully.',
+        stdout,
+        stderr
+      });
     } catch (e: any) {
-      return `Error executing command: ${e.message}\nSTDOUT:\n${e.stdout}\nSTDERR:\n${e.stderr}`;
+      return createErrorResult(`Error executing command: ${e.message}\nSTDOUT:\n${e.stdout || ''}\nSTDERR:\n${e.stderr || ''}`);
     }
   },
 });

@@ -2,6 +2,7 @@ import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { promises as fs } from 'fs';
 import { buildDiffLines } from '@lib/diff';
+import { createFileOperationResult, createErrorResult } from '@lib/tool-result';
 
 const writeFileSchema = z.object({
   path: z.string().describe('The path of the file to write to.'),
@@ -22,7 +23,7 @@ export const writeFileTool = new DynamicStructuredTool({
       }
 
       if (originalContent === content) {
-        return JSON.stringify({ summary: `No changes made to ${path}.`, diffLines: [] });
+        return createFileOperationResult(`No changes made to ${path}.`);
       }
 
       await fs.writeFile(path, content, 'utf-8');
@@ -37,9 +38,9 @@ export const writeFileTool = new DynamicStructuredTool({
         if (l.type === 'remove') removals++;
       }
       const summary = `Updated ${path} with ${additions} addition(s) and ${removals} removal(s).`;
-      return JSON.stringify({ summary, diffLines });
+      return createFileOperationResult(summary, diffLines);
     } catch (e: any) {
-      return `Error writing file: ${e.message}`;
+      return createErrorResult(`Error writing file: ${e.message}`);
     }
   },
 });

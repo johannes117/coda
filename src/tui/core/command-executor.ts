@@ -3,21 +3,9 @@ import { deleteStoredApiKey, saveSession, storeModelConfig } from '@lib/storage'
 import { useStore } from '@tui/core/store.js';
 import type { ModelConfig, Message, ModelOption } from '@types';
 import { modelOptions } from '@lib/models.js';
-import { runReview, RunnerDeps } from '@tui/core/agent-runner.js';
-
-export type CommandCtx = {
-  push: (message: Omit<Message, 'id'>) => void;
-  resetMessages: () => void;
-  clearApiKeyStore: () => void;
-  setShowModelMenu: (v: boolean) => void;
-  setFilteredModels: (v: ModelOption[]) => void;
-  setModelSelectionIndex: (i: number) => void;
-  setQuery: (v: string) => void;
-  exit: () => void;
-  apiKey: string | null;
-  currentModel: ModelConfig;
-  sessionId: string;
-};
+import { runReview } from '@tui/core/agent-runner.js';
+import type { RunnerDeps } from '../../types/agent.js';
+import type { CommandCtx } from '../../types/commands.js';
 
 export async function executeSlashCommand(
   cmdName: string,

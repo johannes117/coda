@@ -1,6 +1,7 @@
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { promises as fs } from 'fs';
+import { createSimpleSuccessResult, createErrorResult } from '@lib/tool-result';
 
 const deleteFileSchema = z.object({
   path: z.string().describe('The path of the file to delete.'),
@@ -13,9 +14,9 @@ export const deleteFileTool = new DynamicStructuredTool({
   func: async ({ path }: z.infer<typeof deleteFileSchema>) => {
     try {
       await fs.unlink(path);
-      return `Successfully deleted ${path}`;
+      return createSimpleSuccessResult(`Successfully deleted ${path}`);
     } catch (e: any) {
-      return `Error deleting file: ${e.message}`;
+      return createErrorResult(`Error deleting file: ${e.message}`);
     }
   },
 });

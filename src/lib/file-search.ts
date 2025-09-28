@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
+import { SEARCH_RESULTS_LIMIT } from './constants.js';
 
 const IGNORED_DIRS = new Set(['node_modules', '.git', 'dist']);
 
@@ -24,7 +25,7 @@ export async function searchFiles(query: string, rootDir: string): Promise<strin
       const relativePath = path.relative(rootDir, filePath);
       if (relativePath.toLowerCase().includes(query.toLowerCase())) {
         results.push(relativePath);
-        if (results.length >= 10) { // Limit to 10 results for performance
+        if (results.length >= SEARCH_RESULTS_LIMIT) {
           break;
         }
       }

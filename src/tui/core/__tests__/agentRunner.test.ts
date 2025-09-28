@@ -7,9 +7,9 @@ vi.mock('@agent/graph', () => {
     createAgent: vi.fn(() => ({
       stream: async function* () {
         // simulate a single AI response chunk with usage
-        const msg = new AIMessage('hello from agent', {
-          usage_metadata: { input_tokens: 10, output_tokens: 5 },
-        } as any);
+        const msg = new AIMessage('hello from agent');
+        // Set usage_metadata directly on the message
+        (msg as any).usage_metadata = { input_tokens: 10, output_tokens: 5 };
         yield { agent: { messages: [msg] } };
       },
     })),

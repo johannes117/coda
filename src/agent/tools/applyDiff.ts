@@ -2,6 +2,7 @@ import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { promises as fs } from 'fs';
 import { applyPatch, buildDiffLines } from '@lib/diff';
+import { createFileOperationResult, createErrorResult } from '@lib/tool-result';
 
 const applyDiffSchema = z.object({
   path: z.string().describe('The path of the file to apply the diff to.'),
@@ -21,17 +22,17 @@ export const applyDiffTool = new DynamicStructuredTool({
         if (e.code === 'ENOENT') {
           // File doesn't exist. If diff creates a new file (--- /dev/null), it's ok.
           if (!diff.includes('--- /dev/null')) {
-              return `Error: File ${path} does not exist. Use write_file to create a new file.`;
+              return createErrorResult(`Error: File ${path} does not exist. Use write_file to create a new file.`);
           }
         } else {
-            return `Error reading original file: ${e.message}`;
+            return createErrorResult(`Error reading original file: ${e.message}`);
         }
       }
 
       const { newContent } = applyPatch(originalContent, diff);
 
       if (originalContent === newContent) {
-        return JSON.stringify({ summary: `No changes made to ${path}.`, diffLines: [] });
+        return createFileOperationResult(`No changes made to ${path}.`);
       }
 
       await fs.writeFile(path, newContent, 'utf-8');
@@ -49,9 +50,9 @@ export const applyDiffTool = new DynamicStructuredTool({
 
       const summary = `Updated ${path} with ${additions} addition(s) and ${removals} removal(s).`;
 
-      return JSON.stringify({ summary, diffLines });
+      return createFileOperationResult(summary, diffLines);
     } catch (e: any) {
-      return `Error applying diff: ${e.message}`;
+      return createErrorResult(`Error applying diff: ${e.message}`);
     }
   },
 });

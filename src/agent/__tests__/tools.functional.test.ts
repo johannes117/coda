@@ -28,8 +28,9 @@ describe('Agent Tools - functional behavior', () => {
       await fs.writeFile(path.join(dir, 'file1.txt'), 'hello', 'utf8');
       await fs.mkdir(path.join(dir, 'subdir'));
       const output = await listFilesTool.func({ path: dir } as any);
-      const entries = output.split('\n').filter(Boolean);
-      expect(new Set(entries)).toEqual(new Set(['file1.txt', 'subdir/']));
+      const parsed = JSON.parse(String(output));
+      expect(parsed.ok).toBe(true);
+      expect(new Set(parsed.data.files)).toEqual(new Set(['file1.txt', 'subdir/']));
     });
   });
 
@@ -38,9 +39,14 @@ describe('Agent Tools - functional behavior', () => {
       const file = path.join(dir, 'readme.txt');
       await fs.writeFile(file, 'content', 'utf8');
       const ok = await readFileTool.func({ path: file } as any);
-      expect(ok).toBe('content');
+      const parsed = JSON.parse(String(ok));
+      expect(parsed.ok).toBe(true);
+      expect(parsed.data.content).toBe('content');
+
       const missing = await readFileTool.func({ path: path.join(dir, 'missing.txt') } as any);
-      expect(String(missing)).toMatch(/^Error reading file:/);
+      const missingParsed = JSON.parse(String(missing));
+      expect(missingParsed.ok).toBe(false);
+      expect(missingParsed.error).toMatch(/^Error reading file:/);
     });
   });
 
@@ -49,15 +55,17 @@ describe('Agent Tools - functional behavior', () => {
       const file = path.join(dir, 'data.txt');
       const first = await writeFileTool.func({ path: file, content: 'a\nb' } as any);
       const firstParsed = JSON.parse(String(first));
+      expect(firstParsed.ok).toBe(true);
       // New file: implementation counts one empty-line removal from initial ''
-      expect(firstParsed.summary).toBe(`Updated ${file} with 2 addition(s) and 1 removal(s).`);
-      expect(Array.isArray(firstParsed.diffLines)).toBe(true);
+      expect(firstParsed.data.summary).toBe(`Updated ${file} with 2 addition(s) and 1 removal(s).`);
+      expect(Array.isArray(firstParsed.data.diffLines)).toBe(true);
       expect(await fs.readFile(file, 'utf8')).toBe('a\nb');
 
       const second = await writeFileTool.func({ path: file, content: 'a\nb' } as any);
       const secondParsed = JSON.parse(String(second));
-      expect(secondParsed.summary).toBe(`No changes made to ${file}.`);
-      expect(secondParsed.diffLines).toEqual([]);
+      expect(secondParsed.ok).toBe(true);
+      expect(secondParsed.data.summary).toBe(`No changes made to ${file}.`);
+      expect(secondParsed.data.diffLines).toEqual([]);
     });
   });
 
@@ -76,7 +84,8 @@ describe('Agent Tools - functional behavior', () => {
 
       const result = await applyDiffTool.func({ path: file, diff } as any);
       const parsed = JSON.parse(String(result));
-      expect(parsed.summary).toContain('1 addition(s) and 1 removal(s)');
+      expect(parsed.ok).toBe(true);
+      expect(parsed.data.summary).toContain('1 addition(s) and 1 removal(s)');
 
       const content = await fs.readFile(file, 'utf8');
       expect(content).toBe('line 1\nnew line 2\nline 3');
@@ -103,15 +112,22 @@ describe('Agent Tools - functional behavior', () => {
       const file = path.join(dir, 'to-delete.txt');
       await fs.writeFile(file, 'x', 'utf8');
       const ok = await deleteFileTool.func({ path: file } as any);
-      expect(ok).toBe(`Successfully deleted ${file}`);
+      const parsed = JSON.parse(String(ok));
+      expect(parsed.ok).toBe(true);
+      expect(parsed.data.message).toBe(`Successfully deleted ${file}`);
+
       const again = await deleteFileTool.func({ path: file } as any);
-      expect(String(again)).toMatch(/^Error deleting file:/);
+      const againParsed = JSON.parse(String(again));
+      expect(againParsed.ok).toBe(false);
+      expect(againParsed.error).toMatch(/^Error deleting file:/);
     });
   });
 
   it('executes a simple shell command and returns STDOUT', async () => {
     const result = await shellCommandTool.func({ command: 'echo hello' } as any);
-    expect(String(result)).toContain('STDOUT:');
-    expect(String(result)).toContain('hello');
+    const parsed = JSON.parse(String(result));
+    expect(parsed.ok).toBe(true);
+    expect(parsed.data.message).toContain('STDOUT:');
+    expect(parsed.data.message).toContain('hello');
   });
 });

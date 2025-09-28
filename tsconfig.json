@@ -26,6 +26,8 @@
       "@lib/storage": ["src/lib/storage.ts"],
       "@lib/diff": ["src/lib/diff.ts"],
       "@lib/time": ["src/lib/time.ts"],
+      "@lib/constants": ["src/lib/constants.ts"],
+      "@lib/tool-result": ["src/lib/tool-result.ts"],
       "@types": ["src/types/index.ts"],
       "@types/*": ["src/types/*"]
     }

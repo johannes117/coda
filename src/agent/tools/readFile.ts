@@ -1,6 +1,7 @@
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { promises as fs } from 'fs';
+import { createSuccessResult, createErrorResult } from '@lib/tool-result';
 
 const readFileSchema = z.object({
   path: z.string().describe('The path of the file to read.'),
@@ -12,9 +13,10 @@ export const readFileTool = new DynamicStructuredTool({
   schema: readFileSchema,
   func: async ({ path }: z.infer<typeof readFileSchema>) => {
     try {
-      return await fs.readFile(path, 'utf-8'); // Might ruin context window if file is massive. 
+      const content = await fs.readFile(path, 'utf-8'); // Might ruin context window if file is massive.
+      return createSuccessResult({ content });
     } catch (e: any) {
-      return `Error reading file: ${e.message}`;
+      return createErrorResult(`Error reading file: ${e.message}`);
     }
   },
 });

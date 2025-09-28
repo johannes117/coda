@@ -1,30 +1,11 @@
 import { Box, Text } from 'ink';
 import TextInput from 'ink-text-input';
-import type { SlashCommand, ModelOption } from '@types';
 import { CommandMenu } from './CommandMenu.js';
 import { FileSearchMenu } from './FileSearchMenu.js';
 import { ModelMenu } from './ModelMenu.js';
+import type { PromptBarProps } from '../../types/ui.js';
 
-type Props = {
-  query: string;
-  onChange: (v: string) => void;
-  onSubmit: (v: string) => void | Promise<void>;
-  // command menu
-  showCommandMenu: boolean;
-  filteredCommands: SlashCommand[];
-  commandSelectionIndex: number;
-  // file search
-  showFileSearchMenu: boolean;
-  fileSearchMatches: string[];
-  fileSearchSelectionIndex: number;
-  // model menu
-  showModelMenu: boolean;
-  filteredModels: ModelOption[];
-  modelSelectionIndex: number;
-  currentModelId: number;
-};
-
-export const PromptBar = (props: Props) => {
+export const PromptBar = (props: PromptBarProps) => {
   const {
     query,
     onChange,
