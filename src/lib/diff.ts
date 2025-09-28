@@ -1,9 +1,4 @@
-export type DiffLine = {
-  type: 'add' | 'remove' | 'context';
-  oldLine?: number;
-  newLine?: number;
-  text: string;
-};
+import type { DiffLine } from '@types';
 
 const findLCS = (original: string[], updated: string[]): [number, number][] => {
   const table = Array(original.length + 1)

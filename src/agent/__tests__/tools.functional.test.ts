@@ -8,7 +8,7 @@ import {
   deleteFileTool,
   shellCommandTool,
   applyDiffTool,
-} from '../tools.js';
+} from '@agent/tools';
 
 async function withTempDir<T>(fn: (dir: string) => Promise<T>): Promise<T> {
   const base = path.join(process.cwd(), '.tmp');

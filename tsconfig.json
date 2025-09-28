@@ -15,8 +15,8 @@
     "baseUrl": ".",
     "paths": {
       "@tui/*": ["src/tui/*"],
-      "@tui/state": ["src/tui/state/index.ts"],
-      "@tui/commands": ["src/tui/commands/index.ts"],
+      "@tui/state": ["src/tui/core/state.ts"],
+      "@tui/commands": ["src/tui/core/commands.ts"],
       "@agent/*": ["src/agent/*"],
       "@agent/tools": ["src/agent/tools/index.ts"],
       "@agent/prompts": ["src/agent/prompts.ts"],

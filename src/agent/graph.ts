@@ -1,4 +1,4 @@
-import { AIMessage, BaseMessage } from '@langchain/core/messages';
+import { AIMessage } from '@langchain/core/messages';
 import { ChatOpenAI } from '@langchain/openai';
 import {
   END,
@@ -8,7 +8,7 @@ import {
 } from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { tools } from '@agent/tools';
-import { logInfo } from '@lib/logger';
+// import { logInfo } from '@lib/logger';
 import { defaultSystemPrompt } from '@agent/prompts';
 
 export const createAgent = (
@@ -43,8 +43,8 @@ export const createAgent = (
       { role: 'system', content: prompt },
       ...state.messages,
     ];
-    const response = await model.invoke(messages);
-    return { messages: [response] };
+    const response = await model.invoke(messages); // Can we implement prompt caching here? 
+    return { messages: [response] }; 
   };
 
   const shouldContinue = (state: typeof MessagesAnnotation.State) => {

@@ -43,3 +43,10 @@ export type Message = {
 };
 
 export type TokenUsage = { input: number; output: number; total: number };
+
+export type DiffLine = {
+  type: 'add' | 'remove' | 'context';
+  oldLine?: number;
+  newLine?: number;
+  text: string;
+};

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { slashCommands } from '../index.js';
+import { slashCommands } from '../commands.js';
 
 describe('slashCommands', () => {
   it('has valid shapes for each command', () => {

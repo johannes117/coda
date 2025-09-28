@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useStore } from '../index.js';
+import { useStore } from '../state.js';
 import type { Message, Chunk } from '@types';
 
 const initialState = useStore.getState();

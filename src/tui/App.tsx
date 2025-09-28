@@ -4,8 +4,7 @@ import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
 import { createAgent } from '@agent/graph';
 import { reviewSystemPrompt } from '@agent/prompts';
-import { AIMessage, HumanMessage, ToolMessage } from '@langchain/core/messages';
-import { BaseMessage } from '@langchain/core/messages';
+import { BaseMessage, HumanMessage } from '@langchain/core/messages';
 import { deleteStoredApiKey, saveSession, storeModelConfig } from '@lib/storage';
 import { randomUUID } from 'crypto';
 import { existsSync, promises as fs } from 'fs';
@@ -16,21 +15,20 @@ import type {
   ModelConfig,
   ModelOption,
   Message,
-  Chunk,
   SlashCommand,
-  ToolExecutionStatus,
 } from '@types';
 import { modelOptions } from '@config/models';
 import { nowTime } from '@lib/time';
 import { searchFiles } from '@lib/file-search.js';
-import { useStore } from '@tui/state';
+import { useStore } from '@tui/core/state.js';
 import { HeaderBar } from './components/HeaderBar.js';
 import { MessageView } from './components/MessageView.js';
 import { Footer } from './components/Footer.js';
 import { CommandMenu } from './components/CommandMenu.js';
 import { ModelMenu } from './components/ModelMenu.js';
 import { FileSearchMenu } from './components/FileSearchMenu.js';
-import { slashCommands } from '@tui/commands';
+import { slashCommands } from '@tui/core/commands.js';
+import { processStreamUpdate } from '@tui/core/stream-processor.js';
 
 const BUSY_TEXT_OPTIONS = [
   'vibing...',
@@ -45,59 +43,6 @@ const BUSY_TEXT_OPTIONS = [
   'scheming...',
   'processing...'
 ] as const;
-
-const processStreamUpdate = async (
-  chunk: Record<string, any>,
-  conversationHistory: { current: BaseMessage[] },
-  actions: {
-    push: (message: Omit<Message, 'id'>) => void;
-    updateToolExecution: (toolCallId: string, status: ToolExecutionStatus, output: string) => void;
-    updateTokenUsage: (usage: { input: number; output: number }) => void;
-  }
-) => {
-  const nodeName = Object.keys(chunk)[0];
-  const update = chunk[nodeName as keyof typeof chunk];
-  if (update && 'messages' in update && update.messages) {
-    const newMessages: BaseMessage[] = update.messages;
-    conversationHistory.current.push(...newMessages);
-    await saveSession('last_session', conversationHistory.current);
-    for (const message of newMessages) {
-      if (message._getType() === 'ai') {
-        const aiMessage = message as AIMessage;
-        if (aiMessage.usage_metadata) {
-          actions.updateTokenUsage({
-            input: aiMessage.usage_metadata.input_tokens,
-            output: aiMessage.usage_metadata.output_tokens,
-          });
-        }
-        if (aiMessage.content) {
-          actions.push({
-            author: 'agent',
-            chunks: [{ kind: 'text', text: aiMessage.content as string }],
-          });
-        }
-        if (aiMessage.tool_calls && aiMessage.tool_calls.length > 0) {
-          const toolExecutionChunks: Chunk[] = aiMessage.tool_calls.map((toolCall) => ({
-            kind: 'tool-execution',
-            toolCallId: toolCall.id,
-            toolName: toolCall.name,
-            toolArgs: toolCall.args,
-            status: 'running',
-          }));
-          actions.push({
-            author: 'system',
-            chunks: toolExecutionChunks,
-          });
-        }
-      } else if (message._getType() === 'tool') {
-        const toolMessage = message as ToolMessage;
-        const output = toolMessage.content as string;
-        const isError = output.toLowerCase().startsWith('error');
-        actions.updateToolExecution(toolMessage.tool_call_id, isError ? 'error' : 'success', output);
-      }
-    }
-  }
-};
 
 export const App = () => {
   const { exit } = useApp();

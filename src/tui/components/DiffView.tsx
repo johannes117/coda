@@ -1,6 +1,6 @@
 import { Box, Text } from 'ink';
 import type { ReactElement } from 'react';
-import type { DiffLine } from '@lib/diff';
+import type { DiffLine } from '@types';
 
 const DiffRow = ({ line, pad }: { line: DiffLine; pad: number }) => {
   let sign = ' ';

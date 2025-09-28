@@ -12,7 +12,7 @@ export const readFileTool = new DynamicStructuredTool({
   schema: readFileSchema,
   func: async ({ path }: z.infer<typeof readFileSchema>) => {
     try {
-      return await fs.readFile(path, 'utf-8');
+      return await fs.readFile(path, 'utf-8'); // Might ruin context window if file is massive. 
     } catch (e: any) {
       return `Error reading file: ${e.message}`;
     }

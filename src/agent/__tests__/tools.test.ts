@@ -6,7 +6,7 @@ import {
   deleteFileTool,
   shellCommandTool,
   applyDiffTool
-} from '../tools.js';
+} from '@agent/tools';
 
 const getToolSchema = (tool: any) => tool.schema;
 
