@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import type { ModelOption } from '@types';
-import { modelOptions } from '@config/models';
+import { modelOptions } from '@lib/models.js';
 
 export function useModelMenu() {
   const [showModelMenu, setShowModelMenu] = useState(false);

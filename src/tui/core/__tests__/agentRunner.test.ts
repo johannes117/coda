@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BaseMessage, AIMessage } from '@langchain/core/messages';
-import { runAgentStream } from '../agentRunner.js';
+import { runAgentStream } from '../agent-runner.js';
 
 vi.mock('@agent/graph', () => {
   return {

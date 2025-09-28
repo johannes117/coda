@@ -1,7 +1,7 @@
 import { BaseMessage, HumanMessage } from '@langchain/core/messages';
 import { createAgent } from '@agent/graph';
 import { reviewSystemPrompt } from '@agent/prompts';
-import { processStreamUpdate } from '@tui/core/streamProcessor.js';
+import { processStreamUpdate } from '@tui/core/stream-processor.js';
 import { saveSession } from '@lib/storage';
 import { logError } from '@lib/logger';
 import type { Message } from '@types';

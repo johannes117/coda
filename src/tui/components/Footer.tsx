@@ -1,7 +1,7 @@
 import { Box, Text } from 'ink';
-import { useStore } from '@tui/core/state.js';
+import { useStore } from '@tui/core/store.js';
 import type { Mode } from '@types';
-import { modelOptions } from '@config/models';
+import { modelOptions } from '@lib/models.js';
 
 const useBlink = () => useStore((s) => s.blink);
 

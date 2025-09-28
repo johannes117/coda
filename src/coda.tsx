@@ -4,7 +4,7 @@ import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
 import { getStoredApiKey, storeApiKey, deleteStoredApiKey, getStoredModelConfig } from '@lib/storage';
 import { clearLog, logInfo, logError } from '@lib/logger';
-import { useStore } from '@tui/core/state.js';
+import { useStore } from '@tui/core/store.js';
 import { createInterface } from 'readline/promises';
 import { stdin, stdout } from 'node:process';
 import { createAgent } from '@agent/graph';

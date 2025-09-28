@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { executeSlashCommand } from '../commandExecutor.js';
-import { useStore } from '../state.js';
+import { executeSlashCommand } from '../command-executor.js';
+import { useStore } from '../store.js';
 
 // use actual store but reset state each test
 const initial = useStore.getState();

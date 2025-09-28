@@ -15,7 +15,7 @@
     "baseUrl": ".",
     "paths": {
       "@tui/*": ["src/tui/*"],
-      "@tui/state": ["src/tui/core/state.ts"],
+      "@tui/store": ["src/tui/core/store.ts"],
       "@tui/commands": ["src/tui/core/commands.ts"],
       "@agent/*": ["src/agent/*"],
       "@agent/tools": ["src/agent/tools/index.ts"],
@@ -26,8 +26,6 @@
       "@lib/storage": ["src/lib/storage.ts"],
       "@lib/diff": ["src/lib/diff.ts"],
       "@lib/time": ["src/lib/time.ts"],
-      "@config/*": ["src/config/*"],
-      "@config/models": ["src/config/models.ts"],
       "@types": ["src/types/index.ts"],
       "@types/*": ["src/types/*"]
     }

@@ -1,9 +1,9 @@
 import { existsSync } from 'fs';
 import { deleteStoredApiKey, saveSession, storeModelConfig } from '@lib/storage';
-import { useStore } from '@tui/core/state.js';
+import { useStore } from '@tui/core/store.js';
 import type { ModelConfig, Message, ModelOption } from '@types';
-import { modelOptions } from '@config/models';
-import { runReview, RunnerDeps } from './agentRunner.js';
+import { modelOptions } from '@lib/models.js';
+import { runReview, RunnerDeps } from '@tui/core/agent-runner.js';
 
 export type CommandCtx = {
   push: (message: Omit<Message, 'id'>) => void;
