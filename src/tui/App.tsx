@@ -1,15 +1,12 @@
-import { useCallback, useMemo, useState, useRef } from 'react';
+import { useCallback, useState, useRef } from 'react';
 import { Box, Text, useApp, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
-import { createAgent } from '@agent/graph';
-import { reviewSystemPrompt } from '@agent/prompts';
-import { BaseMessage, HumanMessage } from '@langchain/core/messages';
-import { deleteStoredApiKey, saveSession, storeModelConfig } from '@lib/storage';
+import { BaseMessage } from '@langchain/core/messages';
+import { saveSession, storeModelConfig } from '@lib/storage';
 import { randomUUID } from 'crypto';
-import { existsSync, promises as fs } from 'fs';
+import { promises as fs } from 'fs';
 import path from 'path';
-import { logError } from '@lib/logger';
 import type {
   Mode,
   ModelConfig,
@@ -19,7 +16,6 @@ import type {
 } from '@types';
 import { modelOptions } from '@config/models';
 import { nowTime } from '@lib/time';
-import { searchFiles } from '@lib/file-search.js';
 import { useStore } from '@tui/core/state.js';
 import { HeaderBar } from './components/HeaderBar.js';
 import { MessageView } from './components/MessageView.js';
@@ -28,21 +24,11 @@ import { CommandMenu } from './components/CommandMenu.js';
 import { ModelMenu } from './components/ModelMenu.js';
 import { FileSearchMenu } from './components/FileSearchMenu.js';
 import { slashCommands } from '@tui/core/commands.js';
-import { processStreamUpdate } from '@tui/core/stream-processor.js';
+import { useBusyText } from './hooks/useBusyText.js';
+import { useFileSearchMenu } from './hooks/useFileSearchMenu.js';
+import { runAgentStream } from './core/agentRunner.js';
+import { executeSlashCommand } from './core/commandExecutor.js';
 
-const BUSY_TEXT_OPTIONS = [
-  'vibing...',
-  'noodling...',
-  'pondering...',
-  'thinking really hard...',
-  'spinning up...',
-  'connecting the dots...',
-  'brewing ideas...',
-  'cooking...',
-  'crunching...',
-  'scheming...',
-  'processing...'
-] as const;
 
 export const App = () => {
   const { exit } = useApp();
@@ -66,24 +52,22 @@ export const App = () => {
   const [commandSelectionIndex, setCommandSelectionIndex] = useState(0);
   const [filteredModels, setFilteredModels] = useState<ModelOption[]>(modelOptions);
   const [modelSelectionIndex, setModelSelectionIndex] = useState(0);
-  const [showFileSearchMenu, setShowFileSearchMenu] = useState(false);
-  const [fileSearchMatches, setFileSearchMatches] = useState<string[]>([]);
-  const [fileSearchSelectionIndex, setFileSearchSelectionIndex] = useState(0);
-  const fileSearchQueryRef = useRef<string | null>(null);
-  const fileSearchDebounceTimer = useRef<NodeJS.Timeout | null>(null);
-  const agentInstance = useMemo(
-    () => (apiKey ? createAgent(apiKey, currentModel) : null),
-    [apiKey, currentModel]
-  );
+  const {
+    showFileSearchMenu,
+    fileSearchMatches,
+    fileSearchSelectionIndex,
+    setFileSearchSelectionIndex,
+    resetFileSearchMenu,
+    handleAtReference,
+    applyTabCompletion,
+    applySubmitSelection,
+  } = useFileSearchMenu();
   const [sessionId] = useState(() => randomUUID());
   const conversationHistory = useRef<BaseMessage[]>([]);
   const currentOption = modelOptions.find((o) => o.name === currentModel.name && o.effort === currentModel.effort);
   const currentId = currentOption ? currentOption.id : 5;
 
-  const busyText = useMemo(() => {
-    const idx = Math.floor(Math.random() * BUSY_TEXT_OPTIONS.length);
-    return BUSY_TEXT_OPTIONS[idx];
-  }, [busy]);
+  const busyText = useBusyText();
 
   const push = useCallback((message: Omit<Message, 'id'>) => {
     addMessage(message);
@@ -95,24 +79,6 @@ export const App = () => {
     setCommandSelectionIndex(0);
   }, [slashCommands]);
 
-  const resetFileSearchMenu = useCallback(() => {
-    setShowFileSearchMenu(false);
-    setFileSearchMatches([]);
-    setFileSearchSelectionIndex(0);
-    fileSearchQueryRef.current = null;
-  }, []);
-
-  const triggerFileSearch = useCallback((query: string) => {
-    if (fileSearchDebounceTimer.current) {
-      clearTimeout(fileSearchDebounceTimer.current);
-    }
-    fileSearchDebounceTimer.current = setTimeout(async () => {
-      const results = await searchFiles(query, process.cwd());
-      setFileSearchMatches(results);
-      setShowFileSearchMenu(results.length > 0);
-      setFileSearchSelectionIndex(0);
-    }, 150); // 150ms debounce
-  }, []);
 
   const handleQueryChange = useCallback(
     (value: string) => {
@@ -138,16 +104,9 @@ export const App = () => {
         return;
       }
 
-      const lastWordMatch = value.match(/@(\S*)$/);
-      if (lastWordMatch) {
-        const fileQuery = lastWordMatch[1];
-        fileSearchQueryRef.current = lastWordMatch[0];
-        setShowFileSearchMenu(true);
-        if (fileQuery) {
-          triggerFileSearch(fileQuery);
-        } else {
-          setFileSearchMatches([]); // Show menu, but no results yet
-        }
+      // Handle @file references (delegated hook)
+      if (/@(\S*)$/.test(value)) {
+        handleAtReference(value);
       } else if (value.startsWith('/')) {
         const inputCommand = value.slice(1).toLowerCase();
         const matches = slashCommands.filter((command) => {
@@ -169,7 +128,7 @@ export const App = () => {
         // Handled by resets at top of function
       }
     },
-    [modelOptions, resetCommandMenu, showModelMenu, slashCommands, resetFileSearchMenu, triggerFileSearch]
+    [modelOptions, resetCommandMenu, showModelMenu, slashCommands, resetFileSearchMenu, handleAtReference]
   );
 
   useInput((input, key) => {
@@ -191,6 +150,7 @@ export const App = () => {
       }
       return;
     }
+
     if (showModelMenu) {
       if (key.upArrow) {
         setModelSelectionIndex((prev) => (prev > 0 ? prev - 1 : prev));
@@ -219,17 +179,7 @@ export const App = () => {
 
     if (key.tab) {
       if (showFileSearchMenu) {
-        const selectedFile = fileSearchMatches[fileSearchSelectionIndex];
-        if (selectedFile && fileSearchQueryRef.current) {
-          const currentQuery = query;
-          const queryStart = currentQuery.lastIndexOf(fileSearchQueryRef.current);
-          if (queryStart !== -1) {
-            const newQuery =
-              currentQuery.substring(0, queryStart) + `@${selectedFile} `;
-            setQuery(newQuery);
-          }
-        }
-        resetFileSearchMenu();
+        setQuery(applyTabCompletion(query));
         return;
       } else if (!showModelMenu) {
         if (showCommandMenu) {
@@ -244,6 +194,7 @@ export const App = () => {
         return;
       }
     }
+
     if (showCommandMenu) {
       if (key.upArrow) {
         setCommandSelectionIndex((prev) => (prev > 0 ? prev - 1 : prev));
@@ -283,15 +234,7 @@ export const App = () => {
       }
 
       if (showFileSearchMenu) {
-        const selectedFile = fileSearchMatches[fileSearchSelectionIndex];
-        if (selectedFile && fileSearchQueryRef.current) {
-          const queryStart = value.lastIndexOf(fileSearchQueryRef.current);
-          if (queryStart !== -1) {
-            const newQuery = value.substring(0, queryStart) + `@${selectedFile} `;
-            setQuery(newQuery);
-          }
-        }
-        resetFileSearchMenu();
+        setQuery(applySubmitSelection(value));
         return;
       }
 
@@ -299,7 +242,7 @@ export const App = () => {
       const effectiveValue = selected ? `/${selected.name}` : value;
       const trimmedValue = effectiveValue.trim();
 
-      if (!trimmedValue || busy || !agentInstance) {
+      if (!trimmedValue || busy || !apiKey) {
         if (!trimmedValue) {
           setQuery('');
           resetCommandMenu();
@@ -322,109 +265,34 @@ export const App = () => {
           return;
         }
 
-        if (cmd.name === 'quit') {
-          resetCommandMenu();
-          push({ author: 'system', chunks: [{ kind: 'text', text: 'Goodbye!' }] });
-          setTimeout(() => exit(), 100);
-          return;
-        }
-        if (cmd.name === 'reset') {
-          resetCommandMenu();
-          await deleteStoredApiKey();
-          clearApiKeyStore();
-          resetMessages();
-          conversationHistory.current = [];
-          setQuery('');
-          useStore.setState({ resetRequested: true });
-          exit();
-          return;
-        }
-        if (cmd.name === 'status') {
-          resetCommandMenu();
-          const cwd = process.cwd().replace(process.env.HOME || '', '~');
-          const tokenUsage = useStore.getState().tokenUsage;
-          const agentsFile = existsSync('AGENTS.md') ? 'AGENTS.md' : 'none';
-          const statusText = `📂 Workspace
-  • Path: ${cwd}
-  • Approval Mode: auto
-  • Sandbox: full
-  • AGENTS files: ${agentsFile}
-👤 Account
-  • Signed in with Openrouter API
-  • Login: N/A
-  • Plan: API
-🧠 Model
-  • Name: ${currentModel.name}
-  • Provider: Openrouter
-  • Reasoning Effort: ${currentModel.effort}
-  • Reasoning Summaries: Auto
-💻 Client
-  • CLI Version: 0.1.0
-📊 Token Usage
-  • Session ID: ${sessionId}
-  • Input: ${tokenUsage.input}
-  • Output: ${tokenUsage.output}
-  • Total: ${tokenUsage.total}`;
-          push({ author: 'system', chunks: [{ kind: 'text', text: statusText }] });
-          setQuery('');
-          return;
-        }
-        if (cmd.name === 'clear') {
-          resetCommandMenu();
-          resetMessages();
-          conversationHistory.current = [];
-          push({ author: 'system', chunks: [{ kind: 'text', text: 'New conversation started.' }] });
-          setQuery('');
-          return;
-        }
-        if (cmd.name === 'model') {
-          resetCommandMenu();
-          setShowModelMenu(true);
-          setFilteredModels(modelOptions);
-          setModelSelectionIndex(0);
-          setQuery('');
-          return;
-        }
-        if (cmd.name === 'review') {
-          resetCommandMenu();
-          if (!apiKey) {
-            push({
-              author: 'system',
-              chunks: [{ kind: 'error', text: 'API key not found. Cannot start review.' }],
-            });
-            return;
+        // Use centralized command executor
+        const handled = await executeSlashCommand(
+          cmd.name,
+          {
+            apiKey,
+            modelConfig: currentModel,
+            push,
+            updateToolExecution,
+            updateTokenUsage,
+            setBusy
+          },
+          {
+            push,
+            resetMessages: () => { resetMessages(); conversationHistory.current = []; },
+            clearApiKeyStore,
+            setShowModelMenu,
+            setFilteredModels,
+            setModelSelectionIndex,
+            setQuery,
+            exit,
+            apiKey,
+            currentModel,
+            sessionId
           }
-          const reviewAgent = createAgent(apiKey, currentModel, reviewSystemPrompt);
-          const userMessage = new HumanMessage(
-            'Please conduct a code review of the current branch against the base branch (main or master).'
-          );
-          conversationHistory.current.push(userMessage);
-          push({
-            author: 'system',
-            chunks: [{ kind: 'text', text: 'Starting code review...' }],
-          });
+        );
+        resetCommandMenu();
+        if (handled) {
           setQuery('');
-          await saveSession('last_session', conversationHistory.current);
-          setBusy(true);
-          try {
-            const actions = { push, updateToolExecution, updateTokenUsage };
-            const stream = await reviewAgent.stream(
-              { messages: conversationHistory.current },
-              { recursionLimit: 150 }
-            );
-            for await (const chunk of stream) {
-              await processStreamUpdate(chunk, conversationHistory, actions);
-            }
-          } catch (error) {
-            const errorMsg = `An error occurred: ${error instanceof Error ? error.message : String(error)}`;
-            await logError(errorMsg);
-            push({
-              author: 'system',
-              chunks: [{ kind: 'error', text: errorMsg }],
-            });
-          } finally {
-            setBusy(false);
-          }
           return;
         }
       }
@@ -453,10 +321,7 @@ export const App = () => {
         }
         finalPrompt = `${augmentedContent.join('\n\n')}\n\nUser request: ${value}`;
       }
-      // --- End @ File Reference Processing ---
 
-      const userMessage = new HumanMessage(finalPrompt);
-      conversationHistory.current.push(userMessage);
       push({
         author: 'user',
         timestamp: nowTime(),
@@ -477,22 +342,20 @@ export const App = () => {
           }, 600);
           return;
         }
-
-        const actions = { push, updateToolExecution, updateTokenUsage };
-        const stream = await agentInstance.stream(
-          { messages: conversationHistory.current },
-          { recursionLimit: 150 }
+        await runAgentStream(
+          {
+            apiKey,
+            modelConfig: currentModel,
+            push,
+            updateToolExecution,
+            updateTokenUsage,
+            setBusy
+          },
+          conversationHistory,
+          finalPrompt
         );
-        for await (const chunk of stream) {
-          await processStreamUpdate(chunk, conversationHistory, actions);
-        }
       } catch (error) {
-        const errorMsg = `An error occurred: ${error instanceof Error ? error.message : String(error)}`;
-        await logError(errorMsg);
-        push({
-          author: 'system',
-          chunks: [{ kind: 'error', text: errorMsg }],
-        });
+        // runAgentStream already reports; this catch remains for safety
       } finally {
         setBusy(false);
       }
@@ -502,7 +365,7 @@ export const App = () => {
       push,
       mode,
       exit,
-      agentInstance,
+      apiKey,
       currentModel,
       sessionId,
       resetMessages,
@@ -521,10 +384,10 @@ export const App = () => {
       slashCommands,
       resetFileSearchMenu,
       showFileSearchMenu,
-      fileSearchMatches,
-      fileSearchSelectionIndex
+      applySubmitSelection
     ]
   );
+
   return (
     <Box flexDirection="column" width={cols} flexGrow={1}>
       <HeaderBar title="AI-Powered Development Assistant" mode={mode} modelConfig={currentModel} />
