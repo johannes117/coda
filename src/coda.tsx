@@ -7,6 +7,9 @@ import { clearLog, logInfo, logError } from '@lib/logger';
 import { useStore } from '@tui/core/state.js';
 import { createInterface } from 'readline/promises';
 import { stdin, stdout } from 'node:process';
+import { createAgent } from '@agent/graph';
+import { HumanMessage } from '@langchain/core/messages';
+import { reviewSystemPrompt } from '@agent/prompts';
 
 export async function main() {
   await clearLog();
@@ -16,17 +19,69 @@ export async function main() {
       type: 'string',
       description: 'Run a non-interactive prompt.',
     })
+    .option('review', {
+      type: 'boolean',
+      description: 'Run a one-off code review against base (non-interactive).',
+      default: false,
+    })
+    .option('set-key', {
+      type: 'string',
+      description: 'Store an OpenRouter API key non-interactively.',
+    })
+    .option('model', {
+      type: 'string',
+      description: 'Override model name for this run (e.g. openai/gpt-5).',
+    })
+    .option('effort', {
+      type: 'string',
+      choices: ['low', 'medium', 'high'] as const,
+      description: 'Override reasoning effort for this run.',
+    })
     .help()
     .parse();
-  if (argv.prompt) {
+
+  if (argv['set-key']) {
+    await storeApiKey(String(argv['set-key']).trim());
+    console.log('API key stored.');
+    process.exit(0);
+  }
+
+  if (argv.prompt || argv.review) {
     const apiKey = await getStoredApiKey();
     if (!apiKey) {
-      await logError('OpenAI API key not set. Run interactive mode first to configure.');
+      await logError('OpenAI/OpenRouter API key not set. Run interactive mode or use --set-key to configure.');
       process.exit(1);
     }
-    await logInfo(`User Prompt: ${argv.prompt}`);
-    await logInfo('coda Response: This is a dummy response for your non-interactive prompt.');
-    process.exit(0);
+    const storedModelConfig = await getStoredModelConfig();
+    const modelConfig = {
+      name: argv.model ?? storedModelConfig?.name ?? 'anthropic/claude-sonnet-4',
+      effort: (argv.effort as string) ?? storedModelConfig?.effort ?? 'medium',
+    };
+
+    const agent = createAgent(apiKey, modelConfig, argv.review ? reviewSystemPrompt : undefined as any);
+    const input = argv.review
+      ? 'Please conduct a code review of the current branch against the base branch (main or master).'
+      : String(argv.prompt);
+
+    await logInfo(argv.review ? 'Running one-off review' : `User Prompt: ${input}`);
+    try {
+      const result = await agent.invoke({ messages: [new HumanMessage(input)] });
+      const final = result.messages[result.messages.length - 1];
+      const content = typeof final.content === 'string'
+        ? final.content
+        : Array.isArray(final.content)
+            ? final.content.map((c: any) => (typeof c === 'string' ? c : JSON.stringify(c))).join(' ')
+            : String(final.content ?? '');
+      console.log(content.trim());
+      process.exit(0);
+    } catch (err: any) {
+      await logError(`Non-interactive run failed: ${err?.message ?? String(err)}`);
+      console.error(`Error: ${err?.message ?? String(err)}`);
+      process.exit(1);
+    }
+  }
+  if (argv.prompt) {
+    // Handled above; keep this branch unreachable for safety.
   }
   const storedModelConfig = await getStoredModelConfig();
   if (storedModelConfig) {

@@ -1,6 +1,7 @@
 import type { SlashCommand } from '@types';
 
 export const slashCommands: SlashCommand[] = [
+  { name: 'help', description: 'Show available commands and usage.' },
   { name: 'status', description: 'View the status of the agent and workspace.' },
   { name: 'model', description: 'Switch to a different model.' },
   { name: 'review', description: 'Request a PR review of the current branch against the base branch.' },

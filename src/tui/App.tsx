@@ -5,14 +5,10 @@ import Spinner from 'ink-spinner';
 import { BaseMessage } from '@langchain/core/messages';
 import { saveSession, storeModelConfig } from '@lib/storage';
 import { randomUUID } from 'crypto';
-import { promises as fs } from 'fs';
-import path from 'path';
 import type {
   Mode,
   ModelConfig,
-  ModelOption,
   Message,
-  SlashCommand,
 } from '@types';
 import { modelOptions } from '@config/models';
 import { nowTime } from '@lib/time';
@@ -26,8 +22,11 @@ import { FileSearchMenu } from './components/FileSearchMenu.js';
 import { slashCommands } from '@tui/core/commands.js';
 import { useBusyText } from './hooks/useBusyText.js';
 import { useFileSearchMenu } from './hooks/useFileSearchMenu.js';
+import { useCommandMenu } from './hooks/useCommandMenu.js';
+import { useModelMenu } from './hooks/useModelMenu.js';
 import { runAgentStream } from './core/agentRunner.js';
 import { executeSlashCommand } from './core/commandExecutor.js';
+import { augmentPromptWithFiles } from './core/promptAugmentation.js';
 
 
 export const App = () => {
@@ -46,12 +45,24 @@ export const App = () => {
   const clearApiKeyStore = useStore((s) => s.clearApiKey);
   const [mode, setMode] = useState<Mode>('agent');
   const [query, setQuery] = useState('');
-  const [showCommandMenu, setShowCommandMenu] = useState(false);
-  const [showModelMenu, setShowModelMenu] = useState(false);
-  const [filteredCommands, setFilteredCommands] = useState<SlashCommand[]>(slashCommands);
-  const [commandSelectionIndex, setCommandSelectionIndex] = useState(0);
-  const [filteredModels, setFilteredModels] = useState<ModelOption[]>(modelOptions);
-  const [modelSelectionIndex, setModelSelectionIndex] = useState(0);
+  const {
+    showCommandMenu,
+    filteredCommands,
+    commandSelectionIndex,
+    setCommandSelectionIndex,
+    filterFromQuery: filterCommandsFromQuery,
+    reset: resetCommandMenu,
+  } = useCommandMenu();
+  const {
+    showModelMenu,
+    filteredModels,
+    modelSelectionIndex,
+    setModelSelectionIndex,
+    open: openModelMenu,
+    close: closeModelMenu,
+    filterFromQuery: filterModelsFromQuery,
+    reset: resetModelMenu,
+  } = useModelMenu();
   const {
     showFileSearchMenu,
     fileSearchMatches,
@@ -73,13 +84,6 @@ export const App = () => {
     addMessage(message);
   }, [addMessage]);
 
-  const resetCommandMenu = useCallback(() => {
-    setShowCommandMenu(false);
-    setFilteredCommands(slashCommands);
-    setCommandSelectionIndex(0);
-  }, [slashCommands]);
-
-
   const handleQueryChange = useCallback(
     (value: string) => {
       setQuery(value);
@@ -87,20 +91,7 @@ export const App = () => {
       resetCommandMenu();
 
       if (showModelMenu) {
-        const input = value.toLowerCase();
-        if (!input) {
-          setFilteredModels(modelOptions);
-          setModelSelectionIndex(0);
-          return;
-        }
-
-        const matches = modelOptions.filter(
-          (option) =>
-            option.label.toLowerCase().includes(input) ||
-            String(option.id).startsWith(input)
-        );
-        setFilteredModels(matches);
-        setModelSelectionIndex(0);
+        filterModelsFromQuery(value);
         return;
       }
 
@@ -108,41 +99,25 @@ export const App = () => {
       if (/@(\S*)$/.test(value)) {
         handleAtReference(value);
       } else if (value.startsWith('/')) {
-        const inputCommand = value.slice(1).toLowerCase();
-        const matches = slashCommands.filter((command) => {
-          if (!inputCommand) return true;
-          return (
-            command.name.startsWith(inputCommand) ||
-            command.aliases?.some((alias) => alias.startsWith(inputCommand))
-          );
-        });
-        setFilteredCommands(matches);
-        if (matches.length > 0) {
-          setShowCommandMenu(true);
-          setCommandSelectionIndex(0);
-        } else {
-          setShowCommandMenu(false);
-          setCommandSelectionIndex(0);
-        }
+        filterCommandsFromQuery(value);
       } else {
         // Handled by resets at top of function
       }
     },
-    [modelOptions, resetCommandMenu, showModelMenu, slashCommands, resetFileSearchMenu, handleAtReference]
+    [modelOptions, resetCommandMenu, showModelMenu, filterModelsFromQuery, filterCommandsFromQuery, resetFileSearchMenu, handleAtReference]
   );
 
-  useInput((input, key) => {
+  useInput((_input, key) => {
     if (key.escape) {
       if (busy) {
         setBusy(false);
       } else if (showModelMenu) {
-        setShowModelMenu(false);
+        closeModelMenu();
         setQuery('');
-        setFilteredModels(modelOptions);
-        setModelSelectionIndex(0);
+        resetModelMenu();
         resetCommandMenu();
       } else if (showCommandMenu) {
-        setShowCommandMenu(false);
+        resetCommandMenu();
       } else if (showFileSearchMenu) {
         resetFileSearchMenu();
       } else {
@@ -225,9 +200,8 @@ export const App = () => {
           author: 'system',
           chunks: [{ kind: 'text', text: `Model switched to ${selectedModel.label}` }],
         });
-        setShowModelMenu(false);
-        setFilteredModels(modelOptions);
-        setModelSelectionIndex(0);
+        closeModelMenu();
+        resetModelMenu();
         setQuery('');
         resetCommandMenu();
         return;
@@ -280,8 +254,8 @@ export const App = () => {
             push,
             resetMessages: () => { resetMessages(); conversationHistory.current = []; },
             clearApiKeyStore,
-            setShowModelMenu,
-            setFilteredModels,
+            setShowModelMenu: openModelMenu,
+            setFilteredModels: () => {}, // no-op, handled by hook
             setModelSelectionIndex,
             setQuery,
             exit,
@@ -299,28 +273,7 @@ export const App = () => {
 
       resetCommandMenu();
 
-      let finalPrompt = value;
-      const fileRegex = /(?<![\w`])@(\S+)/g;
-      const matches = [...value.matchAll(fileRegex)];
-
-      if (matches.length > 0) {
-        const augmentedContent: string[] = [];
-        const filesToRead = matches.map(match => ({
-          alias: match[0],
-          filePath: path.resolve(process.cwd(), match[1]),
-          relativePath: match[1],
-        }));
-
-        for (const file of filesToRead) {
-          try {
-            const content = await fs.readFile(file.filePath, 'utf-8');
-            augmentedContent.push(`Content from ${file.relativePath}:\n---\n${content}\n---`);
-          } catch (e) {
-            augmentedContent.push(`Could not read file ${file.relativePath}. Error: ${e instanceof Error ? e.message : String(e)}`);
-          }
-        }
-        finalPrompt = `${augmentedContent.join('\n\n')}\n\nUser request: ${value}`;
-      }
+      const finalPrompt = await augmentPromptWithFiles(value);
 
       push({
         author: 'user',

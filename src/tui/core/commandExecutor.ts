@@ -31,6 +31,15 @@ export async function executeSlashCommand(
   } = ctx;
 
   switch (cmdName) {
+    case 'help': {
+      const cmds = (await import('./commands.js')).slashCommands;
+      const lines = cmds.map(c => {
+        const alias = c.aliases?.length ? ` (aliases: ${c.aliases.join(', ')})` : '';
+        return `  /${c.name}${alias} — ${c.description}`;
+      });
+      push({ author: 'system', chunks: [{ kind: 'list', lines: ['Commands:', ...lines] }] });
+      return true;
+    }
     case 'quit': {
       push({ author: 'system', chunks: [{ kind: 'text', text: 'Goodbye!' }] });
       setTimeout(() => exit(), 100);
@@ -49,15 +58,11 @@ export async function executeSlashCommand(
       const tokenUsage = useStore.getState().tokenUsage;
       const agentsFile = existsSync('AGENTS.md') ? 'AGENTS.md' : 'none';
       const statusText = `Status:
-                                • Path: ${cwd}
-                                • AGENTS files: ${agentsFile}
-                                • Model: ${currentModel.name}
-                                • Name: ${currentModel.name}
-                                • Reasoning Effort: ${currentModel.effort}
-                                • Session ID: ${sessionId}
-                                • Input: ${tokenUsage.input}
-                                • Output: ${tokenUsage.output}
-                                • Total: ${tokenUsage.total}`;
+  • Path: ${cwd}
+  • AGENTS file: ${agentsFile}
+  • Model: ${currentModel.name} (${currentModel.effort})
+  • Session ID: ${sessionId}
+  • Tokens — input: ${tokenUsage.input} | output: ${tokenUsage.output} | total: ${tokenUsage.total}`;
       push({ author: 'system', chunks: [{ kind: 'text', text: statusText }] });
       return true;
     }

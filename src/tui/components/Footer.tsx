@@ -23,7 +23,8 @@ export const Footer = ({ working, mode }: { working: boolean; mode: Mode }) => {
   );
 
   const contextWindow = currentModel?.contextWindow ?? 0;
-  const contextLeftPercentage = contextWindow > 0 ? Math.round((contextWindow - tokenUsage.total) / contextWindow * 100) : 0;
+  const contextLeftRaw = contextWindow > 0 ? Math.round((contextWindow - tokenUsage.total) / contextWindow * 100) : 0;
+  const contextLeftPercentage = Math.max(0, Math.min(100, contextLeftRaw));
   return (
     <Box
       width="100%"

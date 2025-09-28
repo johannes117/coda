@@ -29,23 +29,17 @@ export const writeFileTool = new DynamicStructuredTool({
 
       const originalLines = originalContent.split('\n');
       const newLines = content.split('\n');
+      const diffLines = buildDiffLines(originalLines, newLines);
       let additions = 0;
       let removals = 0;
-      const newLinesSet = new Set(newLines);
-      const originalLinesSet = new Set(originalLines);
-
-      for (const line of newLines) {
-        if (!originalLinesSet.has(line)) additions++;
+      for (const l of diffLines) {
+        if (l.type === 'add') additions++;
+        if (l.type === 'remove') removals++;
       }
-      for (const line of originalLines) {
-        if (!newLinesSet.has(line)) removals++;
-      }
-
-      const diffLines = buildDiffLines(originalLines, newLines);
       const summary = `Updated ${path} with ${additions} addition(s) and ${removals} removal(s).`;
       return JSON.stringify({ summary, diffLines });
     } catch (e: any) {
-      return `Error executing command: ${e.message}\nSTDOUT:\n${e.stdout}\nSTDERR:\n${e.stderr}`;
+      return `Error writing file: ${e.message}`;
     }
   },
 });
