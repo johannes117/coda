@@ -49,7 +49,7 @@ export async function runReview(
   await saveSession('last_session', conversationHistory.current);
   setBusy(true);
   try {
-    const actions = { addMessage, updateToolExecution, updateTokenUsage };
+    const actions: StreamProcessorActions = { addMessage, updateToolExecution, updateTokenUsage };
     const stream = await reviewAgent.stream(
       { messages: conversationHistory.current },
       { recursionLimit: AGENT_RECURSION_LIMIT }
