@@ -51,13 +51,13 @@ export const useStore = create<Store>((set, get) => ({
     })),
   tokenUsage: { input: 0, output: 0, total: 0 },
   updateTokenUsage: (usage: { input: number; output: number }) =>
-    set((state) => ({
+    set({
       tokenUsage: {
-        input: state.tokenUsage.input + usage.input,
-        output: state.tokenUsage.output + usage.output,
-        total: state.tokenUsage.total + usage.input + usage.output,
+        input: usage.input,
+        output: usage.output,
+        total: usage.input + usage.output,
       },
-    })),
+    }),
   busy: false,
   setBusy: (busy: boolean) => set({ busy }),
   blink: true,
