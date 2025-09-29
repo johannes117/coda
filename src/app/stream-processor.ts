@@ -1,6 +1,7 @@
 import { Message, Chunk, ToolExecutionStatus } from "@types";
 import { BaseMessage, AIMessage, ToolMessage } from "@langchain/core/messages";
 import { saveSession } from "@lib/storage";
+import { TokenUsage } from "@types";
 
 export const processStreamUpdate = async (
     chunk: Record<string, any>,
@@ -8,7 +9,7 @@ export const processStreamUpdate = async (
     actions: {
       push: (message: Omit<Message, 'id'>) => void;
       updateToolExecution: (toolCallId: string, status: ToolExecutionStatus, output: string) => void;
-      updateTokenUsage: (usage: { input: number; output: number }) => void;
+      updateTokenUsage: (usage: TokenUsage) => void;
     }
   ) => {
     const nodeName = Object.keys(chunk)[0]; // Gets the name of the node that sent the chunk: tools | agent
@@ -24,6 +25,7 @@ export const processStreamUpdate = async (
             actions.updateTokenUsage({
               input: aiMessage.usage_metadata.input_tokens,
               output: aiMessage.usage_metadata.output_tokens,
+              total: aiMessage.usage_metadata.total_tokens
             });
           }
           if (aiMessage.content) {

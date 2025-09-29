@@ -19,7 +19,7 @@ type Store = {
   resetMessages: () => void;
   updateToolExecution: (toolCallId: string, status: ToolExecutionStatus, output: string) => void;
   tokenUsage: TokenUsage;
-  updateTokenUsage: (usage: { input: number; output: number }) => void;
+  updateTokenUsage: (usage: TokenUsage) => void;
   busy: boolean;
   setBusy: (busy: boolean) => void;
   blink: boolean;
@@ -50,12 +50,12 @@ export const useStore = create<Store>((set, get) => ({
       })),
     })),
   tokenUsage: { input: 0, output: 0, total: 0 },
-  updateTokenUsage: (usage: { input: number; output: number }) =>
+  updateTokenUsage: (usage: TokenUsage) =>
     set({
       tokenUsage: {
         input: usage.input,
         output: usage.output,
-        total: usage.input + usage.output,
+        total: usage.total,
       },
     }),
   busy: false,

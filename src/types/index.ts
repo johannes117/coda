@@ -56,7 +56,7 @@ export type RunnerDeps = {
   modelConfig: ModelConfig;
   push: (message: Omit<Message, 'id'>) => void;
   updateToolExecution: (toolCallId: string, status: any, output: string) => void;
-  updateTokenUsage: (usage: { input: number; output: number }) => void;
+  updateTokenUsage: (usage: TokenUsage) => void;
   setBusy: (busy: boolean) => void;
 };
 
