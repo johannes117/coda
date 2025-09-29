@@ -55,7 +55,7 @@ export type RunnerDeps = {
   apiKey: string;
   modelConfig: ModelConfig;
   addMessage: (message: Omit<Message, 'id'>) => void;
-  updateToolExecution: (toolCallId: string, status: any, output: string) => void;
+  updateToolExecution: (toolExecution: ToolExecution) => void;
   updateTokenUsage: (usage: TokenUsage) => void;
   setBusy: (busy: boolean) => void;
 };
@@ -95,8 +95,14 @@ export type PromptBarProps = {
 
 export type StreamProcessorActions = {
   addMessage: (message: Omit<Message, 'id'>) => void;
-  updateToolExecution: (toolCallId: string, status: ToolExecutionStatus, output: string) => void;
+  updateToolExecution: (toolExecution: ToolExecution) => void;
   updateTokenUsage: (usage: TokenUsage) => void;
+}
+
+export type ToolExecution = {
+  toolCallId: string;
+  status: ToolExecutionStatus;
+  output: string;
 }
 
 export type Result<T> = { ok: true; data: T } | { ok: false; error: string };

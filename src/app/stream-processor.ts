@@ -46,7 +46,7 @@ export const processStreamUpdate = async (
           const toolMessage = message as ToolMessage;
           const output = toolMessage.content as string;
           const isError = output.toLowerCase().startsWith('error');
-          actions.updateToolExecution(toolMessage.tool_call_id, isError ? 'error' : 'success', output);
+          actions.updateToolExecution({ toolCallId: toolMessage.tool_call_id, status: isError ? 'error' : 'success', output });
         }
       }
     }

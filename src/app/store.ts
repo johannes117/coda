@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ModelConfig, Message, ToolExecutionStatus, TokenUsage } from '@types';
+import type { ModelConfig, Message, ToolExecutionStatus, TokenUsage, ToolExecution } from '@types';
 import { randomUUID } from 'crypto';
 
 const createWelcomeMessage = (): Message => ({
@@ -17,7 +17,7 @@ type Store = {
   messages: Message[];
   addMessage: (msg: Omit<Message, 'id'>) => void;
   resetMessages: () => void;
-  updateToolExecution: (toolCallId: string, status: ToolExecutionStatus, output: string) => void;
+  updateToolExecution: (toolExecution: ToolExecution) => void;
   tokenUsage: TokenUsage;
   updateTokenUsage: (usage: TokenUsage) => void;
   busy: boolean;
@@ -37,18 +37,18 @@ export const useStore = create<Store>((set, get) => ({
   messages: [createWelcomeMessage()],
   addMessage: (msg: Omit<Message, 'id'>) => set((state) => ({ messages: [...state.messages, { ...msg, id: randomUUID() }] })),
   resetMessages: () => set({ messages: [createWelcomeMessage()], tokenUsage: { input: 0, output: 0, total: 0 } }),
-  updateToolExecution: (toolCallId: string, status: ToolExecutionStatus, output: string) =>
+  updateToolExecution: (toolExecution: ToolExecution) =>
     set((state) => ({
       messages: state.messages.map((message) => ({
         ...message,
         chunks: message.chunks.map((chunk) => {
-          if (chunk.kind === 'tool-execution' && chunk.toolCallId === toolCallId) {
-            return { ...chunk, status, output };
+          if (chunk.kind === 'tool-execution' && chunk.toolCallId === toolExecution.toolCallId) {
+            return { ...chunk, status: toolExecution.status, output: toolExecution.output };
           }
           return chunk;
         }),
       })),
-    })),
+    })),  
   tokenUsage: { input: 0, output: 0, total: 0 },
   updateTokenUsage: (usage: TokenUsage) =>
     set({

@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useStore } from '../store.js';
-import type { Message, Chunk } from '@types';
 
 const initialState = useStore.getState();
 
@@ -57,7 +56,7 @@ describe('Zustand Store', () => {
       ],
     });
 
-    useStore.getState().updateToolExecution(toolCallId, 'success', output);
+    useStore.getState().updateToolExecution({ toolCallId, status: 'success', output });
 
     const { messages } = useStore.getState();
     const lastMessage = messages[messages.length - 1];
