@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'fs';
-import { augmentPromptWithFiles } from '../../../lib/prompt-augmentation.js';
+import { augmentPromptWithFiles } from '@lib/prompt-augmentation.js';
 
 vi.mock('fs', () => ({
+  default: {},
   promises: {
     readFile: vi.fn(),
   },

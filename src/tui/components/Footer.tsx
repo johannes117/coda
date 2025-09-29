@@ -1,5 +1,5 @@
 import { Box, Text } from 'ink';
-import { useStore } from '@tui/core/store.js';
+import { useStore } from '@app/store.js';
 import type { Mode } from '@types';
 import { modelOptions } from '@lib/models.js';
 

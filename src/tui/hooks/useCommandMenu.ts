@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import type { SlashCommand } from '@types';
-import { slashCommands } from '@tui/core/commands.js';
+import { slashCommands } from '@app/commands.js';
 
 export function useCommandMenu() {
   const [showCommandMenu, setShowCommandMenu] = useState(false);

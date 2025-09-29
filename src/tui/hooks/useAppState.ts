@@ -4,16 +4,16 @@ import { randomUUID } from 'crypto';
 import type { BaseMessage } from '@langchain/core/messages';
 import { saveSession, storeModelConfig } from '@lib/storage';
 import { nowTime } from '@lib/time';
-import { useStore } from '@tui/core/store.js';
+import { useStore } from '@app/store.js';
 import type { Message, ModelConfig, ModelOption, Mode } from '@types';
 import { modelOptions } from '@lib/models.js';
 import { useBusyText } from '@tui/hooks/useBusyText.js';
 import { useFileSearchMenu } from '@tui/hooks/useFileSearchMenu.js';
 import { useCommandMenu } from '@tui/hooks/useCommandMenu.js';
 import { useModelMenu } from '@tui/hooks/useModelMenu.js';
-import { runAgentStream } from '@tui/core/agent-runner.js';
-import { executeSlashCommand } from '@tui/core/command-executor.js';
-import { slashCommands } from '@tui/core/commands.js';
+import { runAgentStream } from '@app/agent-runner.js';
+import { executeSlashCommand } from '@app/command-executor.js';
+import { slashCommands } from '@app/commands.js';
 import { augmentPromptWithFiles } from '@lib/prompt-augmentation.js';
 
 export type AppState = {

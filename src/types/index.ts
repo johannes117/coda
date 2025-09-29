@@ -50,3 +50,47 @@ export type DiffLine = {
   newLine?: number;
   text: string;
 };
+
+export type RunnerDeps = {
+  apiKey: string;
+  modelConfig: ModelConfig;
+  push: (message: Omit<Message, 'id'>) => void;
+  updateToolExecution: (toolCallId: string, status: any, output: string) => void;
+  updateTokenUsage: (usage: { input: number; output: number }) => void;
+  setBusy: (busy: boolean) => void;
+};
+
+export type CommandCtx = {
+  push: (message: Omit<Message, 'id'>) => void;
+  resetMessages: () => void;
+  clearApiKeyStore: () => void;
+  setShowModelMenu: (v: boolean) => void;
+  setFilteredModels: (v: ModelOption[]) => void;
+  setModelSelectionIndex: (i: number) => void;
+  setQuery: (v: string) => void;
+  exit: () => void;
+  apiKey: string | null;
+  currentModel: ModelConfig;
+  sessionId: string;
+};
+
+export type PromptBarProps = {
+  query: string;
+  onChange: (v: string) => void;
+  onSubmit: (v: string) => void | Promise<void>;
+  // command menu
+  showCommandMenu: boolean;
+  filteredCommands: SlashCommand[];
+  commandSelectionIndex: number;
+  // file search
+  showFileSearchMenu: boolean;
+  fileSearchMatches: string[];
+  fileSearchSelectionIndex: number;
+  // model menu
+  showModelMenu: boolean;
+  filteredModels: ModelOption[];
+  modelSelectionIndex: number;
+  currentModelId: number;
+};
+
+export type Result<T> = { ok: true; data: T } | { ok: false; error: string };

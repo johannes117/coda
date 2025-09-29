@@ -1,12 +1,11 @@
 import { BaseMessage, HumanMessage } from '@langchain/core/messages';
 import { createAgent } from '@agent/graph';
 import { reviewSystemPrompt } from '@agent/prompts';
-import { processStreamUpdate } from '@tui/core/stream-processor.js';
+import { processStreamUpdate } from '@app/stream-processor.js';
 import { saveSession } from '@lib/storage';
 import { logError } from '@lib/logger';
 import { AGENT_RECURSION_LIMIT } from '@lib/constants';
-import type { Message } from '@types';
-import type { RunnerDeps } from '../../types/agent.js';
+import type { RunnerDeps } from '@types';
 
 export async function runAgentStream(
   deps: RunnerDeps,

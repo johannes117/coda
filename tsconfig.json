@@ -14,9 +14,8 @@
     "types": ["node", "vitest/globals"],
     "baseUrl": ".",
     "paths": {
+      "@app/*": ["src/app/*"],
       "@tui/*": ["src/tui/*"],
-      "@tui/store": ["src/tui/core/store.ts"],
-      "@tui/commands": ["src/tui/core/commands.ts"],
       "@agent/*": ["src/agent/*"],
       "@agent/tools": ["src/agent/tools/index.ts"],
       "@agent/prompts": ["src/agent/prompts.ts"],
@@ -28,6 +27,7 @@
       "@lib/time": ["src/lib/time.ts"],
       "@lib/constants": ["src/lib/constants.ts"],
       "@lib/tool-result": ["src/lib/tool-result.ts"],
+      "@config/*": ["src/config/*"],
       "@types": ["src/types/index.ts"],
       "@types/*": ["src/types/*"]
     }

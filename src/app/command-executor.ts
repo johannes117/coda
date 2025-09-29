@@ -1,11 +1,9 @@
 import { existsSync } from 'fs';
-import { deleteStoredApiKey, saveSession, storeModelConfig } from '@lib/storage';
-import { useStore } from '@tui/core/store.js';
-import type { ModelConfig, Message, ModelOption } from '@types';
+import { deleteStoredApiKey, saveSession } from '@lib/storage';
+import { useStore } from '@app/store.js';
 import { modelOptions } from '@lib/models.js';
-import { runReview } from '@tui/core/agent-runner.js';
-import type { RunnerDeps } from '../../types/agent.js';
-import type { CommandCtx } from '../../types/commands.js';
+import { runReview } from '@app/agent-runner.js';
+import type { RunnerDeps, CommandCtx } from '@types';
 
 export async function executeSlashCommand(
   cmdName: string,

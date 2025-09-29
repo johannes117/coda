@@ -3,7 +3,7 @@ import TextInput from 'ink-text-input';
 import { CommandMenu } from './CommandMenu.js';
 import { FileSearchMenu } from './FileSearchMenu.js';
 import { ModelMenu } from './ModelMenu.js';
-import type { PromptBarProps } from '../../types/ui.js';
+import type { PromptBarProps } from '@types';
 
 export const PromptBar = (props: PromptBarProps) => {
   const {

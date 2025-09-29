@@ -1,4 +1,4 @@
-import type { Result } from '../types/ui.js';
+import type { Result } from '@types';
 
 export function createSuccessResult<T>(data: T): string {
   const result: Result<T> = { ok: true, data };
