@@ -19,7 +19,7 @@ export const App = () => {
         {appState.busy && (
           <Box marginTop={1}>
             <Text color="green">
-              <Spinner type="dots" />
+              <Spinner type="binary" />
             </Text>
             <Text> {appState.busyText}</Text>
           </Box>
@@ -42,7 +42,7 @@ export const App = () => {
           currentModelId={appState.currentModelId}
         />
       )}
-      <Footer working={appState.busy} mode={appState.mode} />
+      <Footer mode={appState.mode} />
     </Box>
   );
 };

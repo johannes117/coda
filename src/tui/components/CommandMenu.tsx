@@ -1,12 +1,7 @@
 import { Box, Text } from 'ink';
-import type { SlashCommand } from '@types';
+import type { CommandMenuProps } from '@types';
 
-type Props = {
-  commands: SlashCommand[];
-  selectedIndex: number;
-};
-
-export const CommandMenu = ({ commands, selectedIndex }: Props) => {
+export const CommandMenu = ({ commands, selectedIndex }: CommandMenuProps) => {
   return (
     <Box
       flexDirection="column"

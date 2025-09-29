@@ -1,9 +1,9 @@
 import { Box, Text } from 'ink';
 import { BubblePrefix } from './BubblePrefix.js';
-import type { Message } from '@types';
+import type { MessageViewProps } from '@types';
 import { ToolExecution } from './ToolExecution.js';
 
-export const MessageView = ({ msg }: { msg: Message }) => (
+export const MessageView = ({ msg }: MessageViewProps) => (
   <Box flexDirection="column" marginTop={1}>
     {msg.chunks.map((chunk, index) => {
       if (chunk.kind === 'tool-execution') {
@@ -22,4 +22,3 @@ export const MessageView = ({ msg }: { msg: Message }) => (
     })}
   </Box>
 );
-

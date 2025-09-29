@@ -12,7 +12,11 @@ const formatTokenCount = (count: number): string => {
   return count.toString();
 };
 
-export const Footer = ({ working, mode }: { working: boolean; mode: Mode }) => {
+type Props = {
+  mode: Mode;
+};
+
+export const Footer = ({ mode }: Props) => {
   const blink = useBlink();
   const busy = useStore((s) => s.busy);
   const tokenUsage = useStore((s) => s.tokenUsage);

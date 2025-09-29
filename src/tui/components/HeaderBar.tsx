@@ -2,7 +2,12 @@ import { Box, Text } from 'ink';
 import { Logo } from './Logo.js';
 import type { Mode, ModelConfig } from '@types';
 
-export const HeaderBar = ({ mode, modelConfig }: { mode: Mode; modelConfig: ModelConfig }) => {
+type Props = {
+  mode: Mode;
+  modelConfig: ModelConfig;
+};
+
+export const HeaderBar = ({ mode, modelConfig }: Props) => {
   const cwd = process.cwd().replace(process.env.HOME || '', '~');
   return (
     <Box flexDirection="column" alignSelf="flex-start">

@@ -1,7 +1,7 @@
 import { Box, Text } from 'ink';
-import type { ModelOption } from '@types';
+import type { ModelMenuProps } from '@types';
 
-export const ModelMenu = ({ models, selectedIndex, currentModelId }: { models: ModelOption[]; selectedIndex: number; currentModelId: number }) => {
+export const ModelMenu = ({ models, selectedIndex, currentModelId }: ModelMenuProps) => {
   return (
     <Box
       flexDirection="column"

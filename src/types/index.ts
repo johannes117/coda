@@ -1,7 +1,6 @@
 export type Author = 'user' | 'agent' | 'system' | 'tool';
 export type ChunkKind = 'text' | 'code' | 'error' | 'list' | 'status' | 'divider' | 'tool-execution';
 export type Mode = 'agent' | 'plan';
-
 export type SlashCommandName = "help" | "quit" | "reset" | "status" | "clear" | "model" | "review";
 
 export type SlashCommand = {
@@ -76,24 +75,6 @@ export type CommandCtx = {
   sessionId: string;
 };
 
-export type PromptBarProps = {
-  query: string;
-  onChange: (v: string) => void;
-  onSubmit: (v: string) => void | Promise<void>;
-  // command menu
-  showCommandMenu: boolean;
-  filteredCommands: SlashCommand[];
-  commandSelectionIndex: number;
-  // file search
-  showFileSearchMenu: boolean;
-  fileSearchMatches: string[];
-  fileSearchSelectionIndex: number;
-  // model menu
-  showModelMenu: boolean;
-  filteredModels: ModelOption[];
-  modelSelectionIndex: number;
-  currentModelId: number;
-};
 
 export type StreamProcessorActions = {
   addMessage: (message: Omit<Message, 'id'>) => void;
@@ -108,3 +89,5 @@ export type ToolExecution = {
 }
 
 export type Result<T> = { ok: true; data: T } | { ok: false; error: string };
+
+export * from './tui.js';

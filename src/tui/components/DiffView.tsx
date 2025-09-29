@@ -1,8 +1,8 @@
 import { Box, Text } from 'ink';
 import type { ReactElement } from 'react';
-import type { DiffLine } from '@types';
+import type { DiffRowProps, DiffViewProps } from '@types';
 
-const DiffRow = ({ line, pad }: { line: DiffLine; pad: number }) => {
+const DiffRow = ({ line, pad }: DiffRowProps) => {
   let sign = ' ';
   let color: string = 'gray';
   let oldNum = String(line.oldLine ?? ' ').padStart(pad);
@@ -30,7 +30,7 @@ const DiffRow = ({ line, pad }: { line: DiffLine; pad: number }) => {
   );
 };
 
-export const DiffView = ({ diffLines }: { diffLines: DiffLine[] }) => {
+export const DiffView = ({ diffLines }: DiffViewProps) => {
   const CONTEXT = 2;
   const MIN_COLLAPSE = 4;
   const totalLines = diffLines.length;

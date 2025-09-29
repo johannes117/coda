@@ -1,11 +1,7 @@
 import { Box, Text } from 'ink';
+import type { FileSearchMenuProps } from '@types';
 
-type Props = {
-  matches: string[];
-  selectedIndex: number;
-};
-
-export const FileSearchMenu = ({ matches, selectedIndex }: Props) => {
+export const FileSearchMenu = ({ matches, selectedIndex }: FileSearchMenuProps) => {
   return (
     <Box
       flexDirection="column"

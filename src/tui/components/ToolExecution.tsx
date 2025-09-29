@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
 import Spinner from 'ink-spinner';
-import type { Chunk } from '@types';
+import type { ToolExecutionProps } from '@types';
 import { DiffView } from './DiffView.js';
 
 const formatArgs = (args: Record<string, any>): string => {
@@ -17,7 +17,7 @@ const formatArgs = (args: Record<string, any>): string => {
   return JSON.stringify(args);
 };
 
-export const ToolExecution = ({ chunk }: { chunk: Chunk }) => {
+export const ToolExecution = ({ chunk }: ToolExecutionProps) => {
   const { status, toolName, toolArgs, output } = chunk;
   const [elapsed, setElapsed] = useState(0);
 
