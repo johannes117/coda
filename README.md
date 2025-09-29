@@ -42,17 +42,19 @@ In your working directory:
 
 ## Usage
 
-Interactive: `bun run start` (prompt for OpenRouter API key on first run).
+Run the interactive CLI with: `bun run start`.
 
-Non-interactive: `bun run start -p "your prompt"`.
+The application will prompt for an OpenRouter API key on the first run.
 
-Commands: `/status`, `/model`, `/reset`, `/clear`, `/quit`. Tab: switch modes (agent/plan). Esc: interrupt/exit.
+**Commands**: `/help`, `/status`, `/model`, `/review`, `/reset`, `/clear`, `/quit`.
+**Keys**: `Tab` to switch modes (agent/plan). `Esc` to interrupt/exit.
 
 ## Structure
 
-- `src/coda.tsx`: Entry, Yargs + Ink.
-- `src/agent/`: LangGraph agent, tools (fs, shell).
-- `src/ui/`: TUI components.
-- `src/utils/`: Storage, logger.
+- `src/coda.tsx`: Main entrypoint, Ink renderer setup.
+- `src/app/`: Core application logic (agent runner, command executor, state store).
+- `src/agent/`: LangGraph agent, tools (fs, shell), and prompts.
+- `src/tui/`: TUI components and hooks built with Ink.
+- `src/lib/`: Shared utilities (storage, logger, diff).
 
-See `AGENTS.md` for guidelines.
+See `AGENTS.md` for detailed contributor guidelines.
