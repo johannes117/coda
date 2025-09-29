@@ -9,7 +9,7 @@ import {
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { tools } from '@agent/tools';
 // import { logInfo } from '@lib/logger';
-import { defaultSystemPrompt } from '@agent/prompts';
+import { defaultSystemPrompt, evalSystemPrompt } from '@agent/prompts';
 
 export const createAgent = (
   apiKey: string,
@@ -62,4 +62,40 @@ export const createAgent = (
     .addEdge('tools', 'agent');
 
   return workflow.compile();
+};
+
+export const createEvalAgent = (
+  apiKey: string,
+  modelConfig: { name: string; effort: string },
+  prompt: string = evalSystemPrompt
+) => {
+  const model = new ChatOpenAI({
+    apiKey: apiKey,
+    model: modelConfig.name,
+    temperature: 1,
+    modelKwargs: {
+      reasoning_effort: modelConfig.effort,
+      verbosity: 'medium',
+      usage: { include: true },
+    },
+    configuration: {
+      baseURL: 'https://openrouter.ai/api/v1',
+    }
+  });
+
+  const callModel = async (state: typeof MessagesAnnotation.State) => {
+    const messages = [
+      { role: 'system', content: prompt },
+      ...state.messages,
+    ];
+    const response = await model.invoke(messages);
+    return { messages: [response] };
+  };
+
+  const workflow = new StateGraph(MessagesAnnotation)
+    .addNode('agent', callModel)
+    .addEdge(START, 'agent')
+    .compile();
+
+  return workflow;
 };

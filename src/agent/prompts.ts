@@ -60,3 +60,7 @@ Follow this process:
 5. **Conclude:** Respond to the user with the review. Do not call any more tools after you have provided the review.
 ${getAgentInstructions()}`;
 
+export const evalSystemPrompt = `You are coda, an expert AI software engineer.
+Your task is to answer the task question given to you. 
+You do not have access to any tools. DO NOT CREATE ANY FILES
+`;
