@@ -1,6 +1,6 @@
 import { BaseMessage, HumanMessage } from '@langchain/core/messages';
 import { createAgent } from '@agent/graph';
-import { reviewSystemPrompt } from '@agent/prompts';
+import { defaultSystemPrompt, reviewSystemPrompt } from '@agent/prompts';
 import { processStreamUpdate } from '@app/stream-processor.js';
 import { saveSession } from '@lib/storage';
 import { logError } from '@lib/logger';
@@ -10,10 +10,11 @@ import type { RunnerDeps, StreamProcessorActions } from '@types';
 export async function runAgentStream(
   deps: RunnerDeps,
   conversationHistory: { current: BaseMessage[] },
-  finalPrompt: string
+  finalPrompt: string,
+  systemPrompt: string = defaultSystemPrompt
 ) {
   const { apiKey, modelConfig, addMessage, updateToolExecution, updateTokenUsage, setBusy } = deps;
-  const agentInstance = createAgent(apiKey, modelConfig);
+  const agentInstance = createAgent(apiKey, modelConfig, systemPrompt);
   conversationHistory.current.push(new HumanMessage(finalPrompt));
   await saveSession('last_session', conversationHistory.current);
   setBusy(true);
@@ -37,10 +38,11 @@ export async function runAgentStream(
 
 export async function runReview(
   deps: RunnerDeps,
-  conversationHistory: { current: BaseMessage[] }
+  conversationHistory: { current: BaseMessage[] },
+  systemPrompt: string = reviewSystemPrompt
 ) {
   const { apiKey, modelConfig, addMessage, updateToolExecution, updateTokenUsage, setBusy } = deps;
-  const reviewAgent = createAgent(apiKey, modelConfig, reviewSystemPrompt);
+  const reviewAgent = createAgent(apiKey, modelConfig, systemPrompt);
   const userMessage = new HumanMessage(
     'Please conduct a code review of the current branch against the base branch (main or master).'
   );

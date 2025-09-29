@@ -1,11 +1,11 @@
 import { useCallback, useRef, useState } from 'react';
 import { useApp, useInput } from 'ink';
 import { randomUUID } from 'crypto';
-import type { BaseMessage } from '@langchain/core/messages';
+import { BaseMessage, HumanMessage } from '@langchain/core/messages';
 import { saveSession, storeModelConfig } from '@lib/storage';
 import { nowTime } from '@lib/time';
 import { useStore } from '@app/store.js';
-import type { Message, ModelConfig, ModelOption, Mode } from '@types';
+import type { ModelConfig, Mode } from '@types';
 import { modelOptions } from '@lib/models.js';
 import { useBusyText } from '@tui/hooks/useBusyText.js';
 import { useFileSearchMenu } from '@tui/hooks/useFileSearchMenu.js';
@@ -15,50 +15,23 @@ import { runAgentStream } from '@app/agent-runner.js';
 import { executeSlashCommand } from '@app/command-executor.js';
 import { slashCommands } from '@app/commands.js';
 import { augmentPromptWithFiles } from '@lib/prompt-augmentation.js';
-
-export type AppState = {
-  // UI data
-  cols: number;
-  messages: Message[];
-  busy: boolean;
-  mode: Mode;
-  currentModel: ModelConfig;
-  currentModelId: number;
-  busyText: string;
-  // Prompt
-  query: string;
-  onChange: (v: string) => void;
-  onSubmit: (v: string) => Promise<void>;
-  setQuery: (v: string) => void;
-  // Menus
-  showCommandMenu: boolean;
-  filteredCommands: typeof slashCommands;
-  commandSelectionIndex: number;
-  setCommandSelectionIndex: (i: number) => void;
-  showModelMenu: boolean;
-  filteredModels: ModelOption[];
-  modelSelectionIndex: number;
-  setModelSelectionIndex: (i: number) => void;
-  showFileSearchMenu: boolean;
-  fileSearchMatches: string[];
-  fileSearchSelectionIndex: number;
-  setFileSearchSelectionIndex: (i: number) => void;
-};
+import type { AppState } from '@types';
+import { defaultSystemPrompt, planSystemPrompt } from '@agent/index.js';
 
 export function useAppState(): AppState {
   const { exit } = useApp();
-  const cols = useStore((s) => s.terminalCols);
-  const apiKey = useStore((s) => s.apiKey);
-  const currentModel = useStore((s) => s.modelConfig);
-  const messages = useStore((s) => s.messages);
-  const busy = useStore((s) => s.busy);
-  const setBusy = useStore((s) => s.setBusy);
-  const addMessage = useStore((s) => s.addMessage);
-  const updateTokenUsage = useStore((s) => s.updateTokenUsage);
-  const updateToolExecution = useStore((s) => s.updateToolExecution);
-  const resetMessages = useStore((s) => s.resetMessages);
-  const setModelConfig = useStore((s) => s.setModelConfig);
-  const clearApiKeyStore = useStore((s) => s.clearApiKey);
+  const cols = useStore((store) => store.terminalCols);
+  const apiKey = useStore((store) => store.apiKey);
+  const currentModel = useStore((store) => store.modelConfig);
+  const messages = useStore((store) => store.messages);
+  const busy = useStore((store) => store.busy);
+  const setBusy = useStore((store) => store.setBusy);
+  const addMessage = useStore((store) => store.addMessage);
+  const updateTokenUsage = useStore((store) => store.updateTokenUsage);
+  const updateToolExecution = useStore((store) => store.updateToolExecution);
+  const resetMessages = useStore((store) => store.resetMessages);
+  const setModelConfig = useStore((store) => store.setModelConfig);
+  const clearApiKeyStore = useStore((store) => store.clearApiKey);
 
   const [mode, setMode] = useState<Mode>('agent');
   const [query, setQuery] = useState('');
@@ -98,9 +71,9 @@ export function useAppState(): AppState {
   } = useFileSearchMenu();
 
   const currentOption = modelOptions.find(
-    (o) => o.name === currentModel.name && o.effort === currentModel.effort
+    (option) => option.name === currentModel.name && option.effort === currentModel.effort
   );
-  const currentModelId = currentOption ? currentOption.id : 5;
+  const currentModelId = currentOption ? currentOption.id : 1;
 
   const busyText = useBusyText();
 
@@ -189,7 +162,25 @@ export function useAppState(): AppState {
           resetCommandMenu();
           return;
         }
-        setMode((prev) => (prev === 'agent' ? 'plan' : 'agent'));
+        setMode((prev) => {
+          const newMode = prev === 'agent' ? 'plan' : 'agent';
+
+          if (newMode === 'plan') {
+            conversationHistory.current[0] = new HumanMessage(planSystemPrompt)
+            addMessage({
+              author: 'system',
+              chunks: [{ kind: 'text', text: 'Starting plan mode...' }],
+            });
+          } else if (newMode === 'agent') {
+            conversationHistory.current[0] = new HumanMessage(defaultSystemPrompt)
+            addMessage({
+              author: 'system',
+              chunks: [{ kind: 'text', text: 'Starting agent mode...' }],
+            });
+          }
+          return newMode;
+
+        });
         return;
       }
     }
@@ -262,11 +253,11 @@ export function useAppState(): AppState {
         const cmdName = trimmedValue.slice(1).split(' ')[0].toLowerCase();
         const cmd =
           slashCommands.find(
-            (c) => c.name === cmdName || c.aliases?.includes(cmdName)
+            (command) => command.name === cmdName || command.aliases?.includes(cmdName)
           ) || null;
 
         if (!cmd) {
-          const available = slashCommands.map((c) => `/${c.name}`).join(', ');
+          const available = slashCommands.map((command) => `/${command.name}`).join(', ');
           addMessage({
             author: 'system',
             chunks: [
@@ -330,33 +321,34 @@ export function useAppState(): AppState {
       setBusy(true);
       try {
         if (mode === 'plan') {
-          setTimeout(() => {
-            addMessage({
-              author: 'agent',
-              chunks: [
-                {
-                  kind: 'text',
-                  text: `[PLAN MODE] I would help you with: "${value}"`,
-                },
-              ],
-            });
-            setBusy(false);
-          }, 600);
-          return;
+          await runAgentStream(
+            {
+              apiKey,
+              modelConfig: currentModel,
+              addMessage,
+              updateToolExecution,
+              updateTokenUsage,
+              setBusy,
+            },
+            conversationHistory,
+            finalPrompt,
+            planSystemPrompt
+          );
+        } else if (mode === 'agent') {
+          await runAgentStream(
+            {
+              apiKey,
+              modelConfig: currentModel,
+              addMessage,
+              updateToolExecution,
+              updateTokenUsage,
+              setBusy,
+            },
+            conversationHistory,
+            finalPrompt,
+            defaultSystemPrompt
+          );
         }
-
-        await runAgentStream(
-          {
-            apiKey,
-            modelConfig: currentModel,
-            addMessage,
-            updateToolExecution,
-            updateTokenUsage,
-            setBusy,
-          },
-          conversationHistory,
-          finalPrompt
-        );
       } catch {
         // runAgentStream already reports
       } finally {

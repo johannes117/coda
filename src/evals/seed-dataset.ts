@@ -1,5 +1,5 @@
 import { Client } from 'langsmith';
-import { DATASET_NAME, DEFAULT_EVAL_DATASET } from './agent.eval.js';
+import { DATASET_NAME, DEFAULT_EVAL_DATASET } from './index.js';
 import { config } from 'dotenv';
 
 config();

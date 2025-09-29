@@ -1,4 +1,34 @@
+import { slashCommands } from "@app/commands.js";
 import { Author, Chunk, DiffLine, Message, Mode, ModelConfig, ModelOption, SlashCommand } from "@types";
+
+export type AppState = {
+    // UI data
+    cols: number;
+    messages: Message[];
+    busy: boolean;
+    mode: Mode;
+    currentModel: ModelConfig;
+    currentModelId: number;
+    busyText: string;
+    // Prompt
+    query: string;
+    onChange: (v: string) => void;
+    onSubmit: (v: string) => Promise<void>;
+    setQuery: (v: string) => void;
+    // Menus
+    showCommandMenu: boolean;
+    filteredCommands: typeof slashCommands;
+    commandSelectionIndex: number;
+    setCommandSelectionIndex: (i: number) => void;
+    showModelMenu: boolean;
+    filteredModels: ModelOption[];
+    modelSelectionIndex: number;
+    setModelSelectionIndex: (i: number) => void;
+    showFileSearchMenu: boolean;
+    fileSearchMatches: string[];
+    fileSearchSelectionIndex: number;
+    setFileSearchSelectionIndex: (i: number) => void;
+};
 
 export type PromptBarProps = {
     query: string;

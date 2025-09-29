@@ -13,7 +13,7 @@
     "start": "bun run dist/index.js",
     "dev": "tsc --watch",
     "test": "vitest run --exclude '**/evals/**'",
-    "eval": "vitest run src/evals/",
+    "eval": "bun run src/evals/index.ts",
     "evals:seed": "bun run src/evals/seed-dataset.ts",
     "logs:tail": "tail -f ~/.coda/logs/coda.log"
   },
