@@ -11,7 +11,7 @@ export const App = () => {
 
   return (
     <Box flexDirection="column" width={appState.cols} flexGrow={1}>
-      <HeaderBar title="AI-Powered Development Assistant" mode={appState.mode} modelConfig={appState.currentModel} />
+      <HeaderBar mode={appState.mode} modelConfig={appState.currentModel} />
       <Box flexDirection="column" flexGrow={1} flexShrink={1}>
         {appState.messages.map((message, index) => (
           <MessageView key={index} msg={message} />

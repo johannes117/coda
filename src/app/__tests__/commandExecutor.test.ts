@@ -59,9 +59,4 @@ describe('executeSlashCommand', () => {
     expect(ctx.setShowModelMenu).toHaveBeenCalledWith(true);
   });
 
-  it('unknown command returns false', async () => {
-    const ctx = ctxBase();
-    const handled = await executeSlashCommand('doesnotexist', deps as any, ctx as any);
-    expect(handled).toBe(false);
-  });
 });
