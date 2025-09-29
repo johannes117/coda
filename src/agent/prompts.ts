@@ -1,3 +1,19 @@
+import { readFileSync, existsSync } from 'fs';
+import { resolve } from 'path';
+
+function getAgentInstructions(): string {
+  const agentsPath = resolve(process.cwd(), 'AGENTS.md');
+  if (existsSync(agentsPath)) {
+    try {
+      const content = readFileSync(agentsPath, 'utf-8');
+      return `\n\n## Additional Agent Instructions (AGENTS.MD)\n${content}`;
+    } catch {
+      return '';
+    }
+  }
+  return '';
+}
+
 export const defaultSystemPrompt = `You are coda, an expert AI software engineer.
 You are in agent mode.
 Your goal is to help users with their coding tasks by interacting with their local filesystem.
@@ -14,7 +30,8 @@ Follow this process:
 3. **Execute:** Call one tool at a time. Prefer 'apply_diff' over 'write_file' for modifying existing files.
 4. **Observe:** Analyze the output of the tool. If an error occurs, try to fix it.
 5. **Repeat:** Continue this cycle until you have completed the user's request.
-6. **Conclude:** When the task is complete, respond to the user with a summary of what you have done. Do not call any more tools.`;
+6. **Conclude:** When the task is complete, respond to the user with a summary of what you have done. Do not call any more tools.
+${getAgentInstructions()}`;
 
 export const planSystemPrompt = `You are coda, an expert AI software engineer.
 You are in plan mode.
@@ -26,7 +43,8 @@ You have access to the following tools, you can use them to gather information b
 Follow this process:
 1. **Analyze:** Understand the user's request.
 2. **Plan:** Break down the task into a sequence of steps. For each step, specify which tool you would use and with what arguments.
-3. **Conclude:** When the plan is complete, respond to the user with the full plan. Do not call any tools or ask for permission to proceed. Your output should be only the plan.`;
+3. **Conclude:** When the plan is complete, respond to the user with the full plan. Do not call any tools or ask for permission to proceed. Your output should be only the plan.
+${getAgentInstructions()}`;
 
 export const reviewSystemPrompt = `You are coda, an expert AI software engineer specializing in code reviews.
 Your task is to conduct a review of the current branch against the base branch (main or master).
@@ -39,5 +57,6 @@ Follow this process:
 2. **Get diff:** Use 'git diff' to see the changes between the base branch and the current branch.
 3. **Analyze:** Examine the changed files and the diff.
 4. **Review:** Provide a constructive review of the changes, focusing on code quality, bugs, and best practices.
-5. **Conclude:** Respond to the user with the review. Do not call any more tools after you have provided the review.`;
+5. **Conclude:** Respond to the user with the review. Do not call any more tools after you have provided the review.
+${getAgentInstructions()}`;
 
