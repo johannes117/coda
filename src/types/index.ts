@@ -2,8 +2,10 @@ export type Author = 'user' | 'agent' | 'system' | 'tool';
 export type ChunkKind = 'text' | 'code' | 'error' | 'list' | 'status' | 'divider' | 'tool-execution';
 export type Mode = 'agent' | 'plan';
 
+export type SlashCommandName = "help" | "quit" | "reset" | "status" | "clear" | "model" | "review";
+
 export type SlashCommand = {
-  name: string;
+  name: SlashCommandName;
   description: string;
   aliases?: string[];
 };

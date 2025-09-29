@@ -29,4 +29,3 @@ export const ModelMenu = ({ models, selectedIndex, currentModelId }: { models: M
     </Box>
   );
 };
-

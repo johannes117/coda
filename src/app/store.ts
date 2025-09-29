@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ModelConfig, Message, ToolExecutionStatus, TokenUsage, ToolExecution } from '@types';
+import type { ModelConfig, Message, TokenUsage, ToolExecution } from '@types';
 import { randomUUID } from 'crypto';
 
 const createWelcomeMessage = (): Message => ({

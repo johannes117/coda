@@ -3,10 +3,11 @@ import { deleteStoredApiKey, saveSession } from '@lib/storage';
 import { useStore } from '@app/store.js';
 import { modelOptions } from '@lib/models.js';
 import { runReview } from '@app/agent-runner.js';
-import type { RunnerDeps, CommandCtx } from '@types';
+import type { RunnerDeps, CommandCtx, SlashCommandName } from '@types';
+import { slashCommands } from '@app/commands.js';
 
 export async function executeSlashCommand(
-  cmdName: string,
+  cmdName: SlashCommandName,
   deps: RunnerDeps,
   ctx: CommandCtx
 ) {
@@ -18,8 +19,7 @@ export async function executeSlashCommand(
 
   switch (cmdName) {
     case 'help': {
-      const cmds = (await import('./commands.js')).slashCommands;
-      const lines = cmds.map(c => {
+      const lines = slashCommands.map(c => {
         const alias = c.aliases?.length ? ` (aliases: ${c.aliases.join(', ')})` : '';
         return `  /${c.name}${alias} — ${c.description}`;
       });
