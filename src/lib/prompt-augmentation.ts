@@ -8,7 +8,7 @@ import path from 'path';
  */
 export async function augmentPromptWithFiles(value: string): Promise<string> {
   let finalPrompt = value;
-  const fileRegex = /(?<![\\w`])@(\\S+)/g;
+  const fileRegex = /(?<![\w`])@(\S+)/g;
   const matches = [...value.matchAll(fileRegex as any)];
 
   if (matches.length === 0) return finalPrompt;

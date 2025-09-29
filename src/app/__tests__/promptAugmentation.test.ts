@@ -2,18 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'fs';
 import { augmentPromptWithFiles } from '@lib/prompt-augmentation.js';
 
-vi.mock('fs', () => ({
-  default: {},
-  promises: {
-    readFile: vi.fn(),
-  },
-}));
-
-const mockFs = vi.mocked(fs);
+const mockReadFile = vi.spyOn(fs, 'readFile');
 
 describe('augmentPromptWithFiles', () => {
   beforeEach(() => {
-    mockFs.readFile.mockReset();
+    mockReadFile.mockReset();
   });
 
   afterEach(() => {
@@ -24,16 +17,16 @@ describe('augmentPromptWithFiles', () => {
     const input = 'please help me with this code';
     const result = await augmentPromptWithFiles(input);
     expect(result).toBe(input);
-    expect(mockFs.readFile).not.toHaveBeenCalled();
+    expect(mockReadFile).not.toHaveBeenCalled();
   });
 
   it('augments prompt with single file content', async () => {
-    mockFs.readFile.mockResolvedValueOnce('console.log("hello");');
+    mockReadFile.mockResolvedValueOnce('console.log("hello");');
 
     const input = 'please refactor @src/index.ts';
     const result = await augmentPromptWithFiles(input);
 
-    expect(mockFs.readFile).toHaveBeenCalledWith(
+    expect(mockReadFile).toHaveBeenCalledWith(
       expect.stringContaining('src/index.ts'),
       'utf-8'
     );
@@ -43,14 +36,14 @@ describe('augmentPromptWithFiles', () => {
   });
 
   it('handles multiple file references', async () => {
-    mockFs.readFile
+    mockReadFile
       .mockResolvedValueOnce('// config file')
       .mockResolvedValueOnce('// utils file');
 
     const input = 'compare @config.js and @utils.js';
     const result = await augmentPromptWithFiles(input);
 
-    expect(mockFs.readFile).toHaveBeenCalledTimes(2);
+    expect(mockReadFile).toHaveBeenCalledTimes(2);
     expect(result).toContain('Content from config.js:');
     expect(result).toContain('Content from utils.js:');
     expect(result).toContain('// config file');
@@ -58,7 +51,7 @@ describe('augmentPromptWithFiles', () => {
   });
 
   it('handles file read errors gracefully', async () => {
-    mockFs.readFile.mockRejectedValueOnce(new Error('File not found'));
+    mockReadFile.mockRejectedValueOnce(new Error('File not found'));
 
     const input = 'please check @missing.ts';
     const result = await augmentPromptWithFiles(input);
@@ -73,7 +66,7 @@ describe('augmentPromptWithFiles', () => {
     const result = await augmentPromptWithFiles(input);
 
     expect(result).toBe(input);
-    expect(mockFs.readFile).not.toHaveBeenCalled();
+    expect(mockReadFile).not.toHaveBeenCalled();
   });
 
   it('ignores @references that are part of words', async () => {
@@ -81,6 +74,6 @@ describe('augmentPromptWithFiles', () => {
     const result = await augmentPromptWithFiles(input);
 
     expect(result).toBe(input);
-    expect(mockFs.readFile).not.toHaveBeenCalled();
+    expect(mockReadFile).not.toHaveBeenCalled();
   });
 });
