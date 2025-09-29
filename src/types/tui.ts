@@ -1,4 +1,4 @@
-import { Author, Chunk, DiffLine, Message, ModelOption, SlashCommand } from "@types";
+import { Author, Chunk, DiffLine, Message, Mode, ModelConfig, ModelOption, SlashCommand } from "@types";
 
 export type PromptBarProps = {
     query: string;
@@ -54,4 +54,17 @@ export type ToolExecutionProps = {
 export type FileSearchMenuProps = {
     matches: string[];
     selectedIndex: number;
+};
+
+export type FooterProps = {
+    mode: Mode;
+};
+
+export type HeaderBarProps = {
+    mode: Mode;
+    modelConfig: ModelConfig;
+};
+
+export type CodeBlockProps = {
+    lines: string[];
 };

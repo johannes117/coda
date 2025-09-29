@@ -1,6 +1,6 @@
 import { Box, Text } from 'ink';
 import { useStore } from '@app/store.js';
-import type { Mode } from '@types';
+import type { FooterProps } from '@types';
 import { modelOptions } from '@lib/models.js';
 
 const useBlink = () => useStore((s) => s.blink);
@@ -12,11 +12,7 @@ const formatTokenCount = (count: number): string => {
   return count.toString();
 };
 
-type Props = {
-  mode: Mode;
-};
-
-export const Footer = ({ mode }: Props) => {
+export const Footer = ({ mode }: FooterProps) => {
   const blink = useBlink();
   const busy = useStore((s) => s.busy);
   const tokenUsage = useStore((s) => s.tokenUsage);

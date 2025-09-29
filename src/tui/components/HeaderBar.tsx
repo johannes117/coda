@@ -1,13 +1,8 @@
 import { Box, Text } from 'ink';
 import { Logo } from './Logo.js';
-import type { Mode, ModelConfig } from '@types';
+import type { HeaderBarProps } from '@types';
 
-type Props = {
-  mode: Mode;
-  modelConfig: ModelConfig;
-};
-
-export const HeaderBar = ({ mode, modelConfig }: Props) => {
+export const HeaderBar = ({ mode, modelConfig }: HeaderBarProps) => {
   const cwd = process.cwd().replace(process.env.HOME || '', '~');
   return (
     <Box flexDirection="column" alignSelf="flex-start">
