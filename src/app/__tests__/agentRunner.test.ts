@@ -25,13 +25,13 @@ vi.mock('@lib/logger', () => ({
 }));
 
 describe('runAgentStream', () => {
-  const push = vi.fn();
+  const addMessage = vi.fn();
   const updateToolExecution = vi.fn();
   const updateTokenUsage = vi.fn();
   const setBusy = vi.fn();
 
   beforeEach(() => {
-    push.mockReset();
+    addMessage.mockReset();
     updateToolExecution.mockReset();
     updateTokenUsage.mockReset();
     setBusy.mockReset();
@@ -43,7 +43,7 @@ describe('runAgentStream', () => {
       {
         apiKey: 'sk-test',
         modelConfig: { name: 'x-ai/grok-4-fast:free', effort: 'medium' },
-        push,
+        addMessage,
         updateToolExecution,
         updateTokenUsage,
         setBusy,
@@ -51,9 +51,9 @@ describe('runAgentStream', () => {
       history,
       'do something'
     );
-    expect(push).toHaveBeenCalled();
+    expect(addMessage).toHaveBeenCalled();
     // last push should contain agent text
-    const calls = push.mock.calls.map((c) => c[0]);
+    const calls = addMessage.mock.calls.map((c) => c[0]);
     const hasAgent = calls.some((m) =>
       m.author === 'agent' && m.chunks?.[0]?.text?.includes('hello from agent')
     );

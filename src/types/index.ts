@@ -54,14 +54,14 @@ export type DiffLine = {
 export type RunnerDeps = {
   apiKey: string;
   modelConfig: ModelConfig;
-  push: (message: Omit<Message, 'id'>) => void;
+  addMessage: (message: Omit<Message, 'id'>) => void;
   updateToolExecution: (toolCallId: string, status: any, output: string) => void;
   updateTokenUsage: (usage: TokenUsage) => void;
   setBusy: (busy: boolean) => void;
 };
 
 export type CommandCtx = {
-  push: (message: Omit<Message, 'id'>) => void;
+  addMessage: (message: Omit<Message, 'id'>) => void;
   resetMessages: () => void;
   clearApiKeyStore: () => void;
   setShowModelMenu: (v: boolean) => void;
@@ -92,5 +92,11 @@ export type PromptBarProps = {
   modelSelectionIndex: number;
   currentModelId: number;
 };
+
+export type StreamProcessorActions = {
+  addMessage: (message: Omit<Message, 'id'>) => void;
+  updateToolExecution: (toolCallId: string, status: ToolExecutionStatus, output: string) => void;
+  updateTokenUsage: (usage: TokenUsage) => void;
+}
 
 export type Result<T> = { ok: true; data: T } | { ok: false; error: string };

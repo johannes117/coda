@@ -11,7 +11,7 @@ export async function executeSlashCommand(
   ctx: CommandCtx
 ) {
   const {
-    push, resetMessages, clearApiKeyStore, setShowModelMenu,
+    addMessage, resetMessages, clearApiKeyStore, setShowModelMenu,
     setFilteredModels, setModelSelectionIndex, setQuery, exit,
     apiKey, currentModel, sessionId
   } = ctx;
@@ -23,11 +23,11 @@ export async function executeSlashCommand(
         const alias = c.aliases?.length ? ` (aliases: ${c.aliases.join(', ')})` : '';
         return `  /${c.name}${alias} — ${c.description}`;
       });
-      push({ author: 'system', chunks: [{ kind: 'list', lines: ['Commands:', ...lines] }] });
+      addMessage({ author: 'system', chunks: [{ kind: 'list', lines: ['Commands:', ...lines] }] });
       return true;
     }
     case 'quit': {
-      push({ author: 'system', chunks: [{ kind: 'text', text: 'Goodbye!' }] });
+      addMessage({ author: 'system', chunks: [{ kind: 'text', text: 'Goodbye!' }] });
       setTimeout(() => exit(), 100);
       return true;
     }
@@ -49,12 +49,12 @@ export async function executeSlashCommand(
   • Model: ${currentModel.name} (${currentModel.effort})
   • Session ID: ${sessionId}
   • Tokens — input: ${tokenUsage.input} | output: ${tokenUsage.output} | total: ${tokenUsage.total}`;
-      push({ author: 'system', chunks: [{ kind: 'text', text: statusText }] });
+      addMessage({ author: 'system', chunks: [{ kind: 'text', text: statusText }] });
       return true;
     }
     case 'clear': {
       resetMessages();
-      push({ author: 'system', chunks: [{ kind: 'text', text: 'New conversation started.' }] });
+      addMessage({ author: 'system', chunks: [{ kind: 'text', text: 'New conversation started.' }] });
       return true;
     }
     case 'model': {
@@ -66,7 +66,7 @@ export async function executeSlashCommand(
     }
     case 'review': {
       if (!apiKey) {
-        push({ author: 'system', chunks: [{ kind: 'error', text: 'API key not found. Cannot start review.' }] });
+        addMessage({ author: 'system', chunks: [{ kind: 'error', text: 'API key not found. Cannot start review.' }] });
         return true;
       }
       await saveSession('last_session', useStore.getState().messages as any);

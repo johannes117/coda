@@ -104,11 +104,6 @@ export function useAppState(): AppState {
 
   const busyText = useBusyText();
 
-  const push = useCallback(
-    (message: Omit<Message, 'id'>) => addMessage(message),
-    [addMessage]
-  );
-
   const onChange = useCallback(
     (value: string) => {
       setQuery(value);
@@ -227,7 +222,7 @@ export function useAppState(): AppState {
         };
         setModelConfig(newConfig);
         await storeModelConfig(newConfig);
-        push({
+        addMessage({
           author: 'system',
           chunks: [
             { kind: 'text', text: `Model switched to ${selectedModel.label}` },
@@ -272,7 +267,7 @@ export function useAppState(): AppState {
 
         if (!cmd) {
           const available = slashCommands.map((c) => `/${c.name}`).join(', ');
-          push({
+          addMessage({
             author: 'system',
             chunks: [
               {
@@ -291,13 +286,13 @@ export function useAppState(): AppState {
           {
             apiKey,
             modelConfig: currentModel,
-            push,
+            addMessage,
             updateToolExecution,
             updateTokenUsage,
             setBusy,
           },
           {
-            push,
+            addMessage,
             resetMessages: () => {
               resetMessages();
               conversationHistory.current = [];
@@ -324,7 +319,7 @@ export function useAppState(): AppState {
       resetCommandMenu();
       const finalPrompt = await augmentPromptWithFiles(value);
 
-      push({
+      addMessage({
         author: 'user',
         timestamp: nowTime(),
         chunks: [{ kind: 'text', text: value }],
@@ -336,7 +331,7 @@ export function useAppState(): AppState {
       try {
         if (mode === 'plan') {
           setTimeout(() => {
-            push({
+            addMessage({
               author: 'agent',
               chunks: [
                 {
@@ -354,7 +349,7 @@ export function useAppState(): AppState {
           {
             apiKey,
             modelConfig: currentModel,
-            push,
+            addMessage,
             updateToolExecution,
             updateTokenUsage,
             setBusy,
@@ -379,7 +374,7 @@ export function useAppState(): AppState {
       modelSelectionIndex,
       mode,
       openModelMenu,
-      push,
+      addMessage,
       resetCommandMenu,
       resetMessages,
       setBusy,

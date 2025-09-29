@@ -1,16 +1,11 @@
-import { Message, Chunk, ToolExecutionStatus } from "@types";
+import { Chunk, StreamProcessorActions } from "@types";
 import { BaseMessage, AIMessage, ToolMessage } from "@langchain/core/messages";
 import { saveSession } from "@lib/storage";
-import { TokenUsage } from "@types";
 
 export const processStreamUpdate = async (
     chunk: Record<string, any>,
     conversationHistory: { current: BaseMessage[] },
-    actions: {
-      push: (message: Omit<Message, 'id'>) => void;
-      updateToolExecution: (toolCallId: string, status: ToolExecutionStatus, output: string) => void;
-      updateTokenUsage: (usage: TokenUsage) => void;
-    }
+    actions: StreamProcessorActions
   ) => {
     const nodeName = Object.keys(chunk)[0]; // Gets the name of the node that sent the chunk: tools | agent
     const update = chunk[nodeName as keyof typeof chunk]; // Gets the payload from that node.
@@ -29,7 +24,7 @@ export const processStreamUpdate = async (
             });
           }
           if (aiMessage.content) {
-            actions.push({
+            actions.addMessage({
               author: 'agent',
               chunks: [{ kind: 'text', text: aiMessage.content as string }],
             });
@@ -42,7 +37,7 @@ export const processStreamUpdate = async (
               toolArgs: toolCall.args,
               status: 'running',
             }));
-            actions.push({
+            actions.addMessage({
               author: 'system',
               chunks: toolExecutionChunks,
             });
