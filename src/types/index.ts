@@ -1,7 +1,7 @@
 export type Author = 'user' | 'agent' | 'system' | 'tool';
 export type ChunkKind = 'text' | 'code' | 'error' | 'list' | 'tool-execution';
 export type Mode = 'agent' | 'plan';
-export type SlashCommandName = "help" | "quit" | "reset" | "status" | "clear" | "model" | "review";
+export type SlashCommandName = "help" | "quit" | "reset" | "status" | "clear" | "model" | "review" | "context";
 
 export type SlashCommand = {
   name: SlashCommandName;

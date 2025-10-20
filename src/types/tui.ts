@@ -28,6 +28,9 @@ export type AppState = {
     fileSearchMatches: string[];
     fileSearchSelectionIndex: number;
     setFileSearchSelectionIndex: (i: number) => void;
+    // context menu
+    showContextMenu: boolean;
+    contextItems: string[];
 };
 
 export type PromptBarProps = {
@@ -47,6 +50,9 @@ export type PromptBarProps = {
     filteredModels: ModelOption[];
     modelSelectionIndex: number;
     currentModelId: number;
+    // context menu
+    showContextMenu: boolean;
+    contextItems: string[];
   };
 
 export type BubblePrefixProps = {

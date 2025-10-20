@@ -3,6 +3,7 @@ import TextInput from 'ink-text-input';
 import { CommandMenu } from './CommandMenu.js';
 import { FileSearchMenu } from './FileSearchMenu.js';
 import { ModelMenu } from './ModelMenu.js';
+import { ContextMenu } from './ContextMenu.js';
 import type { PromptBarProps } from '@types';
 
 export const PromptBar = (props: PromptBarProps) => {
@@ -20,6 +21,8 @@ export const PromptBar = (props: PromptBarProps) => {
     filteredModels,
     modelSelectionIndex,
     currentModelId,
+    showContextMenu,
+    contextItems,
   } = props;
 
   return (
@@ -35,7 +38,7 @@ export const PromptBar = (props: PromptBarProps) => {
           placeholder={
             showModelMenu
               ? 'Filter models by name or ID...'
-              : ' Ask coda anything...'
+              : ' Ask coda anything... (use @path to tag, # to list context)'
           }
         />
       </Box>
@@ -60,6 +63,10 @@ export const PromptBar = (props: PromptBarProps) => {
           selectedIndex={modelSelectionIndex}
           currentModelId={currentModelId}
         />
+      )}
+
+      {showContextMenu && (
+        <ContextMenu items={contextItems} />
       )}
     </Box>
   );

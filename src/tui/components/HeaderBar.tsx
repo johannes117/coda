@@ -1,9 +1,11 @@
 import { Box, Text } from 'ink';
 import { Logo } from './Logo.js';
 import type { HeaderBarProps } from '@types';
+import { useStore } from '@app/store.js';
 
 export const HeaderBar = ({ mode, modelConfig }: HeaderBarProps) => {
   const cwd = process.cwd().replace(process.env.HOME || '', '~');
+  const contextCount = useStore(s => s.contextPaths.length);
   return (
     <Box flexDirection="column" alignSelf="flex-start">
       <Box marginBottom={1}>
@@ -32,6 +34,13 @@ export const HeaderBar = ({ mode, modelConfig }: HeaderBarProps) => {
           <Text>
             <Text bold color="cyan">directory:</Text>
             <Text> {cwd}</Text>
+          </Text>
+        </Box>
+        <Box>
+          <Text>
+            <Text bold color="cyan">context:</Text>
+            <Text> {contextCount} item(s) </Text>
+            <Text dimColor># to view</Text>
           </Text>
         </Box>
       </Box>

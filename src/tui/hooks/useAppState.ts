@@ -14,7 +14,6 @@ import { useModelMenu } from '@tui/hooks/useModelMenu.js';
 import { runAgentStream } from '@app/agent-runner.js';
 import { executeSlashCommand } from '@app/command-executor.js';
 import { slashCommands } from '@app/commands.js';
-import { augmentPromptWithFiles } from '@lib/prompt-augmentation.js';
 import type { AppState } from '@types';
 import { defaultSystemPrompt, planSystemPrompt } from '@agent/index.js';
 
@@ -70,6 +69,12 @@ export function useAppState(): AppState {
     applySubmitSelection,
   } = useFileSearchMenu();
 
+  const addContextPath = useStore((s) => s.addContextPath);
+  const contextPaths = useStore((s) => s.contextPaths);
+
+  // Simple # menu: show current context items (read-only for now)
+  const [showContextMenu, setShowContextMenu] = useState(false);
+
   const currentOption = modelOptions.find(
     (option) => option.name === currentModel.name && option.effort === currentModel.effort
   );
@@ -89,8 +94,12 @@ export function useAppState(): AppState {
       }
       if (/@(\S*)$/.test(value)) {
         handleAtReference(value);
+        setShowContextMenu(false);
       } else if (value.startsWith('/')) {
         filterCommandsFromQuery(value);
+        setShowContextMenu(false);
+      } else if (/#$/.test(value.trim())) {
+        setShowContextMenu(true);
       }
     },
     [
@@ -113,10 +122,13 @@ export function useAppState(): AppState {
         setQuery('');
         resetModelMenu();
         resetCommandMenu();
+        setShowContextMenu(false);
       } else if (showCommandMenu) {
         resetCommandMenu();
       } else if (showFileSearchMenu) {
         resetFileSearchMenu();
+      } else if (showContextMenu) {
+        setShowContextMenu(false);
       } else {
         exit();
       }
@@ -153,7 +165,11 @@ export function useAppState(): AppState {
 
     if (key.tab) {
       if (showFileSearchMenu) {
-        setQuery(applyTabCompletion(query));
+        // autocomplete and add to context set
+        const completed = applyTabCompletion(query);
+        const chosen = fileSearchMatches[fileSearchSelectionIndex];
+        if (chosen) addContextPath(chosen);
+        setQuery(completed);
         return;
       } else if (!showModelMenu) {
         if (showCommandMenu) {
@@ -232,6 +248,15 @@ export function useAppState(): AppState {
         return;
       }
 
+      if (showContextMenu) {
+        // close the list and continue
+        setShowContextMenu(false);
+        if (value.trim() === '#') {
+          setQuery('');
+          return;
+        }
+      }
+
       // If command menu is open, commit selected command (shortcut)
       const selected = showCommandMenu
         ? filteredCommands[commandSelectionIndex]
@@ -308,7 +333,17 @@ export function useAppState(): AppState {
 
       // Regular prompt
       resetCommandMenu();
-      const finalPrompt = await augmentPromptWithFiles(value);
+      // auto-add any @paths referenced in the prompt to the Context Set
+      const refs = [...value.matchAll(/(?<![\w`])@(\S+)/g)].map(m => m[1]);
+      let added = 0;
+      for (const r of refs) {
+        addContextPath(r);
+        added++;
+      }
+      if (added > 0) {
+        addMessage({ author: 'system', chunks: [{ kind: 'text', text: `Added ${added} item(s) to context from prompt.` }] });
+      }
+      const finalPrompt = value; // no inlining — context is injected separately
 
       addMessage({
         author: 'user',
@@ -379,6 +414,7 @@ export function useAppState(): AppState {
       updateToolExecution,
       exit,
       applySubmitSelection,
+      addContextPath,
     ]
   );
 
@@ -406,5 +442,8 @@ export function useAppState(): AppState {
     fileSearchMatches,
     fileSearchSelectionIndex,
     setFileSearchSelectionIndex,
+    // context menu
+    showContextMenu,
+    contextItems: contextPaths,
   };
 }

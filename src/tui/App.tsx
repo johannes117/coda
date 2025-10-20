@@ -40,6 +40,8 @@ export const App = () => {
           filteredModels={appState.filteredModels}
           modelSelectionIndex={appState.modelSelectionIndex}
           currentModelId={appState.currentModelId}
+          showContextMenu={appState.showContextMenu}
+          contextItems={appState.contextItems}
         />
       )}
       <Footer mode={appState.mode} />

@@ -26,6 +26,11 @@ type Store = {
   toggleBlink: () => void;
   terminalCols: number;
   resetRequested: boolean;
+  // Context Set
+  contextPaths: string[];
+  addContextPath: (p: string) => void;
+  removeContextPath: (p: string) => void;
+  clearContextPaths: () => void;
 };
 
 export const useStore = create<Store>((set, get) => ({
@@ -64,5 +69,17 @@ export const useStore = create<Store>((set, get) => ({
   toggleBlink: () => set((state) => ({ blink: !state.blink })),
   terminalCols: process.stdout.columns ?? 80,
   resetRequested: false,
+  contextPaths: [],
+  addContextPath: (p: string) =>
+    set((state) => {
+      const norm = p.replace(/^[./]+/, ''); // keep relative, tidy
+      if (state.contextPaths.includes(norm)) return state;
+      return { contextPaths: [...state.contextPaths, norm] };
+    }),
+  removeContextPath: (p: string) =>
+    set((state) => ({
+      contextPaths: state.contextPaths.filter((x) => x !== p),
+    })),
+  clearContextPaths: () => set({ contextPaths: [] }),
 }));
 
