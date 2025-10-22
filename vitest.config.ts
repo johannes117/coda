@@ -14,10 +14,10 @@ export default defineConfig({
   resolve: {
     alias: [
       { find: /^@app\//, replacement: r('./src/app/') },
-      { find: /^@tui\//, replacement: r('./src/tui/') },
       { find: /^@agent\//, replacement: r('./src/agent/') },
       { find: /^@lib\//, replacement: r('./src/lib/') },
       { find: /^@config\//, replacement: r('./src/config/') },
+      { find: /^@ipc\//, replacement: r('./src/ipc/') },
       { find: /^@types$/, replacement: r('./src/types/index.ts') },
       { find: /^@types\//, replacement: r('./src/types/') },
     ],

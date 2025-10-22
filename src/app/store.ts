@@ -1,12 +1,7 @@
 import { create } from 'zustand';
 import type { ModelConfig, Message, TokenUsage, ToolExecution } from '@types';
-import { randomUUID } from 'crypto';
-
-const createWelcomeMessage = (): Message => ({
-  id: randomUUID(),
-  author: 'system',
-  chunks: [{ kind: 'text', text: 'Welcome to coda! I can help you with your coding tasks. What should we work on?' }],
-});
+import { createWelcomeMessage } from '@lib/messages.js';
+import { generateId } from '@lib/id.js';
 
 type Store = {
   apiKey: string | null;
@@ -35,7 +30,8 @@ export const useStore = create<Store>((set, get) => ({
   modelConfig: { name: 'anthropic/claude-sonnet-4.5', effort: 'medium' },
   setModelConfig: (config: ModelConfig) => set({ modelConfig: config }),
   messages: [createWelcomeMessage()],
-  addMessage: (msg: Omit<Message, 'id'>) => set((state) => ({ messages: [...state.messages, { ...msg, id: randomUUID() }] })),
+  addMessage: (msg: Omit<Message, 'id'>) =>
+    set((state) => ({ messages: [...state.messages, { ...msg, id: generateId() }] })),
   resetMessages: () => set({ messages: [createWelcomeMessage()], tokenUsage: { input: 0, output: 0, total: 0 } }),
   updateToolExecution: (toolExecution: ToolExecution) =>
     set((state) => ({
@@ -62,7 +58,7 @@ export const useStore = create<Store>((set, get) => ({
   setBusy: (busy: boolean) => set({ busy }),
   blink: true,
   toggleBlink: () => set((state) => ({ blink: !state.blink })),
-  terminalCols: process.stdout.columns ?? 80,
+  terminalCols: 120,
   resetRequested: false,
 }));
 

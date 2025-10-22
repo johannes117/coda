@@ -90,4 +90,3 @@ export type ToolExecution = {
 
 export type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 
-export * from './tui.js';

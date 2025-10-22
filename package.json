@@ -4,30 +4,27 @@
   "packageManager": "bun",
   "description": "coda - Your AI Coding Agent",
   "type": "module",
-  "main": "dist/index.js",
-  "bin": {
-    "coda": "dist/index.js"
-  },
+  "main": "dist/src/electron/main.js",
   "scripts": {
-    "build": "tsc && tsc-alias -p tsconfig.json",
-    "start": "bun run dist/index.js",
+    "build": "tsc && tsc-alias -p tsconfig.json && node scripts/copy-static.js",
+    "start": "bun run build && bun x electron dist/src/electron/main.js",
     "dev": "tsc --watch",
     "test": "vitest run --exclude '**/evals/**'",
     "eval": "bun run src/evals/index.ts",
     "evals:seed": "bun run src/evals/seed-dataset.ts",
-    "logs:tail": "tail -f ~/.coda/logs/coda.log"
+    "logs:tail": "tail -f ~/.coda/logs/coda.log",
+    "copy:renderer": "node scripts/copy-static.js"
   },
   "dependencies": {
     "@langchain/core": "^0.3.77",
     "@langchain/langgraph": "^0.4.9",
     "@langchain/openai": "^0.6.13",
+    "electron": "^32.2.0",
     "dotenv": "^17.2.2",
-    "ink": "^6.2.3",
-    "ink-spinner": "^5.0.0",
-    "ink-text-input": "^6.0.0",
     "langsmith": "^0.3.69",
     "openevals": "^0.1.1",
     "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "yargs": "^17.7.2",
     "zod": "^3.23.8",
     "zustand": "^4.5.5"
@@ -41,7 +38,7 @@
     "@typescript-eslint/parser": "^8.44.1",
     "eslint": "^9.36.0",
     "eslint-plugin-unicorn": "^61.0.2",
-    "ink-testing-library": "^4.0.0",
+    "@types/react-dom": "^19.1.4",
     "jsdom": "^26.1.0",
     "tsc-alias": "^1.8.10",
     "typescript": "^5.3.3",

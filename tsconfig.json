@@ -15,12 +15,14 @@
     "baseUrl": ".",
     "paths": {
       "@app/*": ["src/app/*"],
-      "@tui/*": ["src/tui/*"],
+      "@app/*.js": ["src/app/*.ts"],
       "@agent/*": ["src/agent/*"],
+      "@agent/*.js": ["src/agent/*.ts"],
       "@agent/tools": ["src/agent/tools/index.ts"],
       "@agent/prompts": ["src/agent/prompts.ts"],
       "@agent/graph": ["src/agent/graph.ts"],
       "@lib/*": ["src/lib/*"],
+      "@lib/*.js": ["src/lib/*.ts"],
       "@lib/logger": ["src/lib/logger.ts"],
       "@lib/storage": ["src/lib/storage.ts"],
       "@lib/diff": ["src/lib/diff.ts"],
@@ -28,12 +30,13 @@
       "@lib/constants": ["src/lib/constants.ts"],
       "@lib/tool-result": ["src/lib/tool-result.ts"],
       "@config/*": ["src/config/*"],
+      "@ipc/*": ["src/ipc/*"],
+      "@ipc/*.js": ["src/ipc/*.ts"],
       "@types": ["src/types/index.ts"],
       "@types/*": ["src/types/*"]
     }
   },
   "include": [
-    "index.ts",
     "src/**/*.ts",
     "src/**/*.tsx"
   ],
