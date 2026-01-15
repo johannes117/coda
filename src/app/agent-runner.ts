@@ -13,8 +13,8 @@ export async function runAgentStream(
   finalPrompt: string,
   systemPrompt: string = defaultSystemPrompt
 ) {
-  const { apiKey, modelConfig, addMessage, updateToolExecution, updateTokenUsage, setBusy } = deps;
-  const agentInstance = createAgent(apiKey, modelConfig, systemPrompt);
+  const { apiKeys, modelConfig, addMessage, updateToolExecution, updateTokenUsage, setBusy } = deps;
+  const agentInstance = createAgent(apiKeys, modelConfig, systemPrompt);
   conversationHistory.current.push(new HumanMessage(finalPrompt));
   await saveSession('last_session', conversationHistory.current);
   setBusy(true);
@@ -41,8 +41,8 @@ export async function runReview(
   conversationHistory: { current: BaseMessage[] },
   systemPrompt: string = reviewSystemPrompt
 ) {
-  const { apiKey, modelConfig, addMessage, updateToolExecution, updateTokenUsage, setBusy } = deps;
-  const reviewAgent = createAgent(apiKey, modelConfig, systemPrompt);
+  const { apiKeys, modelConfig, addMessage, updateToolExecution, updateTokenUsage, setBusy } = deps;
+  const reviewAgent = createAgent(apiKeys, modelConfig, systemPrompt);
   const userMessage = new HumanMessage(
     'Please conduct a code review of the current branch against the base branch (main or master).'
   );

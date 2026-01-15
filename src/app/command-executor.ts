@@ -1,5 +1,5 @@
 import { existsSync } from 'fs';
-import { deleteStoredApiKey, saveSession } from '@lib/storage';
+import { deleteAllApiKeys, saveSession } from '@lib/storage';
 import { useStore } from '@app/store.js';
 import { modelOptions } from '@lib/models.js';
 import { runReview } from '@app/agent-runner.js';
@@ -12,9 +12,9 @@ export async function executeSlashCommand(
   ctx: CommandCtx
 ) {
   const {
-    addMessage, resetMessages, clearApiKeyStore, setShowModelMenu,
+    addMessage, resetMessages, clearApiKeys, setShowModelMenu,
     setFilteredModels, setModelSelectionIndex, setQuery, exit,
-    apiKey, currentModel, sessionId
+    apiKeys, currentModel, sessionId
   } = ctx;
 
   switch (cmdName) {
@@ -32,8 +32,8 @@ export async function executeSlashCommand(
       return true;
     }
     case 'reset': {
-      await deleteStoredApiKey();
-      clearApiKeyStore();
+      await deleteAllApiKeys();
+      clearApiKeys();
       resetMessages();
       useStore.setState({ resetRequested: true });
       exit();
@@ -65,12 +65,13 @@ export async function executeSlashCommand(
       return true;
     }
     case 'review': {
-      if (!apiKey) {
-        addMessage({ author: 'system', chunks: [{ kind: 'error', text: 'API key not found. Cannot start review.' }] });
+      const provider = currentModel.provider;
+      if (!apiKeys[provider]) {
+        addMessage({ author: 'system', chunks: [{ kind: 'error', text: `API key for ${provider} not found. Please set it first.` }] });
         return true;
       }
       await saveSession('last_session', useStore.getState().messages as any);
-      await runReview(deps, { current: [] as any }); // history updated inside
+      await runReview(deps, { current: [] as any });
       return true;
     }
     default:

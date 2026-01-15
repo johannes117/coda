@@ -2,10 +2,10 @@ import { useCallback, useRef, useState } from 'react';
 import { useApp, useInput } from 'ink';
 import { randomUUID } from 'crypto';
 import { BaseMessage, HumanMessage } from '@langchain/core/messages';
-import { saveSession, storeModelConfig } from '@lib/storage';
+import { saveSession, storeModelConfig, storeApiKey } from '@lib/storage';
 import { nowTime } from '@lib/time';
 import { useStore } from '@app/store.js';
-import type { ModelConfig, Mode } from '@types';
+import type { ModelConfig, Mode, Provider } from '@types';
 import { modelOptions } from '@lib/models.js';
 import { useBusyText } from '@tui/hooks/useBusyText.js';
 import { useFileSearchMenu } from '@tui/hooks/useFileSearchMenu.js';
@@ -17,11 +17,14 @@ import { slashCommands } from '@app/commands.js';
 import { augmentPromptWithFiles } from '@lib/prompt-augmentation.js';
 import type { AppState } from '@types';
 import { defaultSystemPrompt, planSystemPrompt } from '@agent/index.js';
+import { createInterface } from 'readline/promises';
+import { stdin, stdout } from 'node:process';
 
 export function useAppState(): AppState {
   const { exit } = useApp();
   const cols = useStore((store) => store.terminalCols);
-  const apiKey = useStore((store) => store.apiKey);
+  const apiKeys = useStore((store) => store.apiKeys);
+  const setApiKey = useStore((store) => store.setApiKey);
   const currentModel = useStore((store) => store.modelConfig);
   const messages = useStore((store) => store.messages);
   const busy = useStore((store) => store.busy);
@@ -31,12 +34,21 @@ export function useAppState(): AppState {
   const updateToolExecution = useStore((store) => store.updateToolExecution);
   const resetMessages = useStore((store) => store.resetMessages);
   const setModelConfig = useStore((store) => store.setModelConfig);
-  const clearApiKeyStore = useStore((store) => store.clearApiKey);
+  const clearApiKeys = useStore((store) => store.clearApiKeys);
 
   const [mode, setMode] = useState<Mode>('agent');
   const [query, setQuery] = useState('');
   const [sessionId] = useState(() => randomUUID());
   const conversationHistory = useRef<BaseMessage[]>([]);
+  const [pendingApiKeyProvider, setPendingApiKeyProvider] = useState<Provider | null>(null);
+
+  const providerNames: Record<Provider, string> = {
+    openai: 'OpenAI',
+    anthropic: 'Anthropic',
+    google: 'Google',
+  };
+
+  const hasApiKeyForProvider = (provider: Provider) => !!apiKeys[provider];
 
   // Menus
   const {
@@ -203,14 +215,53 @@ export function useAppState(): AppState {
 
   const onSubmit = useCallback(
     async (value: string) => {
+      // Handle pending API key input
+      if (pendingApiKeyProvider) {
+        const key = value.trim();
+        if (!key) {
+          addMessage({
+            author: 'system',
+            chunks: [{ kind: 'error', text: 'API key cannot be empty.' }],
+          });
+          setQuery('');
+          return;
+        }
+        setApiKey(pendingApiKeyProvider, key);
+        await storeApiKey(pendingApiKeyProvider, key);
+        addMessage({
+          author: 'system',
+          chunks: [{ kind: 'text', text: `${providerNames[pendingApiKeyProvider]} API key stored successfully.` }],
+        });
+        setPendingApiKeyProvider(null);
+        setQuery('');
+        return;
+      }
+
       // Model menu: pick a model
       if (showModelMenu) {
         const selectedModel = filteredModels[modelSelectionIndex];
         if (!selectedModel) return;
         const newConfig: ModelConfig = {
           name: selectedModel.name,
+          provider: selectedModel.provider,
           effort: selectedModel.effort,
         };
+
+        if (!hasApiKeyForProvider(selectedModel.provider)) {
+          addMessage({
+            author: 'system',
+            chunks: [{ kind: 'text', text: `Please enter your ${providerNames[selectedModel.provider]} API key:` }],
+          });
+          setModelConfig(newConfig);
+          await storeModelConfig(newConfig);
+          setPendingApiKeyProvider(selectedModel.provider);
+          closeModelMenu();
+          resetModelMenu();
+          setQuery('');
+          resetCommandMenu();
+          return;
+        }
+
         setModelConfig(newConfig);
         await storeModelConfig(newConfig);
         addMessage({
@@ -239,11 +290,23 @@ export function useAppState(): AppState {
       const effectiveValue = selected ? `/${selected.name}` : value;
       const trimmedValue = effectiveValue.trim();
 
-      if (!trimmedValue || busy || !apiKey) {
+      if (!trimmedValue || busy) {
         if (!trimmedValue) {
           setQuery('');
           resetCommandMenu();
         }
+        return;
+      }
+
+      const currentProvider = currentModel.provider;
+      if (!hasApiKeyForProvider(currentProvider)) {
+        addMessage({
+          author: 'system',
+          chunks: [{ kind: 'text', text: `Please enter your ${providerNames[currentProvider]} API key:` }],
+        });
+        setPendingApiKeyProvider(currentProvider);
+        setQuery('');
+        resetCommandMenu();
         return;
       }
 
@@ -275,7 +338,7 @@ export function useAppState(): AppState {
         const handled = await executeSlashCommand(
           cmd.name,
           {
-            apiKey,
+            apiKeys,
             modelConfig: currentModel,
             addMessage,
             updateToolExecution,
@@ -288,13 +351,13 @@ export function useAppState(): AppState {
               resetMessages();
               conversationHistory.current = [];
             },
-            clearApiKeyStore,
+            clearApiKeys,
             setShowModelMenu: openModelMenu,
             setFilteredModels: () => {},
             setModelSelectionIndex,
             setQuery,
             exit,
-            apiKey,
+            apiKeys,
             currentModel,
             sessionId,
           }
@@ -323,7 +386,7 @@ export function useAppState(): AppState {
         if (mode === 'plan') {
           await runAgentStream(
             {
-              apiKey,
+              apiKeys,
               modelConfig: currentModel,
               addMessage,
               updateToolExecution,
@@ -337,7 +400,7 @@ export function useAppState(): AppState {
         } else if (mode === 'agent') {
           await runAgentStream(
             {
-              apiKey,
+              apiKeys,
               modelConfig: currentModel,
               addMessage,
               updateToolExecution,
@@ -356,7 +419,7 @@ export function useAppState(): AppState {
       }
     },
     [
-      apiKey,
+      apiKeys,
       busy,
       closeModelMenu,
       currentModel,
@@ -379,6 +442,9 @@ export function useAppState(): AppState {
       updateToolExecution,
       exit,
       applySubmitSelection,
+      pendingApiKeyProvider,
+      setApiKey,
+      clearApiKeys,
     ]
   );
 

@@ -67,20 +67,29 @@ describe('Zustand Store', () => {
     expect(updatedChunk.output).toBe(output);
   });
 
-  it('should set and clear the API key', () => {
-    expect(useStore.getState().apiKey).toBeNull();
-    
+  it('should set and clear API keys', () => {
+    expect(useStore.getState().apiKeys).toEqual({});
+
     const testKey = 'sk-test-12345';
-    useStore.getState().setApiKey(testKey);
-    expect(useStore.getState().apiKey).toBe(testKey);
-    
-    useStore.getState().clearApiKey();
-    expect(useStore.getState().apiKey).toBeNull();
+    useStore.getState().setApiKey('openai', testKey);
+    expect(useStore.getState().apiKeys.openai).toBe(testKey);
+
+    useStore.getState().setApiKey('anthropic', 'sk-ant-12345');
+    expect(useStore.getState().apiKeys.anthropic).toBe('sk-ant-12345');
+
+    useStore.getState().clearApiKeys();
+    expect(useStore.getState().apiKeys).toEqual({});
+  });
+
+  it('should set all API keys at once', () => {
+    const apiKeys = { openai: 'sk-1', anthropic: 'sk-2', google: 'sk-3' };
+    useStore.getState().setApiKeys(apiKeys);
+    expect(useStore.getState().apiKeys).toEqual(apiKeys);
   });
 
   it('should set and get model configuration', () => {
-    const newConfig = { name: 'openai/gpt-4', effort: 'high' };
-    
+    const newConfig = { name: 'gpt-4', provider: 'openai' as const, effort: 'high' };
+
     useStore.getState().setModelConfig(newConfig);
     expect(useStore.getState().modelConfig).toEqual(newConfig);
   });

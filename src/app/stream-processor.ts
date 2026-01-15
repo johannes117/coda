@@ -24,10 +24,24 @@ export const processStreamUpdate = async (
             });
           }
           if (aiMessage.content) {
-            actions.addMessage({
-              author: 'agent',
-              chunks: [{ kind: 'text', text: aiMessage.content as string }],
-            });
+            let text: string;
+            if (typeof aiMessage.content === 'string') {
+              text = aiMessage.content;
+            } else if (Array.isArray(aiMessage.content)) {
+              text = aiMessage.content
+                .filter((block): block is { type: 'text'; text: string } =>
+                  typeof block === 'object' && block !== null && block.type === 'text')
+                .map((block) => block.text)
+                .join('');
+            } else {
+              text = String(aiMessage.content);
+            }
+            if (text) {
+              actions.addMessage({
+                author: 'agent',
+                chunks: [{ kind: 'text', text }],
+              });
+            }
           }
           if (aiMessage.tool_calls && aiMessage.tool_calls.length > 0) {
             const toolExecutionChunks: Chunk[] = aiMessage.tool_calls.map((toolCall) => ({

@@ -11,8 +11,8 @@ describe('executeSlashCommand', () => {
   });
 
   const deps = {
-    apiKey: 'sk-test',
-    modelConfig: { name: 'anthropic/claude-sonnet-4', effort: 'medium' },
+    apiKeys: { anthropic: 'sk-ant-test' },
+    modelConfig: { name: 'claude-sonnet-4-20250514', provider: 'anthropic' as const, effort: 'medium' },
     push: vi.fn(),
     updateToolExecution: vi.fn(),
     updateTokenUsage: vi.fn(),
@@ -22,14 +22,14 @@ describe('executeSlashCommand', () => {
   const ctxBase = () => ({
     push: vi.fn(),
     resetMessages: vi.fn(),
-    clearApiKeyStore: vi.fn(),
+    clearApiKeys: vi.fn(),
     setShowModelMenu: vi.fn(),
     setFilteredModels: vi.fn(),
     setModelSelectionIndex: vi.fn(),
     setQuery: vi.fn(),
     exit: vi.fn(),
-    apiKey: 'sk-test',
-    currentModel: { name: 'anthropic/claude-sonnet-4', effort: 'medium' },
+    apiKeys: { anthropic: 'sk-ant-test' },
+    currentModel: { name: 'claude-sonnet-4-20250514', provider: 'anthropic' as const, effort: 'medium' },
     sessionId: 'sess-1',
   });
 

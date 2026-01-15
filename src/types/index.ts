@@ -2,6 +2,13 @@ export type Author = 'user' | 'agent' | 'system' | 'tool';
 export type ChunkKind = 'text' | 'code' | 'error' | 'list' | 'tool-execution';
 export type Mode = 'agent' | 'plan';
 export type SlashCommandName = "help" | "quit" | "reset" | "status" | "clear" | "model" | "review";
+export type Provider = 'openai' | 'anthropic' | 'google';
+
+export type ApiKeys = {
+  openai?: string;
+  anthropic?: string;
+  google?: string;
+};
 
 export type SlashCommand = {
   name: SlashCommandName;
@@ -9,17 +16,19 @@ export type SlashCommand = {
   aliases?: string[];
 };
 
-export type ModelOption = { 
-  id: number; 
-  label: string; 
-  name: string; 
-  effort: string; 
-  contextWindow: number 
+export type ModelOption = {
+  id: number;
+  label: string;
+  name: string;
+  provider: Provider;
+  effort: string;
+  contextWindow: number
 };
 
-export type ModelConfig = { 
-  name: string; 
-  effort: string 
+export type ModelConfig = {
+  name: string;
+  provider: Provider;
+  effort: string
 };
 
 export type ToolExecutionStatus = 'running' | 'success' | 'error';
@@ -53,7 +62,7 @@ export type DiffLine = {
 };
 
 export type RunnerDeps = {
-  apiKey: string;
+  apiKeys: ApiKeys;
   modelConfig: ModelConfig;
   addMessage: (message: Omit<Message, 'id'>) => void;
   updateToolExecution: (toolExecution: ToolExecution) => void;
@@ -64,13 +73,13 @@ export type RunnerDeps = {
 export type CommandCtx = {
   addMessage: (message: Omit<Message, 'id'>) => void;
   resetMessages: () => void;
-  clearApiKeyStore: () => void;
+  clearApiKeys: () => void;
   setShowModelMenu: (v: boolean) => void;
   setFilteredModels: (v: ModelOption[]) => void;
   setModelSelectionIndex: (i: number) => void;
   setQuery: (v: string) => void;
   exit: () => void;
-  apiKey: string | null;
+  apiKeys: ApiKeys;
   currentModel: ModelConfig;
   sessionId: string;
 };

@@ -1,5 +1,4 @@
 import { AIMessage } from '@langchain/core/messages';
-import { ChatOpenAI } from '@langchain/openai';
 import {
   END,
   START,
@@ -8,31 +7,16 @@ import {
 } from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { tools } from '@agent/tools';
-// import { logInfo } from '@lib/logger';
+import { createChatModel } from '@agent/model-factory.js';
 import { defaultSystemPrompt, evalSystemPrompt } from '@agent/prompts';
+import type { ApiKeys, ModelConfig } from '@types';
 
 export const createAgent = (
-  apiKey: string,
-  modelConfig: { name: string; effort: string },
+  apiKeys: ApiKeys,
+  modelConfig: ModelConfig,
   prompt: string = defaultSystemPrompt
 ) => {
-  const modelKwargs = modelConfig.name.startsWith('openai/') ? {
-    reasoning_effort: modelConfig.effort,
-    verbosity: 'medium'
-  } : {};
-
-  const model = new ChatOpenAI({
-    apiKey: apiKey,
-    model: modelConfig.name,
-    temperature: 1,
-    modelKwargs: {
-      ...modelKwargs,
-      usage: { include: true },
-    },
-    configuration: {
-      baseURL: 'https://openrouter.ai/api/v1',
-    }
-  }).bindTools(tools);
+  const model = createChatModel(apiKeys, modelConfig);
 
   const callModel = async (state: typeof MessagesAnnotation.State) => {
     const messages = [
@@ -65,23 +49,11 @@ export const createAgent = (
 };
 
 export const createEvalAgent = (
-  apiKey: string,
-  modelConfig: { name: string; effort: string },
+  apiKeys: ApiKeys,
+  modelConfig: ModelConfig,
   prompt: string = evalSystemPrompt
 ) => {
-  const model = new ChatOpenAI({
-    apiKey: apiKey,
-    model: modelConfig.name,
-    temperature: 1,
-    modelKwargs: {
-      reasoning_effort: modelConfig.effort,
-      verbosity: 'medium',
-      usage: { include: true },
-    },
-    configuration: {
-      baseURL: 'https://openrouter.ai/api/v1',
-    }
-  });
+  const model = createChatModel(apiKeys, modelConfig, { bindTools: false });
 
   const callModel = async (state: typeof MessagesAnnotation.State) => {
     const messages = [

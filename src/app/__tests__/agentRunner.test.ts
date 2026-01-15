@@ -41,8 +41,8 @@ describe('runAgentStream', () => {
     const history = { current: [] as BaseMessage[] };
     await runAgentStream(
       {
-        apiKey: 'sk-test',
-        modelConfig: { name: 'x-ai/grok-4-fast:free', effort: 'medium' },
+        apiKeys: { anthropic: 'sk-ant-test' },
+        modelConfig: { name: 'claude-sonnet-4-5-20250929', provider: 'anthropic', effort: 'medium' },
         addMessage,
         updateToolExecution,
         updateTokenUsage,
@@ -52,7 +52,6 @@ describe('runAgentStream', () => {
       'do something'
     );
     expect(addMessage).toHaveBeenCalled();
-    // last push should contain agent text
     const calls = addMessage.mock.calls.map((c) => c[0]);
     const hasAgent = calls.some((m) =>
       m.author === 'agent' && m.chunks?.[0]?.text?.includes('hello from agent')

@@ -8,15 +8,21 @@ import { createLLMAsJudge } from "openevals";
 import { ChatOpenAI } from "@langchain/openai";
 import type { Run } from "langsmith/schemas";
 import { examples } from "./dataset.js";
+import type { ApiKeys, ModelConfig } from "@types";
 
 async function runCodaAgent(inputs: { task: string }): Promise<string> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENROUTER_API_KEY not found in environment");
+  const apiKeys: ApiKeys = {
+    openai: process.env.OPENAI_API_KEY,
+    anthropic: process.env.ANTHROPIC_API_KEY,
+    google: process.env.GOOGLE_API_KEY,
+  };
+
+  if (!apiKeys.anthropic) {
+    throw new Error("ANTHROPIC_API_KEY not found in environment");
   }
 
-  const modelConfig = { name: "anthropic/claude-sonnet-4.5", effort: "medium" };
-  const agent = createEvalAgent(apiKey, modelConfig, evalSystemPrompt);
+  const modelConfig: ModelConfig = { name: "claude-sonnet-4-5-20250929", provider: "anthropic", effort: "medium" };
+  const agent = createEvalAgent(apiKeys, modelConfig, evalSystemPrompt);
 
   const messages = [new HumanMessage(inputs.task)];
 
@@ -67,15 +73,12 @@ Rate the overall quality from 0.0 to 1.0:
 - 0.7-0.9: Good quality, correct and helpful
 - 1.0: Excellent quality, comprehensive and well-explained`,
   feedbackKey: "quality",
-  model: "openai/gpt-5",
+  model: "gpt-5",
   judge: new ChatOpenAI({
-    apiKey: process.env.OPENROUTER_API_KEY,
-    configuration: {
-      baseURL: "https://openrouter.ai/api/v1",
-    },
+    apiKey: process.env.OPENAI_API_KEY,
   }),
-  continuous: true, // Score from 0.0 to 1.0
-  useReasoning: true, // Include explanation
+  continuous: true,
+  useReasoning: true,
 });
 
 async function qualityEvaluator(run: Run, example?: any) {

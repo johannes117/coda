@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ModelConfig, Message, TokenUsage, ToolExecution } from '@types';
+import type { ModelConfig, Message, TokenUsage, ToolExecution, ApiKeys } from '@types';
 import { randomUUID } from 'crypto';
 
 const createWelcomeMessage = (): Message => ({
@@ -9,9 +9,10 @@ const createWelcomeMessage = (): Message => ({
 });
 
 type Store = {
-  apiKey: string | null;
-  setApiKey: (key: string) => void;
-  clearApiKey: () => void;
+  apiKeys: ApiKeys;
+  setApiKeys: (keys: ApiKeys) => void;
+  setApiKey: (provider: keyof ApiKeys, key: string) => void;
+  clearApiKeys: () => void;
   modelConfig: ModelConfig;
   setModelConfig: (config: ModelConfig) => void;
   messages: Message[];
@@ -29,10 +30,13 @@ type Store = {
 };
 
 export const useStore = create<Store>((set, get) => ({
-  apiKey: null,
-  setApiKey: (key: string) => set({ apiKey: key }),
-  clearApiKey: () => set({ apiKey: null }),
-  modelConfig: { name: 'anthropic/claude-sonnet-4.5', effort: 'medium' },
+  apiKeys: {},
+  setApiKeys: (keys: ApiKeys) => set({ apiKeys: keys }),
+  setApiKey: (provider: keyof ApiKeys, key: string) => set((state) => ({
+    apiKeys: { ...state.apiKeys, [provider]: key }
+  })),
+  clearApiKeys: () => set({ apiKeys: {} }),
+  modelConfig: { name: 'claude-sonnet-4-5-20250929', provider: 'anthropic', effort: 'medium' },
   setModelConfig: (config: ModelConfig) => set({ modelConfig: config }),
   messages: [createWelcomeMessage()],
   addMessage: (msg: Omit<Message, 'id'>) => set((state) => ({ messages: [...state.messages, { ...msg, id: randomUUID() }] })),
