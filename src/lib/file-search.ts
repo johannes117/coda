@@ -3,6 +3,7 @@ import path from 'path';
 import { SEARCH_RESULTS_LIMIT } from './constants.js';
 
 const IGNORED_DIRS = new Set(['node_modules', '.git', 'dist']);
+const IGNORED_FILES = new Set(['.git']);
 
 async function* walk(dir: string): AsyncGenerator<string> {
   const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -13,6 +14,9 @@ async function* walk(dir: string): AsyncGenerator<string> {
         yield* walk(fullPath);
       }
     } else {
+      if (IGNORED_FILES.has(entry.name)) {
+        continue;
+      }
       yield fullPath;
     }
   }

@@ -104,6 +104,17 @@ describe('file search functionality', () => {
     expect(results).not.toContain('.git/config');
   });
 
+  it('ignores .git file (git worktree layout)', async () => {
+    const worktreeDir = path.join(testDir, 'worktree');
+    await fs.mkdir(worktreeDir, { recursive: true });
+    await fs.writeFile(path.join(worktreeDir, '.git'), 'gitdir: /tmp/somewhere/worktrees/foo');
+    await fs.mkdir(path.join(worktreeDir, 'src'), { recursive: true });
+    await fs.writeFile(path.join(worktreeDir, 'src', 'index.ts'), '// hello');
+
+    const results = await searchFiles('git', worktreeDir);
+    expect(results).not.toContain('.git');
+  });
+
   it('ignores dist directory', async () => {
     const results = await searchFiles('bundle', testDir);
     expect(results).not.toContain('dist/bundle.js');
