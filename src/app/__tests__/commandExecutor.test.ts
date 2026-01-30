@@ -13,14 +13,14 @@ describe('executeSlashCommand', () => {
   const deps = {
     apiKeys: { anthropic: 'sk-ant-test' },
     modelConfig: { name: 'claude-sonnet-4-20250514', provider: 'anthropic' as const, effort: 'medium' },
-    push: vi.fn(),
+    addMessage: vi.fn(),
     updateToolExecution: vi.fn(),
     updateTokenUsage: vi.fn(),
     setBusy: vi.fn(),
   };
 
   const ctxBase = () => ({
-    push: vi.fn(),
+    addMessage: vi.fn(),
     resetMessages: vi.fn(),
     clearApiKeys: vi.fn(),
     setShowModelMenu: vi.fn(),
@@ -37,7 +37,7 @@ describe('executeSlashCommand', () => {
     const ctx = ctxBase();
     const handled = await executeSlashCommand('help', deps as any, ctx as any);
     expect(handled).toBe(true);
-    const calls = (ctx.push as any).mock.calls;
+    const calls = (ctx.addMessage as any).mock.calls;
     expect(calls.length).toBeGreaterThan(0);
     const arg = calls[0][0];
     expect(arg.chunks?.[0]?.kind).toBe('list');
@@ -47,7 +47,7 @@ describe('executeSlashCommand', () => {
     const ctx = ctxBase();
     const handled = await executeSlashCommand('status', deps as any, ctx as any);
     expect(handled).toBe(true);
-    const arg = (ctx.push as any).mock.calls[0][0];
+    const arg = (ctx.addMessage as any).mock.calls[0][0];
     expect(arg.author).toBe('system');
     expect(arg.chunks?.[0]?.text).toContain('Status:');
   });
