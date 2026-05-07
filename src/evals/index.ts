@@ -21,7 +21,7 @@ async function runCodaAgent(inputs: { task: string }): Promise<string> {
     throw new Error("ANTHROPIC_API_KEY not found in environment");
   }
 
-  const modelConfig: ModelConfig = { name: "claude-sonnet-4-5-20250929", provider: "anthropic", effort: "medium" };
+  const modelConfig: ModelConfig = { name: "claude-opus-4-7", provider: "anthropic", effort: "high" };
   const agent = createEvalAgent(apiKeys, modelConfig, evalSystemPrompt);
 
   const messages = [new HumanMessage(inputs.task)];

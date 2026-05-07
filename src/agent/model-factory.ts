@@ -37,6 +37,10 @@ export function createChatModel(
         model: name,
         temperature: 1,
         maxTokens: 8192,
+        invocationKwargs: {
+          thinking: { type: 'adaptive' },
+          output_config: { effort },
+        },
       });
       break;
 

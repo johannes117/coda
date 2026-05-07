@@ -12,7 +12,7 @@ describe('executeSlashCommand', () => {
 
   const deps = {
     apiKeys: { anthropic: 'sk-ant-test' },
-    modelConfig: { name: 'claude-sonnet-4-20250514', provider: 'anthropic' as const, effort: 'medium' },
+    modelConfig: { name: 'claude-opus-4-7', provider: 'anthropic' as const, effort: 'high' },
     push: vi.fn(),
     updateToolExecution: vi.fn(),
     updateTokenUsage: vi.fn(),
@@ -29,7 +29,7 @@ describe('executeSlashCommand', () => {
     setQuery: vi.fn(),
     exit: vi.fn(),
     apiKeys: { anthropic: 'sk-ant-test' },
-    currentModel: { name: 'claude-sonnet-4-20250514', provider: 'anthropic' as const, effort: 'medium' },
+    currentModel: { name: 'claude-opus-4-7', provider: 'anthropic' as const, effort: 'high' },
     sessionId: 'sess-1',
   });
 

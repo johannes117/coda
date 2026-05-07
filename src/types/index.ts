@@ -3,6 +3,7 @@ export type ChunkKind = 'text' | 'code' | 'error' | 'list' | 'tool-execution';
 export type Mode = 'agent' | 'plan';
 export type SlashCommandName = "help" | "quit" | "reset" | "status" | "clear" | "model" | "review";
 export type Provider = 'openai' | 'anthropic' | 'google';
+export type Effort = 'low' | 'medium' | 'high' | 'xhigh';
 
 export type ApiKeys = {
   openai?: string;
@@ -21,14 +22,14 @@ export type ModelOption = {
   label: string;
   name: string;
   provider: Provider;
-  effort: string;
+  effort: Effort;
   contextWindow: number
 };
 
 export type ModelConfig = {
   name: string;
   provider: Provider;
-  effort: string
+  effort: Effort
 };
 
 export type ToolExecutionStatus = 'running' | 'success' | 'error';

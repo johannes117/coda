@@ -36,7 +36,7 @@ export const useStore = create<Store>((set, get) => ({
     apiKeys: { ...state.apiKeys, [provider]: key }
   })),
   clearApiKeys: () => set({ apiKeys: {} }),
-  modelConfig: { name: 'claude-sonnet-4-5-20250929', provider: 'anthropic', effort: 'medium' },
+  modelConfig: { name: 'claude-opus-4-7', provider: 'anthropic', effort: 'high' },
   setModelConfig: (config: ModelConfig) => set({ modelConfig: config }),
   messages: [createWelcomeMessage()],
   addMessage: (msg: Omit<Message, 'id'>) => set((state) => ({ messages: [...state.messages, { ...msg, id: randomUUID() }] })),

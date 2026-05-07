@@ -4,6 +4,7 @@ import os from 'os';
 import { BaseMessage } from '@langchain/core/messages';
 import type { ModelConfig, Provider, ApiKeys } from '@types';
 import { logError } from '@lib/logger';
+import { isKnownModelConfig } from '@lib/models.js';
 
 const STORAGE_DIR = path.join(os.homedir(), '.coda');
 const AUTH_FILE = path.join(STORAGE_DIR, 'auth.json');
@@ -114,6 +115,9 @@ export async function getStoredModelConfig(): Promise<ModelConfig | null> {
     const parsed = JSON.parse(data);
     const stored = parsed.modelConfig;
     if (stored && typeof stored.name === 'string' && typeof stored.effort === 'string' && typeof stored.provider === 'string') {
+      if (!isKnownModelConfig(stored.name, stored.effort)) {
+        return null;
+      }
       return { name: stored.name, provider: stored.provider, effort: stored.effort };
     }
     return null;

@@ -42,7 +42,7 @@ describe('runAgentStream', () => {
     await runAgentStream(
       {
         apiKeys: { anthropic: 'sk-ant-test' },
-        modelConfig: { name: 'claude-sonnet-4-5-20250929', provider: 'anthropic', effort: 'medium' },
+        modelConfig: { name: 'claude-opus-4-7', provider: 'anthropic', effort: 'high' },
         addMessage,
         updateToolExecution,
         updateTokenUsage,

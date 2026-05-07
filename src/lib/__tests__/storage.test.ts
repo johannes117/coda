@@ -63,7 +63,7 @@ describe('storage utils', () => {
 
       await expect(storage.getStoredModelConfig()).resolves.toBeNull();
 
-      const modelConfig = { name: 'gpt-5', provider: 'openai', effort: 'medium' } as const;
+      const modelConfig = { name: 'gpt-5.5', provider: 'openai', effort: 'medium' } as const;
       await storage.storeModelConfig(modelConfig);
       const raw = JSON.parse(await fs.readFile(configPath, 'utf-8'));
       expect(raw.modelConfig).toEqual(modelConfig);

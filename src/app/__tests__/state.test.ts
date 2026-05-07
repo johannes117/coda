@@ -88,7 +88,7 @@ describe('Zustand Store', () => {
   });
 
   it('should set and get model configuration', () => {
-    const newConfig = { name: 'gpt-4', provider: 'openai' as const, effort: 'high' };
+    const newConfig = { name: 'gpt-4', provider: 'openai' as const, effort: 'high' as const };
 
     useStore.getState().setModelConfig(newConfig);
     expect(useStore.getState().modelConfig).toEqual(newConfig);
