@@ -1,51 +1,26 @@
-import { AIMessage } from '@langchain/core/messages';
-import {
-  END,
-  START,
-  StateGraph,
-  MessagesAnnotation,
-} from '@langchain/langgraph';
-import { ToolNode } from '@langchain/langgraph/prebuilt';
-import { tools } from '@agent/tools';
+import { createDeepAgent, LocalShellBackend } from 'deepagents';
+import type { DeepAgent } from 'deepagents';
 import { createChatModel } from '@agent/model-factory.js';
 import { defaultSystemPrompt, evalSystemPrompt } from '@agent/prompts';
 import type { ApiKeys, ModelConfig } from '@types';
 
-export const createAgent = (
+export const createAgent = async (
   apiKeys: ApiKeys,
   modelConfig: ModelConfig,
   prompt: string = defaultSystemPrompt
-) => {
-  const model = createChatModel(apiKeys, modelConfig);
+): Promise<DeepAgent<any>> => {
+  const model = createChatModel(apiKeys, modelConfig, { bindTools: false });
+  const backend = await LocalShellBackend.create({
+    rootDir: process.cwd(),
+    inheritEnv: true,
+    timeout: 120,
+  });
 
-  const callModel = async (state: typeof MessagesAnnotation.State) => {
-    const messages = [
-      { role: 'system', content: prompt },
-      ...state.messages,
-    ];
-    const response = await model.invoke(messages); // Can we implement prompt caching here? 
-    return { messages: [response] }; 
-  };
-
-  const shouldContinue = (state: typeof MessagesAnnotation.State) => {
-    const { messages } = state;
-    const lastMessage = messages[messages.length - 1] as AIMessage;
-    if (lastMessage.tool_calls && lastMessage.tool_calls.length > 0) {
-      return 'tools';
-    }
-    return END;
-  };
-
-  const toolNode = new ToolNode<typeof MessagesAnnotation.State>(tools);
-
-  const workflow = new StateGraph(MessagesAnnotation)
-    .addNode('agent', callModel)
-    .addNode('tools', toolNode)
-    .addEdge(START, 'agent')
-    .addConditionalEdges('agent', shouldContinue)
-    .addEdge('tools', 'agent');
-
-  return workflow.compile();
+  return createDeepAgent({
+    model: model as any,
+    systemPrompt: prompt,
+    backend,
+  }) as unknown as DeepAgent<any>;
 };
 
 export const createEvalAgent = (
@@ -55,19 +30,14 @@ export const createEvalAgent = (
 ) => {
   const model = createChatModel(apiKeys, modelConfig, { bindTools: false });
 
-  const callModel = async (state: typeof MessagesAnnotation.State) => {
-    const messages = [
-      { role: 'system', content: prompt },
-      ...state.messages,
-    ];
-    const response = await model.invoke(messages);
-    return { messages: [response] };
+  return {
+    invoke: async (input: { messages: any[] }) => {
+      const messages = [
+        { role: 'system', content: prompt },
+        ...input.messages,
+      ];
+      const response = await (model as any).invoke(messages);
+      return { messages: [...input.messages, response] };
+    },
   };
-
-  const workflow = new StateGraph(MessagesAnnotation)
-    .addNode('agent', callModel)
-    .addEdge(START, 'agent')
-    .compile();
-
-  return workflow;
 };

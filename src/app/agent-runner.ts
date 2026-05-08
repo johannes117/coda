@@ -14,18 +14,18 @@ export async function runAgentStream(
   systemPrompt: string = defaultSystemPrompt
 ) {
   const { apiKeys, modelConfig, addMessage, updateToolExecution, updateTokenUsage, setBusy } = deps;
-  const agentInstance = createAgent(apiKeys, modelConfig, systemPrompt);
+  const agentInstance = await createAgent(apiKeys, modelConfig, systemPrompt);
   conversationHistory.current.push(new HumanMessage(finalPrompt));
   await saveSession('last_session', conversationHistory.current);
   setBusy(true);
   try {
     const actions: StreamProcessorActions = { addMessage, updateToolExecution, updateTokenUsage };
     const stream = await agentInstance.stream(
-      { messages: conversationHistory.current },
-      { recursionLimit: AGENT_RECURSION_LIMIT }
+      { messages: conversationHistory.current } as any,
+      { recursionLimit: AGENT_RECURSION_LIMIT, streamMode: 'updates' as any }
     );
     for await (const chunk of stream) {
-      await processStreamUpdate(chunk, conversationHistory, actions);
+      await processStreamUpdate(chunk as Record<string, any>, conversationHistory, actions);
     }
   } catch (error) {
     const errorMsg = `An error occurred: ${error instanceof Error ? error.message : String(error)}`;
@@ -42,7 +42,7 @@ export async function runReview(
   systemPrompt: string = reviewSystemPrompt
 ) {
   const { apiKeys, modelConfig, addMessage, updateToolExecution, updateTokenUsage, setBusy } = deps;
-  const reviewAgent = createAgent(apiKeys, modelConfig, systemPrompt);
+  const reviewAgent = await createAgent(apiKeys, modelConfig, systemPrompt);
   const userMessage = new HumanMessage(
     'Please conduct a code review of the current branch against the base branch (main or master).'
   );
@@ -53,11 +53,11 @@ export async function runReview(
   try {
     const actions: StreamProcessorActions = { addMessage, updateToolExecution, updateTokenUsage };
     const stream = await reviewAgent.stream(
-      { messages: conversationHistory.current },
-      { recursionLimit: AGENT_RECURSION_LIMIT }
+      { messages: conversationHistory.current } as any,
+      { recursionLimit: AGENT_RECURSION_LIMIT, streamMode: 'updates' as any }
     );
     for await (const chunk of stream) {
-      await processStreamUpdate(chunk, conversationHistory, actions);
+      await processStreamUpdate(chunk as Record<string, any>, conversationHistory, actions);
     }
   } catch (error) {
     const errorMsg = `An error occurred: ${error instanceof Error ? error.message : String(error)}`;

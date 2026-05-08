@@ -2,25 +2,38 @@ import { Chunk, StreamProcessorActions } from "@types";
 import { BaseMessage, AIMessage, ToolMessage } from "@langchain/core/messages";
 import { saveSession } from "@lib/storage";
 
+const seenMessageIds = new WeakSet<BaseMessage>();
+
 export const processStreamUpdate = async (
     chunk: Record<string, any>,
     conversationHistory: { current: BaseMessage[] },
     actions: StreamProcessorActions
   ) => {
-    const nodeName = Object.keys(chunk)[0]; // Gets the name of the node that sent the chunk: tools | agent
-    const update = chunk[nodeName as keyof typeof chunk]; // Gets the payload from that node.
-    if (update && 'messages' in update && update.messages) {
-      const newMessages: BaseMessage[] = update.messages;
+    if (!chunk || typeof chunk !== 'object') return;
+    for (const nodeName of Object.keys(chunk)) {
+      const update = chunk[nodeName];
+      if (!update || typeof update !== 'object') continue;
+      const messages = (update as { messages?: BaseMessage[] }).messages;
+      if (!messages || !Array.isArray(messages) || messages.length === 0) continue;
+      const newMessages: BaseMessage[] = [];
+      for (const message of messages) {
+        if (typeof message !== 'object' || message === null) continue;
+        if (seenMessageIds.has(message)) continue;
+        seenMessageIds.add(message);
+        newMessages.push(message);
+      }
+      if (newMessages.length === 0) continue;
       conversationHistory.current.push(...newMessages);
       await saveSession('last_session', conversationHistory.current);
       for (const message of newMessages) {
-        if (message.getType() === 'ai') {
+        const type = typeof message.getType === 'function' ? message.getType() : (message as any).type;
+        if (type === 'ai') {
           const aiMessage = message as AIMessage;
           if (aiMessage.usage_metadata) {
             actions.updateTokenUsage({
               input: aiMessage.usage_metadata.input_tokens,
               output: aiMessage.usage_metadata.output_tokens,
-              total: aiMessage.usage_metadata.total_tokens
+              total: aiMessage.usage_metadata.total_tokens,
             });
           }
           if (aiMessage.content) {
@@ -30,7 +43,7 @@ export const processStreamUpdate = async (
             } else if (Array.isArray(aiMessage.content)) {
               text = aiMessage.content
                 .filter((block): block is { type: 'text'; text: string } =>
-                  typeof block === 'object' && block !== null && block.type === 'text')
+                  typeof block === 'object' && block !== null && (block as any).type === 'text')
                 .map((block) => block.text)
                 .join('');
             } else {
@@ -56,11 +69,16 @@ export const processStreamUpdate = async (
               chunks: toolExecutionChunks,
             });
           }
-        } else if (message.getType() === 'tool') {
+        } else if (type === 'tool') {
           const toolMessage = message as ToolMessage;
-          const output = toolMessage.content as string;
-          const isError = output.toLowerCase().startsWith('error');
-          actions.updateToolExecution({ toolCallId: toolMessage.tool_call_id, status: isError ? 'error' : 'success', output });
+          const raw = toolMessage.content;
+          const output = typeof raw === 'string' ? raw : JSON.stringify(raw);
+          const isError = typeof output === 'string' && output.toLowerCase().startsWith('error');
+          actions.updateToolExecution({
+            toolCallId: toolMessage.tool_call_id,
+            status: isError ? 'error' : 'success',
+            output,
+          });
         }
       }
     }

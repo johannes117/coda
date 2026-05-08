@@ -28,8 +28,7 @@ async function runCodaAgent(inputs: { task: string }): Promise<string> {
 
   try {
     const result = await agent.invoke(
-      { messages },
-      { recursionLimit: 150 }
+      { messages }
     );
 
     const lastMessage = result.messages[result.messages.length - 1];
