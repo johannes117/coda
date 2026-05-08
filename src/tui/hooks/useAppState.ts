@@ -15,6 +15,12 @@ import { runAgentStream } from '@app/agent-runner.js';
 import { executeSlashCommand } from '@app/command-executor.js';
 import { slashCommands } from '@app/commands.js';
 import { augmentPromptWithFiles } from '@lib/prompt-augmentation.js';
+import {
+  detectAndRegisterImages,
+  pruneImages,
+  buildHumanMessageWithImages,
+  type ImageRef,
+} from '@lib/image-paste.js';
 import type { AppState } from '@types';
 import { defaultSystemPrompt, planSystemPrompt } from '@agent/index.js';
 import { createInterface } from 'readline/promises';
@@ -41,6 +47,9 @@ export function useAppState(): AppState {
   const [sessionId] = useState(() => randomUUID());
   const conversationHistory = useRef<BaseMessage[]>([]);
   const [pendingApiKeyProvider, setPendingApiKeyProvider] = useState<Provider | null>(null);
+  // Image attachments for the *current* prompt. Cleared on submit/reset.
+  const pendingImages = useRef<Map<number, ImageRef>>(new Map());
+  const nextImageIndex = useRef<{ current: number }>({ current: 1 });
 
   const providerNames: Record<Provider, string> = {
     openai: 'OpenAI',
@@ -91,7 +100,20 @@ export function useAppState(): AppState {
 
   const onChange = useCallback(
     (value: string) => {
+      // Detect image-path tokens (e.g. dragged-and-dropped files) and rewrite
+      // them to [Image #N] placeholders. Set the raw value first so the cursor
+      // doesn't lag, then update with the rewritten value once detection
+      // resolves (fs.stat).
       setQuery(value);
+      void (async () => {
+        const rewritten = await detectAndRegisterImages(
+          value,
+          pendingImages.current,
+          nextImageIndex.current
+        );
+        if (rewritten !== value) setQuery(rewritten);
+        pruneImages(rewritten, pendingImages.current);
+      })();
       resetFileSearchMenu();
       resetCommandMenu();
 
@@ -371,14 +393,28 @@ export function useAppState(): AppState {
 
       // Regular prompt
       resetCommandMenu();
-      const finalPrompt = await augmentPromptWithFiles(value);
+      // Snapshot images attached to this prompt before clearing.
+      const promptImages = new Map(pendingImages.current);
+      const finalPromptText = await augmentPromptWithFiles(value);
+      const userMessage = await buildHumanMessageWithImages(
+        finalPromptText,
+        promptImages
+      );
 
+      const imageCount = promptImages.size;
+      const userBubbleText =
+        imageCount > 0
+          ? `${value}\n(attached ${imageCount} image${imageCount === 1 ? '' : 's'})`
+          : value;
       addMessage({
         author: 'user',
         timestamp: nowTime(),
-        chunks: [{ kind: 'text', text: value }],
+        chunks: [{ kind: 'text', text: userBubbleText }],
       });
       setQuery('');
+      // Reset attachments for next prompt.
+      pendingImages.current.clear();
+      nextImageIndex.current.current = 1;
 
       await saveSession('last_session', conversationHistory.current);
       setBusy(true);
@@ -394,7 +430,7 @@ export function useAppState(): AppState {
               setBusy,
             },
             conversationHistory,
-            finalPrompt,
+            userMessage,
             planSystemPrompt
           );
         } else if (mode === 'agent') {
@@ -408,7 +444,7 @@ export function useAppState(): AppState {
               setBusy,
             },
             conversationHistory,
-            finalPrompt,
+            userMessage,
             defaultSystemPrompt
           );
         }

@@ -10,12 +10,14 @@ import type { RunnerDeps, StreamProcessorActions } from '@types';
 export async function runAgentStream(
   deps: RunnerDeps,
   conversationHistory: { current: BaseMessage[] },
-  finalPrompt: string,
+  finalPrompt: string | BaseMessage,
   systemPrompt: string = defaultSystemPrompt
 ) {
   const { apiKeys, modelConfig, addMessage, updateToolExecution, updateTokenUsage, setBusy } = deps;
   const agentInstance = await createAgent(apiKeys, modelConfig, systemPrompt);
-  conversationHistory.current.push(new HumanMessage(finalPrompt));
+  const userMessage =
+    typeof finalPrompt === 'string' ? new HumanMessage(finalPrompt) : finalPrompt;
+  conversationHistory.current.push(userMessage);
   await saveSession('last_session', conversationHistory.current);
   setBusy(true);
   try {
