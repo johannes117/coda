@@ -3,7 +3,8 @@ import { themeColor } from '@tui/theme.js';
 import { BLACK_CIRCLE, ARROW_RIGHT_THIN } from '@tui/figures.js';
 import { Spinner } from '../Spinner.js';
 import { DiffView } from '../DiffView.js';
-import type { Chunk, DiffLine } from '@types';
+import { buildToolPatch, parseStructuredDiffOutput } from '@lib/structured-diff.js';
+import type { Chunk } from '@types';
 
 type Props = {
   chunk: Chunk;
@@ -30,7 +31,7 @@ type ToolHeading = {
 
 function describeTool(toolName: string | undefined, args: Record<string, any>): ToolHeading {
   const name = toolName ?? 'tool';
-  if (name === 'execute_shell_command' || name === 'shell' || name === 'bash') {
+  if (name === 'execute_shell_command' || name === 'execute' || name === 'shell' || name === 'bash') {
     const cmd = String(args.command ?? args.cmd ?? '').trim();
     return { verb: 'Bash', target: cmd || name };
   }
@@ -40,7 +41,7 @@ function describeTool(toolName: string | undefined, args: Record<string, any>): 
   if (name === 'write_file' || name === 'write') {
     return { verb: 'Write', target: formatPath(String(args.path ?? args.file_path ?? '')) };
   }
-  if (name === 'apply_diff' || name === 'edit') {
+  if (name === 'edit_file' || name === 'apply_diff' || name === 'edit') {
     return { verb: 'Edit', target: formatPath(String(args.path ?? args.file_path ?? '')) };
   }
   if (name === 'list_files' || name === 'ls') {
@@ -90,16 +91,6 @@ const Output = ({ output, color }: { output: string; color?: string }) => {
   );
 };
 
-const tryParseDiffLines = (output: string): DiffLine[] | null => {
-  try {
-    const parsed = JSON.parse(output);
-    if (Array.isArray(parsed?.diffLines)) return parsed.diffLines as DiffLine[];
-  } catch {
-    return null;
-  }
-  return null;
-};
-
 export const ToolUseMessage = ({ chunk }: Props) => {
   const { status, toolName, toolArgs, output } = chunk;
   const args = toolArgs ?? {};
@@ -144,10 +135,17 @@ export const ToolUseMessage = ({ chunk }: Props) => {
         </Box>
       </Box>
 
-      {status === 'success' && output ? (() => {
-        const diffLines = tryParseDiffLines(output);
-        if (diffLines) {
-          return <DiffView diffLines={diffLines} />;
+      {status === 'success' ? (() => {
+        const toolPatch = buildToolPatch(toolName, args);
+        if (toolPatch && toolPatch.hunks.length > 0) {
+          return <DiffView hunks={toolPatch.hunks} filePath={toolPatch.filePath} />;
+        }
+
+        if (!output) return null;
+
+        const hunks = parseStructuredDiffOutput(output);
+        if (hunks) {
+          return <DiffView hunks={hunks} />;
         }
         // For Read, just show the line count summary
         if (heading.verb === 'Read') {

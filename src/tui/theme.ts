@@ -32,6 +32,13 @@ export type Theme = {
   diffRemoved: string;
   diffAddedDimmed: string;
   diffRemovedDimmed: string;
+  diffAddedWord: string;
+  diffRemovedWord: string;
+  syntaxKeyword: string;
+  syntaxString: string;
+  syntaxComment: string;
+  syntaxNumber: string;
+  syntaxFunction: string;
   userMessageBg: string;
   selectionBg: string;
   background: string;
@@ -56,6 +63,13 @@ const dark: Theme = {
   diffRemoved: "rgb(64,32,34)",
   diffAddedDimmed: "rgb(26,34,20)",
   diffRemovedDimmed: "rgb(44,24,26)",
+  diffAddedWord: "rgb(64,92,42)",
+  diffRemovedWord: "rgb(104,44,44)",
+  syntaxKeyword: "rgb(190,168,236)",
+  syntaxString: "rgb(178,202,134)",
+  syntaxComment: "rgb(118,112,98)",
+  syntaxNumber: "rgb(140,172,224)",
+  syntaxFunction: "rgb(224,188,128)",
   userMessageBg: "rgb(28,26,22)",
   selectionBg: "rgb(48,58,82)",
   background: "rgb(18,17,15)",
@@ -80,6 +94,13 @@ const light: Theme = {
   diffRemoved: "rgb(244,222,218)",
   diffAddedDimmed: "rgb(238,244,220)",
   diffRemovedDimmed: "rgb(248,236,234)",
+  diffAddedWord: "rgb(194,222,156)",
+  diffRemovedWord: "rgb(232,188,182)",
+  syntaxKeyword: "rgb(106,74,168)",
+  syntaxString: "rgb(78,124,54)",
+  syntaxComment: "rgb(132,124,108)",
+  syntaxNumber: "rgb(58,92,168)",
+  syntaxFunction: "rgb(150,108,40)",
   userMessageBg: "rgb(244,238,224)",
   selectionBg: "rgb(214,226,248)",
   background: "rgb(250,247,240)",

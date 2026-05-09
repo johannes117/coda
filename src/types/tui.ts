@@ -7,6 +7,7 @@ import {
   ModelConfig,
   ModelOption,
   SlashCommand,
+  StructuredPatchHunk,
 } from "@types";
 
 export type AppState = {
@@ -61,7 +62,10 @@ export type DiffRowProps = {
 };
 
 export type DiffViewProps = {
-  diffLines: DiffLine[];
+  diffLines?: DiffLine[];
+  hunks?: StructuredPatchHunk[];
+  filePath?: string;
+  width?: number;
 };
 
 export type CommandMenuProps = {

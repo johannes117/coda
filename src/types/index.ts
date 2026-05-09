@@ -69,6 +69,14 @@ export type DiffLine = {
   text: string;
 };
 
+export type StructuredPatchHunk = {
+  oldStart: number;
+  oldLines: number;
+  newStart: number;
+  newLines: number;
+  lines: string[];
+};
+
 export type RunnerDeps = {
   apiKeys: ApiKeys;
   modelConfig: ModelConfig;
