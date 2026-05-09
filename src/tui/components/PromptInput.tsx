@@ -1,16 +1,29 @@
-import { Box, Text } from 'ink';
-import TextInput from 'ink-text-input';
-import { CommandMenu } from './CommandMenu.js';
-import { FileSearchMenu } from './FileSearchMenu.js';
-import { ModelMenu } from './ModelMenu.js';
-import { themeColor } from '@tui/theme.js';
-import { ARROW_RIGHT_THIN } from '@tui/figures.js';
-import type { Mode, ModelOption, SlashCommand } from '@types';
+import { Box, Text } from "ink";
+import type { Key } from "ink";
+import { TextInput } from "./TextInput/index.js";
+import { CommandMenu } from "./CommandMenu.js";
+import { FileSearchMenu } from "./FileSearchMenu.js";
+import { ModelMenu } from "./ModelMenu.js";
+import { themeColor } from "@tui/theme.js";
+import { ARROW_RIGHT_THIN } from "@tui/figures.js";
+import type { Mode, ModelOption, SlashCommand } from "@types";
 
 type Props = {
   query: string;
   onChange: (v: string) => void;
   onSubmit: (v: string) => void | Promise<void>;
+  cursorOffset: number;
+  onChangeCursorOffset: (offset: number) => void;
+  onPaste: (text: string) => void;
+  onImagePaste: (
+    base64Image: string,
+    mediaType?: string,
+    filename?: string,
+    sourcePath?: string,
+  ) => void;
+  onExit: () => void;
+  inputFilter?: (input: string, key: Key) => string;
+  columns: number;
   mode: Mode;
   // command menu
   showCommandMenu: boolean;
@@ -28,15 +41,15 @@ type Props = {
 };
 
 const placeholderForMode = (mode: Mode, showModelMenu: boolean): string => {
-  if (showModelMenu) return 'Filter models by name or ID…';
-  if (mode === 'plan') return 'Plan something with coda…';
-  return 'Ask coda anything…';
+  if (showModelMenu) return "Filter models by name or ID…";
+  if (mode === "plan") return "Plan something with coda…";
+  return "Ask coda anything…";
 };
 
 const borderColorForMode = (mode: Mode, showModelMenu: boolean): string => {
-  if (showModelMenu) return themeColor('suggestion');
-  if (mode === 'plan') return themeColor('planMode');
-  return themeColor('promptBorder');
+  if (showModelMenu) return themeColor("suggestion");
+  if (mode === "plan") return themeColor("planMode");
+  return themeColor("promptBorder");
 };
 
 export const PromptInput = (props: Props) => {
@@ -44,6 +57,13 @@ export const PromptInput = (props: Props) => {
     query,
     onChange,
     onSubmit,
+    cursorOffset,
+    onChangeCursorOffset,
+    onPaste,
+    onImagePaste,
+    onExit,
+    inputFilter,
+    columns,
     mode,
     showCommandMenu,
     filteredCommands,
@@ -59,7 +79,13 @@ export const PromptInput = (props: Props) => {
 
   const borderColor = borderColorForMode(mode, showModelMenu);
   const promptColor =
-    mode === 'plan' ? themeColor('planMode') : themeColor('brand');
+    mode === "plan" ? themeColor("planMode") : themeColor("brand");
+
+  const anyMenuOpen = showCommandMenu || showFileSearchMenu || showModelMenu;
+  // Reserve 6 cols for the prompt arrow ("> "), horizontal padding (paddingX=1
+  // on both sides) and the rounded border (1 col each side) so the cursor
+  // wraps at the visual width of the inner box, not the terminal width.
+  const inputColumns = Math.max(8, columns - 6);
 
   return (
     <Box flexDirection="column">
@@ -71,24 +97,42 @@ export const PromptInput = (props: Props) => {
         alignItems="center"
       >
         <Text color={promptColor} bold>
-          {ARROW_RIGHT_THIN}{' '}
+          {ARROW_RIGHT_THIN}{" "}
         </Text>
         <Box flexGrow={1}>
           <TextInput
             value={query}
             onChange={onChange}
             onSubmit={onSubmit}
+            cursorOffset={cursorOffset}
+            onChangeCursorOffset={onChangeCursorOffset}
+            onPaste={onPaste}
+            onImagePaste={onImagePaste}
+            onExit={onExit}
+            inputFilter={inputFilter}
             placeholder={placeholderForMode(mode, showModelMenu)}
+            multiline={true}
+            showCursor={true}
+            focus={true}
+            columns={inputColumns}
+            disableCursorMovementForUpDownKeys={anyMenuOpen}
+            disableEscapeDoublePress={anyMenuOpen}
           />
         </Box>
       </Box>
 
       {showCommandMenu && filteredCommands.length > 0 ? (
-        <CommandMenu commands={filteredCommands} selectedIndex={commandSelectionIndex} />
+        <CommandMenu
+          commands={filteredCommands}
+          selectedIndex={commandSelectionIndex}
+        />
       ) : null}
 
       {showFileSearchMenu ? (
-        <FileSearchMenu matches={fileSearchMatches} selectedIndex={fileSearchSelectionIndex} />
+        <FileSearchMenu
+          matches={fileSearchMatches}
+          selectedIndex={fileSearchSelectionIndex}
+        />
       ) : null}
 
       {showModelMenu && filteredModels.length > 0 ? (

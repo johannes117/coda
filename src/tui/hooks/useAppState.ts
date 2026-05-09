@@ -1,30 +1,70 @@
-import { useCallback, useRef, useState } from 'react';
-import { useApp, useInput } from 'ink';
-import { randomUUID } from 'crypto';
-import { BaseMessage, HumanMessage } from '@langchain/core/messages';
-import { saveSession, storeModelConfig, storeApiKey } from '@lib/storage';
-import { nowTime } from '@lib/time';
-import { useStore } from '@app/store.js';
-import type { ModelConfig, Mode, Provider } from '@types';
-import { modelOptions } from '@lib/models.js';
-import { useBusyText } from '@tui/hooks/useBusyText.js';
-import { useFileSearchMenu } from '@tui/hooks/useFileSearchMenu.js';
-import { useCommandMenu } from '@tui/hooks/useCommandMenu.js';
-import { useModelMenu } from '@tui/hooks/useModelMenu.js';
-import { runAgentStream } from '@app/agent-runner.js';
-import { executeSlashCommand } from '@app/command-executor.js';
-import { slashCommands } from '@app/commands.js';
-import { augmentPromptWithFiles } from '@lib/prompt-augmentation.js';
+import { useCallback, useRef, useState } from "react";
+import type { Key } from "ink";
+import { useApp, useInput } from "ink";
+import { randomUUID } from "crypto";
+import { BaseMessage, HumanMessage } from "@langchain/core/messages";
+import { saveSession, storeModelConfig, storeApiKey } from "@lib/storage";
+import { nowTime } from "@lib/time";
+import { useStore } from "@app/store.js";
+import type { ModelConfig, Mode, Provider } from "@types";
+import { modelOptions } from "@lib/models.js";
+import { useBusyText } from "@tui/hooks/useBusyText.js";
+import { useFileSearchMenu } from "@tui/hooks/useFileSearchMenu.js";
+import { useCommandMenu } from "@tui/hooks/useCommandMenu.js";
+import { useModelMenu } from "@tui/hooks/useModelMenu.js";
+import { runAgentStream } from "@app/agent-runner.js";
+import { executeSlashCommand } from "@app/command-executor.js";
+import { slashCommands } from "@app/commands.js";
+import { augmentPromptWithFiles } from "@lib/prompt-augmentation.js";
 import {
-  detectAndRegisterImages,
   pruneImages,
   buildHumanMessageWithImages,
   type ImageRef,
-} from '@lib/image-paste.js';
-import type { AppState } from '@types';
-import { defaultSystemPrompt, planSystemPrompt } from '@agent/index.js';
-import { createInterface } from 'readline/promises';
-import { stdin, stdout } from 'node:process';
+} from "@lib/image-paste.js";
+import type { AppState } from "@types";
+import { defaultSystemPrompt, planSystemPrompt } from "@agent/index.js";
+
+type PastedTextRef = {
+  id: number;
+  content: string;
+  numLines: number;
+};
+
+const MAX_PILL_PREVIEW_LINES = 10;
+
+function formatImageRef(id: number): string {
+  return `[Image #${id}]`;
+}
+
+function formatPastedTextRef(id: number, numLines: number): string {
+  if (numLines === 0) return `[Pasted text #${id}]`;
+  return `[Pasted text #${id} +${numLines} lines]`;
+}
+
+function expandPastedTextRefs(
+  input: string,
+  pastedTexts: Map<number, PastedTextRef>,
+): string {
+  const refPattern = /\[Pasted text #(\d+)(?: \+\d+ lines)?\]/g;
+  return input.replace(refPattern, (match, idStr) => {
+    const id = parseInt(idStr, 10);
+    const ref = pastedTexts.get(id);
+    return ref ? ref.content : match;
+  });
+}
+
+function prunePastedTexts(
+  value: string,
+  pastedTexts: Map<number, PastedTextRef>,
+): void {
+  for (const id of [...pastedTexts.keys()]) {
+    if (
+      !new RegExp(`\\[Pasted text #${id}(?: \\+\\d+ lines)?\\]`).test(value)
+    ) {
+      pastedTexts.delete(id);
+    }
+  }
+}
 
 export function useAppState(): AppState {
   const { exit } = useApp();
@@ -42,19 +82,36 @@ export function useAppState(): AppState {
   const setModelConfig = useStore((store) => store.setModelConfig);
   const clearApiKeys = useStore((store) => store.clearApiKeys);
 
-  const [mode, setMode] = useState<Mode>('agent');
-  const [query, setQuery] = useState('');
+  const [mode, setMode] = useState<Mode>("agent");
+  const [query, setQuery] = useState("");
+  const [cursorOffset, setCursorOffsetState] = useState(0);
   const [sessionId] = useState(() => randomUUID());
   const conversationHistory = useRef<BaseMessage[]>([]);
-  const [pendingApiKeyProvider, setPendingApiKeyProvider] = useState<Provider | null>(null);
+  const [pendingApiKeyProvider, setPendingApiKeyProvider] =
+    useState<Provider | null>(null);
+  // Mirror of cursorOffset that updates synchronously. setState is async, so a
+  // burst of onImagePaste calls (multi-image drag) would otherwise see a stale
+  // offset on every call after the first and stack [Image #1][Image #2]…
+  // back at the original cursor position instead of advancing through the
+  // inserted text.
+  const cursorOffsetRef = useRef(0);
+  const setCursorOffset = useCallback((next: number) => {
+    cursorOffsetRef.current = next;
+    setCursorOffsetState(next);
+  }, []);
   // Image attachments for the *current* prompt. Cleared on submit/reset.
   const pendingImages = useRef<Map<number, ImageRef>>(new Map());
-  const nextImageIndex = useRef<{ current: number }>({ current: 1 });
+  const pendingPastedTexts = useRef<Map<number, PastedTextRef>>(new Map());
+  const nextRefId = useRef(1);
+  // After we drop a pill ([Image #N], [Pasted text #N]) at the cursor, arm
+  // this so the next printable character is auto-prefixed with a space — so
+  // typing "look" after an image becomes "[Image #1] look" not "[Image #1]look".
+  const pendingSpaceAfterPillRef = useRef(false);
 
   const providerNames: Record<Provider, string> = {
-    openai: 'OpenAI',
-    anthropic: 'Anthropic',
-    google: 'Google',
+    openai: "OpenAI",
+    anthropic: "Anthropic",
+    google: "Google",
   };
 
   const hasApiKeyForProvider = (provider: Provider) => !!apiKeys[provider];
@@ -92,28 +149,33 @@ export function useAppState(): AppState {
   } = useFileSearchMenu();
 
   const currentOption = modelOptions.find(
-    (option) => option.name === currentModel.name && option.effort === currentModel.effort
+    (option) =>
+      option.name === currentModel.name &&
+      option.effort === currentModel.effort,
   );
   const currentModelId = currentOption ? currentOption.id : 1;
 
   const busyText = useBusyText();
 
+  // Splice text at the current cursor position. Used by paste handlers when
+  // a placeholder ([Image #N], [Pasted text #N]) needs to be injected without
+  // going through the normal keystroke path. Uses cursorOffsetRef so that a
+  // burst of inserts in the same tick advances correctly.
+  const insertTextAtCursor = useCallback(
+    (text: string) => {
+      const at = cursorOffsetRef.current;
+      setQuery((prev) => prev.slice(0, at) + text + prev.slice(at));
+      setCursorOffset(at + text.length);
+    },
+    [setCursorOffset],
+  );
+
   const onChange = useCallback(
     (value: string) => {
-      // Detect image-path tokens (e.g. dragged-and-dropped files) and rewrite
-      // them to [Image #N] placeholders. Set the raw value first so the cursor
-      // doesn't lag, then update with the rewritten value once detection
-      // resolves (fs.stat).
       setQuery(value);
-      void (async () => {
-        const rewritten = await detectAndRegisterImages(
-          value,
-          pendingImages.current,
-          nextImageIndex.current
-        );
-        if (rewritten !== value) setQuery(rewritten);
-        pruneImages(rewritten, pendingImages.current);
-      })();
+      // Drop image / paste refs whose placeholder was deleted by the user.
+      pruneImages(value, pendingImages.current);
+      prunePastedTexts(value, pendingPastedTexts.current);
       resetFileSearchMenu();
       resetCommandMenu();
 
@@ -123,7 +185,7 @@ export function useAppState(): AppState {
       }
       if (/@(\S*)$/.test(value)) {
         handleAtReference(value);
-      } else if (value.startsWith('/')) {
+      } else if (value.startsWith("/")) {
         filterCommandsFromQuery(value);
       }
     },
@@ -134,30 +196,113 @@ export function useAppState(): AppState {
       filterCommandsFromQuery,
       resetFileSearchMenu,
       resetCommandMenu,
-    ]
+    ],
   );
 
-  // Keybindings
-  useInput((_input, key) => {
-    if (key.escape) {
-      if (busy) {
-        setBusy(false);
-      } else if (showModelMenu) {
-        closeModelMenu();
-        setQuery('');
-        resetModelMenu();
-        resetCommandMenu();
-      } else if (showCommandMenu) {
-        resetCommandMenu();
-      } else if (showFileSearchMenu) {
-        resetFileSearchMenu();
+  const onChangeCursorOffset = useCallback(
+    (offset: number) => {
+      setCursorOffset(offset);
+    },
+    [setCursorOffset],
+  );
+
+  const onPaste = useCallback(
+    (rawText: string) => {
+      pendingSpaceAfterPillRef.current = false;
+      const text = rawText.replace(/\r/g, "\n").replaceAll("\t", "    ");
+      // For long pastes (>10 lines), tuck the content behind a [Pasted text #N]
+      // placeholder so the input area stays readable. Short pastes go inline.
+      const numLines = text.split("\n").length;
+      if (numLines > MAX_PILL_PREVIEW_LINES) {
+        const id = nextRefId.current++;
+        pendingPastedTexts.current.set(id, { id, content: text, numLines });
+        const prefix = needsSpaceBeforePill();
+        insertTextAtCursor(prefix + formatPastedTextRef(id, numLines));
+        pendingSpaceAfterPillRef.current = true;
       } else {
-        exit();
+        insertTextAtCursor(text);
       }
+    },
+    [insertTextAtCursor],
+  );
+
+  const onImagePaste = useCallback(
+    (
+      base64: string,
+      mediaType?: string,
+      filename?: string,
+      sourcePath?: string,
+    ) => {
+      const id = nextRefId.current++;
+      pendingImages.current.set(id, {
+        index: id,
+        base64,
+        mediaType: mediaType ?? "image/png",
+        filename,
+        sourcePath,
+      });
+      const prefix = needsSpaceBeforePill();
+      insertTextAtCursor(prefix + formatImageRef(id));
+      pendingSpaceAfterPillRef.current = true;
+    },
+    [insertTextAtCursor],
+  );
+
+  // Returns ' ' if the cursor is touching a non-space character on the left,
+  // so a freshly-inserted pill never abuts an existing word.
+  function needsSpaceBeforePill(): string {
+    const at = cursorOffsetRef.current;
+    if (at === 0) return "";
+    const prev = query[at - 1];
+    if (prev === undefined || /\s/.test(prev)) return "";
+    return " ";
+  }
+
+  const onExit = useCallback(() => {
+    exit();
+  }, [exit]);
+
+  // Lazy space after pill: the first printable character typed after we insert
+  // a pill gets a leading space, so "look" after dropping an image yields
+  // "[Image #1] look" instead of "[Image #1]look". Backspace, arrow keys, and
+  // other navigation keys do not consume the lazy space.
+  const inputFilter = useCallback((input: string, key: Key): string => {
+    if (!pendingSpaceAfterPillRef.current) return input;
+    // Only printable characters disarm the lazy-space; control keys (arrows,
+    // delete, etc.) leave it pending.
+    const isPrintable =
+      input.length > 0 &&
+      !key.return &&
+      !key.escape &&
+      !key.backspace &&
+      !key.delete &&
+      !key.tab &&
+      !key.upArrow &&
+      !key.downArrow &&
+      !key.leftArrow &&
+      !key.rightArrow &&
+      !key.ctrl &&
+      !key.meta &&
+      input !== " ";
+    if (!isPrintable) return input;
+    pendingSpaceAfterPillRef.current = false;
+    return " " + input;
+  }, []);
+
+  // Keybindings: only menu nav + tab handling. Escape, Ctrl+C, Ctrl+D, etc. are
+  // owned by `useTextInput` (with double-press exit semantics) — we no longer
+  // map a single Esc to "exit the app".
+  useInput((_input, key) => {
+    if (key.escape && busy) {
+      // Cancelling a busy stream still lives at the App level: TextInput will
+      // run its escape handler too (clearing the draft), but during busy we
+      // also stop the agent stream.
+      setBusy(false);
       return;
     }
 
-    // Model menu nav
+    // Menu navigation (Up/Down). TextInput is told to skip up/down via
+    // `disableCursorMovementForUpDownKeys` while a menu is open.
     if (showModelMenu) {
       if (key.upArrow) {
         setModelSelectionIndex((prev) => (prev > 0 ? prev - 1 : prev));
@@ -165,13 +310,12 @@ export function useAppState(): AppState {
       }
       if (key.downArrow) {
         setModelSelectionIndex((prev) =>
-          prev < filteredModels.length - 1 ? prev + 1 : prev
+          prev < filteredModels.length - 1 ? prev + 1 : prev,
         );
         return;
       }
     }
 
-    // File search menu nav
     if (showFileSearchMenu) {
       if (key.upArrow) {
         setFileSearchSelectionIndex((prev) => (prev > 0 ? prev - 1 : prev));
@@ -179,47 +323,12 @@ export function useAppState(): AppState {
       }
       if (key.downArrow) {
         setFileSearchSelectionIndex((prev) =>
-          prev < fileSearchMatches.length - 1 ? prev + 1 : prev
+          prev < fileSearchMatches.length - 1 ? prev + 1 : prev,
         );
         return;
       }
     }
 
-    if (key.tab) {
-      if (showFileSearchMenu) {
-        setQuery(applyTabCompletion(query));
-        return;
-      } else if (!showModelMenu) {
-        if (showCommandMenu) {
-          const selected = filteredCommands[commandSelectionIndex];
-          if (selected) setQuery(`/${selected.name} `);
-          resetCommandMenu();
-          return;
-        }
-        setMode((prev) => {
-          const newMode = prev === 'agent' ? 'plan' : 'agent';
-
-          if (newMode === 'plan') {
-            conversationHistory.current[0] = new HumanMessage(planSystemPrompt)
-            addMessage({
-              author: 'system',
-              chunks: [{ kind: 'text', text: 'Starting plan mode...' }],
-            });
-          } else if (newMode === 'agent') {
-            conversationHistory.current[0] = new HumanMessage(defaultSystemPrompt)
-            addMessage({
-              author: 'system',
-              chunks: [{ kind: 'text', text: 'Starting agent mode...' }],
-            });
-          }
-          return newMode;
-
-        });
-        return;
-      }
-    }
-
-    // Command menu nav
     if (showCommandMenu) {
       if (key.upArrow) {
         setCommandSelectionIndex((prev) => (prev > 0 ? prev - 1 : prev));
@@ -233,33 +342,100 @@ export function useAppState(): AppState {
         return;
       }
     }
+
+    // Escape with menu open closes the menu.
+    if (key.escape) {
+      if (showModelMenu) {
+        closeModelMenu();
+        setQuery("");
+        setCursorOffset(0);
+        resetModelMenu();
+        resetCommandMenu();
+        return;
+      }
+      if (showCommandMenu) {
+        resetCommandMenu();
+        return;
+      }
+      if (showFileSearchMenu) {
+        resetFileSearchMenu();
+        return;
+      }
+      return;
+    }
+
+    if (key.tab) {
+      if (showFileSearchMenu) {
+        const next = applyTabCompletion(query);
+        setQuery(next);
+        setCursorOffset(next.length);
+        return;
+      }
+      if (showCommandMenu) {
+        const selected = filteredCommands[commandSelectionIndex];
+        if (selected) {
+          const next = `/${selected.name} `;
+          setQuery(next);
+          setCursorOffset(next.length);
+        }
+        resetCommandMenu();
+        return;
+      }
+      if (!showModelMenu) {
+        setMode((prev) => {
+          const newMode: Mode = prev === "agent" ? "plan" : "agent";
+          if (newMode === "plan") {
+            conversationHistory.current[0] = new HumanMessage(planSystemPrompt);
+            addMessage({
+              author: "system",
+              chunks: [{ kind: "text", text: "Starting plan mode..." }],
+            });
+          } else {
+            conversationHistory.current[0] = new HumanMessage(
+              defaultSystemPrompt,
+            );
+            addMessage({
+              author: "system",
+              chunks: [{ kind: "text", text: "Starting agent mode..." }],
+            });
+          }
+          return newMode;
+        });
+      }
+    }
   });
 
   const onSubmit = useCallback(
     async (value: string) => {
-      // Handle pending API key input
+      // API key onboarding takes precedence — the user typed an API key, not a prompt.
       if (pendingApiKeyProvider) {
         const key = value.trim();
         if (!key) {
           addMessage({
-            author: 'system',
-            chunks: [{ kind: 'error', text: 'API key cannot be empty.' }],
+            author: "system",
+            chunks: [{ kind: "error", text: "API key cannot be empty." }],
           });
-          setQuery('');
+          setQuery("");
+          setCursorOffset(0);
           return;
         }
         setApiKey(pendingApiKeyProvider, key);
         await storeApiKey(pendingApiKeyProvider, key);
         addMessage({
-          author: 'system',
-          chunks: [{ kind: 'text', text: `${providerNames[pendingApiKeyProvider]} API key stored successfully.` }],
+          author: "system",
+          chunks: [
+            {
+              kind: "text",
+              text: `${providerNames[pendingApiKeyProvider]} API key stored successfully.`,
+            },
+          ],
         });
         setPendingApiKeyProvider(null);
-        setQuery('');
+        setQuery("");
+        setCursorOffset(0);
         return;
       }
 
-      // Model menu: pick a model
       if (showModelMenu) {
         const selectedModel = filteredModels[modelSelectionIndex];
         if (!selectedModel) return;
@@ -271,15 +447,21 @@ export function useAppState(): AppState {
 
         if (!hasApiKeyForProvider(selectedModel.provider)) {
           addMessage({
-            author: 'system',
-            chunks: [{ kind: 'text', text: `Please enter your ${providerNames[selectedModel.provider]} API key:` }],
+            author: "system",
+            chunks: [
+              {
+                kind: "text",
+                text: `Please enter your ${providerNames[selectedModel.provider]} API key:`,
+              },
+            ],
           });
           setModelConfig(newConfig);
           await storeModelConfig(newConfig);
           setPendingApiKeyProvider(selectedModel.provider);
           closeModelMenu();
           resetModelMenu();
-          setQuery('');
+          setQuery("");
+          setCursorOffset(0);
           resetCommandMenu();
           return;
         }
@@ -287,25 +469,26 @@ export function useAppState(): AppState {
         setModelConfig(newConfig);
         await storeModelConfig(newConfig);
         addMessage({
-          author: 'system',
+          author: "system",
           chunks: [
-            { kind: 'text', text: `Model switched to ${selectedModel.label}` },
+            { kind: "text", text: `Model switched to ${selectedModel.label}` },
           ],
         });
         closeModelMenu();
         resetModelMenu();
-        setQuery('');
+        setQuery("");
+        setCursorOffset(0);
         resetCommandMenu();
         return;
       }
 
-      // File search menu: accept completion
       if (showFileSearchMenu) {
-        setQuery(applySubmitSelection(value));
+        const next = applySubmitSelection(value);
+        setQuery(next);
+        setCursorOffset(next.length);
         return;
       }
 
-      // If command menu is open, commit selected command (shortcut)
       const selected = showCommandMenu
         ? filteredCommands[commandSelectionIndex]
         : undefined;
@@ -314,7 +497,8 @@ export function useAppState(): AppState {
 
       if (!trimmedValue || busy) {
         if (!trimmedValue) {
-          setQuery('');
+          setQuery("");
+          setCursorOffset(0);
           resetCommandMenu();
         }
         return;
@@ -323,36 +507,45 @@ export function useAppState(): AppState {
       const currentProvider = currentModel.provider;
       if (!hasApiKeyForProvider(currentProvider)) {
         addMessage({
-          author: 'system',
-          chunks: [{ kind: 'text', text: `Please enter your ${providerNames[currentProvider]} API key:` }],
+          author: "system",
+          chunks: [
+            {
+              kind: "text",
+              text: `Please enter your ${providerNames[currentProvider]} API key:`,
+            },
+          ],
         });
         setPendingApiKeyProvider(currentProvider);
-        setQuery('');
+        setQuery("");
+        setCursorOffset(0);
         resetCommandMenu();
         return;
       }
 
-      // Slash command path
-      const isCommand = trimmedValue.startsWith('/');
+      const isCommand = trimmedValue.startsWith("/");
       if (isCommand) {
-        const cmdName = trimmedValue.slice(1).split(' ')[0].toLowerCase();
+        const cmdName = trimmedValue.slice(1).split(" ")[0].toLowerCase();
         const cmd =
           slashCommands.find(
-            (command) => command.name === cmdName || command.aliases?.includes(cmdName)
+            (command) =>
+              command.name === cmdName || command.aliases?.includes(cmdName),
           ) || null;
 
         if (!cmd) {
-          const available = slashCommands.map((command) => `/${command.name}`).join(', ');
+          const available = slashCommands
+            .map((command) => `/${command.name}`)
+            .join(", ");
           addMessage({
-            author: 'system',
+            author: "system",
             chunks: [
               {
-                kind: 'error',
+                kind: "error",
                 text: `Unknown command: ${trimmedValue}. Available commands: ${available}`,
               },
             ],
           });
-          setQuery('');
+          setQuery("");
+          setCursorOffset(0);
           resetCommandMenu();
           return;
         }
@@ -377,79 +570,75 @@ export function useAppState(): AppState {
             setShowModelMenu: openModelMenu,
             setFilteredModels: () => {},
             setModelSelectionIndex,
-            setQuery,
+            setQuery: (next: string) => {
+              setQuery(next);
+              setCursorOffset(next.length);
+            },
             exit,
             apiKeys,
             currentModel,
             sessionId,
-          }
+          },
         );
         resetCommandMenu();
         if (handled) {
-          setQuery('');
+          setQuery("");
+          setCursorOffset(0);
           return;
         }
       }
 
-      // Regular prompt
       resetCommandMenu();
-      // Snapshot images attached to this prompt before clearing.
+
+      // Snapshot images/pasted text attached to this prompt before clearing.
       const promptImages = new Map(pendingImages.current);
-      const finalPromptText = await augmentPromptWithFiles(value);
+      const promptPastedTexts = new Map(pendingPastedTexts.current);
+
+      // Expand [Pasted text #N] placeholders into their full text. Image refs
+      // are kept as-is — they become content blocks in the multipart message.
+      const expandedValue = expandPastedTextRefs(value, promptPastedTexts);
+      const finalPromptText = await augmentPromptWithFiles(expandedValue);
       const userMessage = await buildHumanMessageWithImages(
         finalPromptText,
-        promptImages
+        promptImages,
       );
 
       const imageCount = promptImages.size;
       const userBubbleText =
         imageCount > 0
-          ? `${value}\n(attached ${imageCount} image${imageCount === 1 ? '' : 's'})`
+          ? `${value}\n(attached ${imageCount} image${imageCount === 1 ? "" : "s"})`
           : value;
       addMessage({
-        author: 'user',
+        author: "user",
         timestamp: nowTime(),
-        chunks: [{ kind: 'text', text: userBubbleText }],
+        chunks: [{ kind: "text", text: userBubbleText }],
       });
-      setQuery('');
-      // Reset attachments for next prompt.
+      setQuery("");
+      setCursorOffset(0);
       pendingImages.current.clear();
-      nextImageIndex.current.current = 1;
+      pendingPastedTexts.current.clear();
+      nextRefId.current = 1;
 
-      await saveSession('last_session', conversationHistory.current);
+      await saveSession("last_session", conversationHistory.current);
       setBusy(true);
       try {
-        if (mode === 'plan') {
-          await runAgentStream(
-            {
-              apiKeys,
-              modelConfig: currentModel,
-              addMessage,
-              updateToolExecution,
-              updateTokenUsage,
-              setBusy,
-            },
-            conversationHistory,
-            userMessage,
-            planSystemPrompt
-          );
-        } else if (mode === 'agent') {
-          await runAgentStream(
-            {
-              apiKeys,
-              modelConfig: currentModel,
-              addMessage,
-              updateToolExecution,
-              updateTokenUsage,
-              setBusy,
-            },
-            conversationHistory,
-            userMessage,
-            defaultSystemPrompt
-          );
-        }
+        const systemPrompt =
+          mode === "plan" ? planSystemPrompt : defaultSystemPrompt;
+        await runAgentStream(
+          {
+            apiKeys,
+            modelConfig: currentModel,
+            addMessage,
+            updateToolExecution,
+            updateTokenUsage,
+            setBusy,
+          },
+          conversationHistory,
+          userMessage,
+          systemPrompt,
+        );
       } catch {
-        // runAgentStream already reports
+        // runAgentStream already reports errors via addMessage.
       } finally {
         setBusy(false);
       }
@@ -481,7 +670,9 @@ export function useAppState(): AppState {
       pendingApiKeyProvider,
       setApiKey,
       clearApiKeys,
-    ]
+      sessionId,
+      resetModelMenu,
+    ],
   );
 
   return {
@@ -496,6 +687,12 @@ export function useAppState(): AppState {
     onChange,
     onSubmit,
     setQuery,
+    cursorOffset,
+    onChangeCursorOffset,
+    onPaste,
+    onImagePaste,
+    onExit,
+    inputFilter,
     showCommandMenu,
     filteredCommands,
     commandSelectionIndex,

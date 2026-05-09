@@ -1,9 +1,16 @@
-export type Author = 'user' | 'agent' | 'system' | 'tool';
-export type ChunkKind = 'text' | 'code' | 'error' | 'list' | 'tool-execution';
-export type Mode = 'agent' | 'plan';
-export type SlashCommandName = "help" | "quit" | "reset" | "status" | "clear" | "model" | "review";
-export type Provider = 'openai' | 'anthropic' | 'google';
-export type Effort = 'low' | 'medium' | 'high' | 'xhigh';
+export type Author = "user" | "agent" | "system" | "tool";
+export type ChunkKind = "text" | "code" | "error" | "list" | "tool-execution";
+export type Mode = "agent" | "plan";
+export type SlashCommandName =
+  | "help"
+  | "quit"
+  | "reset"
+  | "status"
+  | "clear"
+  | "model"
+  | "review";
+export type Provider = "openai" | "anthropic" | "google";
+export type Effort = "low" | "medium" | "high" | "xhigh";
 
 export type ApiKeys = {
   openai?: string;
@@ -23,16 +30,16 @@ export type ModelOption = {
   name: string;
   provider: Provider;
   effort: Effort;
-  contextWindow: number
+  contextWindow: number;
 };
 
 export type ModelConfig = {
   name: string;
   provider: Provider;
-  effort: Effort
+  effort: Effort;
 };
 
-export type ToolExecutionStatus = 'running' | 'success' | 'error';
+export type ToolExecutionStatus = "running" | "success" | "error";
 
 export type Chunk = {
   kind: ChunkKind;
@@ -56,7 +63,7 @@ export type Message = {
 export type TokenUsage = { input: number; output: number; total: number };
 
 export type DiffLine = {
-  type: 'add' | 'remove' | 'context';
+  type: "add" | "remove" | "context";
   oldLine?: number;
   newLine?: number;
   text: string;
@@ -65,14 +72,14 @@ export type DiffLine = {
 export type RunnerDeps = {
   apiKeys: ApiKeys;
   modelConfig: ModelConfig;
-  addMessage: (message: Omit<Message, 'id'>) => void;
+  addMessage: (message: Omit<Message, "id">) => void;
   updateToolExecution: (toolExecution: ToolExecution) => void;
   updateTokenUsage: (usage: TokenUsage) => void;
   setBusy: (busy: boolean) => void;
 };
 
 export type CommandCtx = {
-  addMessage: (message: Omit<Message, 'id'>) => void;
+  addMessage: (message: Omit<Message, "id">) => void;
   resetMessages: () => void;
   clearApiKeys: () => void;
   setShowModelMenu: (v: boolean) => void;
@@ -85,19 +92,19 @@ export type CommandCtx = {
   sessionId: string;
 };
 
-
 export type StreamProcessorActions = {
-  addMessage: (message: Omit<Message, 'id'>) => void;
+  addMessage: (message: Omit<Message, "id">) => void;
   updateToolExecution: (toolExecution: ToolExecution) => void;
   updateTokenUsage: (usage: TokenUsage) => void;
-}
+};
 
 export type ToolExecution = {
   toolCallId: string;
   status: ToolExecutionStatus;
   output: string;
-}
+};
 
 export type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 
-export * from './tui.js';
+export * from "./tui.js";
+export * from "./text-input.js";
