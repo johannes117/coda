@@ -157,9 +157,9 @@ export type ClipboardImage = {
  * non-darwin platforms or when the clipboard has no image.
  *
  * Implementation: shell out to `osascript` to dump the clipboard image as PNG
- * to a temp file, then read it. This matches Claude Code's fallback path for
- * when bracketed-paste arrives empty (⌘V with image-only clipboard) or when
- * the temp screenshot file has already been GC'd by macOS.
+ * to a temp file, then read it. This is the fallback path for when
+ * bracketed-paste arrives empty (⌘V with image-only clipboard) or when the
+ * temp screenshot file has already been GC'd by macOS.
  */
 export async function getMacOSClipboardImage(): Promise<ClipboardImage | null> {
   if (process.platform !== "darwin") return null;

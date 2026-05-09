@@ -3,10 +3,9 @@ import type { Key } from "ink";
 /**
  * Shared types for the text-input system.
  *
- * Modelled on the reference `claude-code` text-input types but trimmed to the
- * features Coda actually exercises (no vim mode, no inline ghost text, no
- * accessibility overrides). Re-add fields cautiously: any new prop must be
- * threaded through `useTextInput` and `BaseTextInput`.
+ * Trimmed to the features Coda actually exercises (no vim mode, no inline
+ * ghost text, no accessibility overrides). Re-add fields cautiously: any new
+ * prop must be threaded through `useTextInput` and `BaseTextInput`.
  */
 
 export type BaseTextInputProps = {
