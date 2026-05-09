@@ -2,10 +2,14 @@ import { create } from 'zustand';
 import type { ModelConfig, Message, TokenUsage, ToolExecution, ApiKeys } from '@types';
 import { randomUUID } from 'crypto';
 
+// The Welcome banner UI replaces the textual greeting. We still seed an initial
+// invisible "session start" message so messages.length >= 1 invariants used by
+// the App for splitting static/live items hold from frame zero. The renderer
+// treats empty system text chunks as no-ops.
 const createWelcomeMessage = (): Message => ({
   id: randomUUID(),
   author: 'system',
-  chunks: [{ kind: 'text', text: 'Welcome to coda! I can help you with your coding tasks. What should we work on?' }],
+  chunks: [{ kind: 'text', text: '' }],
 });
 
 type Store = {
@@ -25,7 +29,10 @@ type Store = {
   setBusy: (busy: boolean) => void;
   blink: boolean;
   toggleBlink: () => void;
+  tick: number;
+  advanceTick: () => void;
   terminalCols: number;
+  terminalRows: number;
   resetRequested: boolean;
 };
 
@@ -66,7 +73,10 @@ export const useStore = create<Store>((set, get) => ({
   setBusy: (busy: boolean) => set({ busy }),
   blink: true,
   toggleBlink: () => set((state) => ({ blink: !state.blink })),
+  tick: 0,
+  advanceTick: () => set((state) => ({ tick: (state.tick + 1) % 1_000_000 })),
   terminalCols: process.stdout.columns ?? 80,
+  terminalRows: process.stdout.rows ?? 24,
   resetRequested: false,
 }));
 

@@ -19,7 +19,10 @@ export async function main() {
   while (running) {
 
     const updateSize = () => {
-      useStore.setState({ terminalCols: process.stdout.columns ?? 80 });
+      useStore.setState({
+        terminalCols: process.stdout.columns ?? 80,
+        terminalRows: process.stdout.rows ?? 24,
+      });
     };
     process.stdout.on('resize', updateSize);
     updateSize();
@@ -31,11 +34,19 @@ export async function main() {
       }
     }, 600);
 
+    const tickInterval = setInterval(() => {
+      const { busy, advanceTick } = useStore.getState();
+      if (busy) {
+        advanceTick();
+      }
+    }, 120);
+
     const instance = render(<App />);
     try {
       await instance.waitUntilExit();
     } finally {
       clearInterval(blinkInterval);
+      clearInterval(tickInterval);
       process.stdout.removeListener('resize', updateSize);
     }
 

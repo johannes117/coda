@@ -8,7 +8,7 @@ describe('Zustand Store', () => {
     useStore.setState(initialState, true);
   });
 
-  it('should reset messages to the initial welcome message', () => {
+  it('should reset messages to the initial seed message', () => {
     useStore.getState().addMessage({
       author: 'user',
       chunks: [{ kind: 'text', text: 'Some message' }],
@@ -18,7 +18,8 @@ describe('Zustand Store', () => {
     useStore.getState().resetMessages();
     const { messages } = useStore.getState();
     expect(messages).toHaveLength(1);
-    expect(messages[0].chunks[0].text).toContain('Welcome to coda!');
+    expect(messages[0].author).toBe('system');
+    expect(messages[0].chunks[0].kind).toBe('text');
   });
 
   it('should add a new message to the state', () => {
