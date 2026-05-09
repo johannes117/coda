@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import type { SlashCommand } from '@types';
 import { slashCommands } from '@app/commands.js';
+import { getSlashCommandSuggestions } from '@app/slash-command.js';
 
 export function useCommandMenu() {
   const [showCommandMenu, setShowCommandMenu] = useState(false);
@@ -8,7 +9,10 @@ export function useCommandMenu() {
   const [commandSelectionIndex, setCommandSelectionIndex] = useState(0);
 
   const open = useCallback(() => setShowCommandMenu(true), []);
-  const close = useCallback(() => setShowCommandMenu(false), []);
+  const close = useCallback(() => {
+    setShowCommandMenu(false);
+    setCommandSelectionIndex(0);
+  }, []);
 
   const reset = useCallback(() => {
     setShowCommandMenu(false);
@@ -17,18 +21,7 @@ export function useCommandMenu() {
   }, []);
 
   const filterFromQuery = useCallback((value: string) => {
-    if (!value.startsWith('/')) {
-      reset();
-      return;
-    }
-    const inputCommand = value.slice(1).toLowerCase();
-    const matches = slashCommands.filter((command) => {
-      if (!inputCommand) return true;
-      return (
-        command.name.startsWith(inputCommand) ||
-        command.aliases?.some((alias) => alias.startsWith(inputCommand))
-      );
-    });
+    const matches = getSlashCommandSuggestions(value);
     setFilteredCommands(matches);
     if (matches.length > 0) {
       setShowCommandMenu(true);
@@ -37,7 +30,7 @@ export function useCommandMenu() {
       setShowCommandMenu(false);
       setCommandSelectionIndex(0);
     }
-  }, [reset]);
+  }, []);
 
   return {
     // state

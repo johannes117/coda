@@ -14,7 +14,7 @@ import { useCommandMenu } from "@tui/hooks/useCommandMenu.js";
 import { useModelMenu } from "@tui/hooks/useModelMenu.js";
 import { runAgentStream } from "@app/agent-runner.js";
 import { executeSlashCommand } from "@app/command-executor.js";
-import { slashCommands } from "@app/commands.js";
+import { resolveSlashCommand } from "@app/slash-command.js";
 import { augmentPromptWithFiles } from "@lib/prompt-augmentation.js";
 import {
   pruneImages,
@@ -292,12 +292,23 @@ export function useAppState(): AppState {
   // Keybindings: only menu nav + tab handling. Escape, Ctrl+C, Ctrl+D, etc. are
   // owned by `useTextInput` (with double-press exit semantics) — we no longer
   // map a single Esc to "exit the app".
-  useInput((_input, key) => {
+  useInput((input, key) => {
     if (key.escape && busy) {
       // Cancelling a busy stream still lives at the App level: TextInput will
       // run its escape handler too (clearing the draft), but during busy we
       // also stop the agent stream.
       setBusy(false);
+      return;
+    }
+
+    if (
+      showCommandMenu &&
+      query === "/" &&
+      (key.backspace || input.includes("\x7f"))
+    ) {
+      resetCommandMenu();
+      setQuery("");
+      setCursorOffset(0);
       return;
     }
 
@@ -522,36 +533,10 @@ export function useAppState(): AppState {
         return;
       }
 
-      const isCommand = trimmedValue.startsWith("/");
-      if (isCommand) {
-        const cmdName = trimmedValue.slice(1).split(" ")[0].toLowerCase();
-        const cmd =
-          slashCommands.find(
-            (command) =>
-              command.name === cmdName || command.aliases?.includes(cmdName),
-          ) || null;
-
-        if (!cmd) {
-          const available = slashCommands
-            .map((command) => `/${command.name}`)
-            .join(", ");
-          addMessage({
-            author: "system",
-            chunks: [
-              {
-                kind: "error",
-                text: `Unknown command: ${trimmedValue}. Available commands: ${available}`,
-              },
-            ],
-          });
-          setQuery("");
-          setCursorOffset(0);
-          resetCommandMenu();
-          return;
-        }
-
+      const slashCommand = resolveSlashCommand(trimmedValue);
+      if (slashCommand.kind === "command") {
         const handled = await executeSlashCommand(
-          cmd.name,
+          slashCommand.command.name,
           {
             apiKeys,
             modelConfig: currentModel,

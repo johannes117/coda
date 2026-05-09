@@ -254,7 +254,13 @@ export function useTextInput({
           ? killWordBefore
           : () => cursor.deleteTokenBefore() ?? cursor.backspace();
       case key.delete:
-        return key.meta ? killToLineEnd : () => cursor.del();
+        // Ink 6 maps the DEL byte emitted by common Backspace keys to
+        // `delete`, and strips the raw input before this hook sees it. Treat
+        // unmodified delete as erase-left so prompt editing matches terminal
+        // expectations in Ghostty and other modern emulators.
+        return key.meta || key.ctrl
+          ? killWordBefore
+          : () => cursor.deleteTokenBefore() ?? cursor.backspace();
       case key.ctrl:
         return handleCtrl;
       case key.home:
@@ -315,10 +321,11 @@ export function useTextInput({
     const filteredInput = inputFilter ? inputFilter(input, key) : input;
     if (filteredInput === "" && input !== "") return;
 
-    // SSH/tmux can leak raw DEL characters alongside Backspace key events.
-    // Apply each \x7f as a backspace operation to keep deletion working.
-    if (!key.backspace && !key.delete && input.includes("\x7f")) {
-      const delCount = (input.match(/\x7f/g) || []).length;
+    // Terminals disagree on whether DEL (\x7f) is "backspace" or "delete".
+    // The byte itself means erase-left for prompt editing, so honor it before
+    // Ink's key label. Actual forward-delete sends an escape sequence instead.
+    if (filteredInput.includes("\x7f")) {
+      const delCount = (filteredInput.match(/\x7f/g) || []).length;
       let currentCursor = cursor;
       for (let i = 0; i < delCount; i++) {
         currentCursor =
