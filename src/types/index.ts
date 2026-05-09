@@ -87,6 +87,7 @@ export type CommandCtx = {
   setModelSelectionIndex: (i: number) => void;
   setQuery: (v: string) => void;
   exit: () => void;
+  requestUiClear?: () => void;
   apiKeys: ApiKeys;
   currentModel: ModelConfig;
   sessionId: string;

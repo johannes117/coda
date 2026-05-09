@@ -34,6 +34,7 @@ type Store = {
   terminalCols: number;
   terminalRows: number;
   resetRequested: boolean;
+  clearRequested: boolean;
 };
 
 export const useStore = create<Store>((set, get) => ({
@@ -78,5 +79,5 @@ export const useStore = create<Store>((set, get) => ({
   terminalCols: process.stdout.columns ?? 80,
   terminalRows: process.stdout.rows ?? 24,
   resetRequested: false,
+  clearRequested: false,
 }));
-

@@ -4,6 +4,12 @@ import { getStoredApiKeys, deleteAllApiKeys, getStoredModelConfig } from '@lib/s
 import { clearLog } from '@lib/logger';
 import { useStore } from '@app/store.js';
 
+const clearTerminal = () => {
+  if (process.stdout.isTTY) {
+    process.stdout.write('\x1B[2J\x1B[3J\x1B[H');
+  }
+};
+
 export async function main() {
   await clearLog();
 
@@ -50,7 +56,7 @@ export async function main() {
       process.stdout.removeListener('resize', updateSize);
     }
 
-    const resetRequested = useStore.getState().resetRequested;
+    const { resetRequested, clearRequested } = useStore.getState();
     if (resetRequested) {
       useStore.setState({
         resetRequested: false,
@@ -58,6 +64,9 @@ export async function main() {
         messages: [],
       });
       await deleteAllApiKeys();
+    } else if (clearRequested) {
+      useStore.setState({ clearRequested: false });
+      clearTerminal();
     } else {
       running = false;
     }

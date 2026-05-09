@@ -397,18 +397,10 @@ export function useAppState(): AppState {
           const newMode: Mode = prev === "agent" ? "plan" : "agent";
           if (newMode === "plan") {
             conversationHistory.current[0] = new HumanMessage(planSystemPrompt);
-            addMessage({
-              author: "system",
-              chunks: [{ kind: "text", text: "Starting plan mode..." }],
-            });
           } else {
             conversationHistory.current[0] = new HumanMessage(
               defaultSystemPrompt,
             );
-            addMessage({
-              author: "system",
-              chunks: [{ kind: "text", text: "Starting agent mode..." }],
-            });
           }
           return newMode;
         });
@@ -560,6 +552,10 @@ export function useAppState(): AppState {
               setCursorOffset(next.length);
             },
             exit,
+            requestUiClear: () => {
+              useStore.setState({ clearRequested: true });
+              exit();
+            },
             apiKeys,
             currentModel,
             sessionId,

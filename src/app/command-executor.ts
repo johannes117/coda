@@ -13,7 +13,7 @@ export async function executeSlashCommand(
 ) {
   const {
     addMessage, resetMessages, clearApiKeys, setShowModelMenu,
-    setFilteredModels, setModelSelectionIndex, setQuery, exit,
+    setFilteredModels, setModelSelectionIndex, setQuery, exit, requestUiClear,
     apiKeys, currentModel, sessionId
   } = ctx;
 
@@ -55,6 +55,7 @@ export async function executeSlashCommand(
     case 'clear': {
       resetMessages();
       addMessage({ author: 'system', chunks: [{ kind: 'text', text: 'New conversation started.' }] });
+      requestUiClear?.();
       return true;
     }
     case 'model': {
