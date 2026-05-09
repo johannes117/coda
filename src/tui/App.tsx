@@ -67,7 +67,7 @@ export const App = () => {
           modelSelectionIndex={appState.modelSelectionIndex}
           currentModelId={appState.currentModelId}
         />
-        <StatusLine mode={appState.mode} />
+        <StatusLine />
       </Box>
     </Box>
   );

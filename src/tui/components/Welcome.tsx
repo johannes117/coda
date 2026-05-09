@@ -1,8 +1,7 @@
 import { Box, Text } from 'ink';
 import path from 'path';
-import { Logo } from './Logo.js';
 import { themeColor } from '@tui/theme.js';
-import { TEARDROP_ASTERISK } from '@tui/figures.js';
+import { ARROW_RIGHT_THIN } from '@tui/figures.js';
 import type { ModelConfig } from '@types';
 
 type Props = {
@@ -20,57 +19,33 @@ const homePrefix = (p: string): string => {
 
 export const Welcome = ({ modelConfig, cwd }: Props) => {
   const dir = homePrefix(cwd ?? process.cwd());
-  const dirName = path.basename(dir);
   const brand = themeColor('brand');
   const subtle = themeColor('subtle');
   const inactive = themeColor('inactive');
   const suggestion = themeColor('suggestion');
 
   return (
-    <Box flexDirection="column" marginBottom={1}>
-      <Box marginBottom={1}>
-        <Logo />
+    <Box
+      flexDirection="column"
+      borderStyle="round"
+      borderColor={brand}
+      paddingX={2}
+      paddingY={0}
+      marginBottom={1}
+    >
+      <Box>
+        <Text color={brand}>{ARROW_RIGHT_THIN}_ </Text>
+        <Text bold>coda</Text>
       </Box>
-
-      <Box
-        flexDirection="column"
-        borderStyle="round"
-        borderColor={brand}
-        paddingX={2}
-        paddingY={0}
-      >
-        <Box>
-          <Text color={brand} bold>
-            {TEARDROP_ASTERISK}
-          </Text>
-          <Text>
-            {' '}
-            Welcome to <Text bold>coda</Text>
-          </Text>
-        </Box>
-        <Box marginTop={1}>
-          <Text color={inactive}>
-            {'  '}/help for commands · /model to switch model · @ to attach a file
-          </Text>
-        </Box>
-        <Box>
-          <Text color={inactive}>
-            {'  '}cwd:{' '}
-            <Text color={suggestion}>
-              {dir}
-              <Text color={subtle}> ({dirName})</Text>
-            </Text>
-          </Text>
-        </Box>
-        <Box>
-          <Text color={inactive}>
-            {'  '}model:{' '}
-            <Text color={suggestion}>
-              {modelConfig.name}
-              <Text color={subtle}> · {modelConfig.effort}</Text>
-            </Text>
-          </Text>
-        </Box>
+      <Text> </Text>
+      <Box>
+        <Text color={inactive}>{'model:     '}</Text>
+        <Text color={suggestion}>{modelConfig.name} {modelConfig.effort}</Text>
+        <Text color={subtle}>{'    '}/model to change</Text>
+      </Box>
+      <Box>
+        <Text color={inactive}>{'directory: '}</Text>
+        <Text color={suggestion}>{dir}</Text>
       </Box>
     </Box>
   );
