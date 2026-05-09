@@ -1,6 +1,14 @@
 /**
  * Theme tokens for the coda TUI.
- * Uses RGB strings consumable by Ink's `color` / `backgroundColor` props.
+ *
+ * The palette is intentionally restrained: a warm cream foreground sits on top
+ * of the terminal's own dark background, with a single amber/gold brand accent
+ * for the logo, bullets and prompt glyph, and a cool blue used sparingly for
+ * file paths, highlights and menu selections. This mirrors the look of modern
+ * terminal coding agents (Codex, Cursor CLI) where most of the surface is
+ * monochrome and color is reserved for signal.
+ *
+ * All values are RGB strings consumable by Ink's `color` / `backgroundColor`.
  */
 
 export type ThemeName = "dark" | "light";
@@ -30,51 +38,51 @@ export type Theme = {
 };
 
 const dark: Theme = {
-  brand: "rgb(0,109,221)",
-  brandDim: "rgb(47,75,104)",
-  text: "rgb(242,250,255)",
-  inverseText: "rgb(3,7,16)",
-  subtle: "rgb(47,75,104)",
-  inactive: "rgb(64,102,141)",
-  suggestion: "rgb(127,200,255)",
-  permission: "rgb(127,200,255)",
-  planMode: "rgb(227,255,143)",
-  bashBorder: "rgb(136,82,112)",
-  promptBorder: "rgb(0,109,221)",
-  success: "rgb(227,255,143)",
-  error: "rgb(251,176,165)",
-  warning: "rgb(251,176,165)",
-  diffAdded: "rgb(46,57,0)",
-  diffRemoved: "rgb(99,70,67)",
-  diffAddedDimmed: "rgb(22,31,52)",
-  diffRemovedDimmed: "rgb(68,30,51)",
-  userMessageBg: "rgb(13,19,34)",
-  selectionBg: "rgb(0,109,221)",
-  background: "rgb(3,7,16)",
+  brand: "rgb(214,184,116)",
+  brandDim: "rgb(132,108,64)",
+  text: "rgb(222,213,191)",
+  inverseText: "rgb(20,18,15)",
+  subtle: "rgb(94,88,78)",
+  inactive: "rgb(140,132,118)",
+  suggestion: "rgb(140,172,224)",
+  permission: "rgb(140,172,224)",
+  planMode: "rgb(178,202,134)",
+  bashBorder: "rgb(184,134,168)",
+  promptBorder: "rgb(94,88,78)",
+  success: "rgb(178,202,134)",
+  error: "rgb(225,134,124)",
+  warning: "rgb(214,184,116)",
+  diffAdded: "rgb(38,52,28)",
+  diffRemoved: "rgb(64,32,34)",
+  diffAddedDimmed: "rgb(26,34,20)",
+  diffRemovedDimmed: "rgb(44,24,26)",
+  userMessageBg: "rgb(28,26,22)",
+  selectionBg: "rgb(48,58,82)",
+  background: "rgb(18,17,15)",
 };
 
 const light: Theme = {
-  brand: "rgb(0,109,221)",
-  brandDim: "rgb(47,75,104)",
-  text: "rgb(3,7,16)",
-  inverseText: "rgb(242,250,255)",
-  subtle: "rgb(47,75,104)",
-  inactive: "rgb(64,102,141)",
-  suggestion: "rgb(0,109,221)",
-  permission: "rgb(64,102,141)",
-  planMode: "rgb(110,137,0)",
-  bashBorder: "rgb(136,82,112)",
-  promptBorder: "rgb(0,109,221)",
-  success: "rgb(110,137,0)",
-  error: "rgb(99,70,67)",
-  warning: "rgb(251,176,165)",
-  diffAdded: "rgb(227,255,143)",
-  diffRemoved: "rgb(248,232,230)",
-  diffAddedDimmed: "rgb(246,255,219)",
-  diffRemovedDimmed: "rgb(248,232,230)",
-  userMessageBg: "rgb(229,244,255)",
-  selectionBg: "rgb(180,213,255)",
-  background: "rgb(242,250,255)",
+  brand: "rgb(150,108,40)",
+  brandDim: "rgb(196,170,118)",
+  text: "rgb(40,34,24)",
+  inverseText: "rgb(250,247,240)",
+  subtle: "rgb(186,178,160)",
+  inactive: "rgb(132,124,108)",
+  suggestion: "rgb(58,92,168)",
+  permission: "rgb(58,92,168)",
+  planMode: "rgb(96,128,52)",
+  bashBorder: "rgb(146,82,124)",
+  promptBorder: "rgb(186,178,160)",
+  success: "rgb(96,128,52)",
+  error: "rgb(176,72,58)",
+  warning: "rgb(150,108,40)",
+  diffAdded: "rgb(224,236,196)",
+  diffRemoved: "rgb(244,222,218)",
+  diffAddedDimmed: "rgb(238,244,220)",
+  diffRemovedDimmed: "rgb(248,236,234)",
+  userMessageBg: "rgb(244,238,224)",
+  selectionBg: "rgb(214,226,248)",
+  background: "rgb(250,247,240)",
 };
 
 const themes: Record<ThemeName, Theme> = { dark, light };
