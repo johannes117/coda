@@ -1,6 +1,7 @@
 import { slashCommands } from "@app/commands.js";
 import type { Key } from "ink";
 import {
+  ApiKeyMenuItem,
   DiffLine,
   Message,
   Mode,
@@ -48,6 +49,15 @@ export type AppState = {
   fileSearchMatches: string[];
   fileSearchSelectionIndex: number;
   setFileSearchSelectionIndex: (i: number) => void;
+  showApiKeysMenu: boolean;
+  apiKeyItems: ApiKeyMenuItem[];
+  apiKeysSelectionIndex: number;
+  setApiKeysSelectionIndex: (i: number) => void;
+};
+
+export type ApiKeysMenuProps = {
+  items: ApiKeyMenuItem[];
+  selectedIndex: number;
 };
 
 export type ModelMenuProps = {

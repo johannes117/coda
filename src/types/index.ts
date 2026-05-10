@@ -8,7 +8,8 @@ export type SlashCommandName =
   | "status"
   | "clear"
   | "model"
-  | "review";
+  | "review"
+  | "apikeys";
 export type Provider = "openai" | "anthropic" | "google";
 export type Effort = "low" | "medium" | "high" | "xhigh";
 
@@ -37,6 +38,15 @@ export type ModelConfig = {
   name: string;
   provider: Provider;
   effort: Effort;
+};
+
+export type ApiKeyAction = "set" | "delete";
+
+export type ApiKeyMenuItem = {
+  provider: Provider;
+  action: ApiKeyAction;
+  label: string;
+  detail: string;
 };
 
 export type ToolExecutionStatus = "running" | "success" | "error";
@@ -96,6 +106,7 @@ export type CommandCtx = {
   setQuery: (v: string) => void;
   exit: () => void;
   requestUiClear?: () => void;
+  openApiKeysMenu?: () => void;
   apiKeys: ApiKeys;
   currentModel: ModelConfig;
   sessionId: string;

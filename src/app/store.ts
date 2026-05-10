@@ -16,6 +16,7 @@ type Store = {
   apiKeys: ApiKeys;
   setApiKeys: (keys: ApiKeys) => void;
   setApiKey: (provider: keyof ApiKeys, key: string) => void;
+  clearApiKey: (provider: keyof ApiKeys) => void;
   clearApiKeys: () => void;
   modelConfig: ModelConfig;
   setModelConfig: (config: ModelConfig) => void;
@@ -43,6 +44,11 @@ export const useStore = create<Store>((set, get) => ({
   setApiKey: (provider: keyof ApiKeys, key: string) => set((state) => ({
     apiKeys: { ...state.apiKeys, [provider]: key }
   })),
+  clearApiKey: (provider: keyof ApiKeys) => set((state) => {
+    const next = { ...state.apiKeys };
+    delete next[provider];
+    return { apiKeys: next };
+  }),
   clearApiKeys: () => set({ apiKeys: {} }),
   modelConfig: { name: 'claude-opus-4-7', provider: 'anthropic', effort: 'high' },
   setModelConfig: (config: ModelConfig) => set({ modelConfig: config }),

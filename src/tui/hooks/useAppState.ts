@@ -3,7 +3,12 @@ import type { Key } from "ink";
 import { useApp, useInput } from "ink";
 import { randomUUID } from "crypto";
 import { BaseMessage, HumanMessage } from "@langchain/core/messages";
-import { saveSession, storeModelConfig, storeApiKey } from "@lib/storage";
+import {
+  saveSession,
+  storeModelConfig,
+  storeApiKey,
+  deleteStoredApiKey,
+} from "@lib/storage";
 import { nowTime } from "@lib/time";
 import { useStore } from "@app/store.js";
 import type { ModelConfig, Mode, Provider } from "@types";
@@ -12,6 +17,7 @@ import { useBusyText } from "@tui/hooks/useBusyText.js";
 import { useFileSearchMenu } from "@tui/hooks/useFileSearchMenu.js";
 import { useCommandMenu } from "@tui/hooks/useCommandMenu.js";
 import { useModelMenu } from "@tui/hooks/useModelMenu.js";
+import { useApiKeysMenu } from "@tui/hooks/useApiKeysMenu.js";
 import { runAgentStream } from "@app/agent-runner.js";
 import { executeSlashCommand } from "@app/command-executor.js";
 import { resolveSlashCommand } from "@app/slash-command.js";
@@ -71,6 +77,7 @@ export function useAppState(): AppState {
   const cols = useStore((store) => store.terminalCols);
   const apiKeys = useStore((store) => store.apiKeys);
   const setApiKey = useStore((store) => store.setApiKey);
+  const clearApiKey = useStore((store) => store.clearApiKey);
   const currentModel = useStore((store) => store.modelConfig);
   const messages = useStore((store) => store.messages);
   const busy = useStore((store) => store.busy);
@@ -136,6 +143,15 @@ export function useAppState(): AppState {
     filterFromQuery: filterModelsFromQuery,
     reset: resetModelMenu,
   } = useModelMenu();
+
+  const {
+    showApiKeysMenu,
+    apiKeyItems,
+    apiKeysSelectionIndex,
+    setApiKeysSelectionIndex,
+    open: openApiKeysMenu,
+    close: closeApiKeysMenu,
+  } = useApiKeysMenu(apiKeys);
 
   const {
     showFileSearchMenu,
@@ -314,6 +330,23 @@ export function useAppState(): AppState {
 
     // Menu navigation (Up/Down). TextInput is told to skip up/down via
     // `disableCursorMovementForUpDownKeys` while a menu is open.
+    if (showApiKeysMenu) {
+      if (key.upArrow) {
+        setApiKeysSelectionIndex(
+          apiKeysSelectionIndex > 0 ? apiKeysSelectionIndex - 1 : apiKeysSelectionIndex,
+        );
+        return;
+      }
+      if (key.downArrow) {
+        setApiKeysSelectionIndex(
+          apiKeysSelectionIndex < apiKeyItems.length - 1
+            ? apiKeysSelectionIndex + 1
+            : apiKeysSelectionIndex,
+        );
+        return;
+      }
+    }
+
     if (showModelMenu) {
       if (key.upArrow) {
         setModelSelectionIndex((prev) => (prev > 0 ? prev - 1 : prev));
@@ -356,6 +389,12 @@ export function useAppState(): AppState {
 
     // Escape with menu open closes the menu.
     if (key.escape) {
+      if (showApiKeysMenu) {
+        closeApiKeysMenu();
+        setQuery("");
+        setCursorOffset(0);
+        return;
+      }
       if (showModelMenu) {
         closeModelMenu();
         setQuery("");
@@ -434,6 +473,44 @@ export function useAppState(): AppState {
           ],
         });
         setPendingApiKeyProvider(null);
+        setQuery("");
+        setCursorOffset(0);
+        return;
+      }
+
+      if (showApiKeysMenu) {
+        const selectedItem = apiKeyItems[apiKeysSelectionIndex];
+        if (!selectedItem) return;
+        if (selectedItem.action === "delete") {
+          await deleteStoredApiKey(selectedItem.provider);
+          clearApiKey(selectedItem.provider);
+          addMessage({
+            author: "system",
+            chunks: [
+              {
+                kind: "text",
+                text: `${providerNames[selectedItem.provider]} API key removed.`,
+              },
+            ],
+          });
+          // Keep menu open; selection index will be re-clamped via apiKeyItems.
+          setApiKeysSelectionIndex(0);
+          setQuery("");
+          setCursorOffset(0);
+          return;
+        }
+        // 'set' action — prompt for the key inline.
+        addMessage({
+          author: "system",
+          chunks: [
+            {
+              kind: "text",
+              text: `Please enter your ${providerNames[selectedItem.provider]} API key:`,
+            },
+          ],
+        });
+        setPendingApiKeyProvider(selectedItem.provider);
+        closeApiKeysMenu();
         setQuery("");
         setCursorOffset(0);
         return;
@@ -556,6 +633,9 @@ export function useAppState(): AppState {
               useStore.setState({ clearRequested: true });
               exit();
             },
+            openApiKeysMenu: () => {
+              openApiKeysMenu();
+            },
             apiKeys,
             currentModel,
             sessionId,
@@ -644,6 +724,13 @@ export function useAppState(): AppState {
       showCommandMenu,
       showFileSearchMenu,
       showModelMenu,
+      showApiKeysMenu,
+      apiKeyItems,
+      apiKeysSelectionIndex,
+      closeApiKeysMenu,
+      openApiKeysMenu,
+      setApiKeysSelectionIndex,
+      clearApiKey,
       updateTokenUsage,
       updateToolExecution,
       exit,
@@ -686,5 +773,9 @@ export function useAppState(): AppState {
     fileSearchMatches,
     fileSearchSelectionIndex,
     setFileSearchSelectionIndex,
+    showApiKeysMenu,
+    apiKeyItems,
+    apiKeysSelectionIndex,
+    setApiKeysSelectionIndex,
   };
 }

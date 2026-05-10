@@ -4,9 +4,10 @@ import { TextInput } from "./TextInput/index.js";
 import { CommandMenu } from "./CommandMenu.js";
 import { FileSearchMenu } from "./FileSearchMenu.js";
 import { ModelMenu } from "./ModelMenu.js";
+import { ApiKeysMenu } from "./ApiKeysMenu.js";
 import { themeColor } from "@tui/theme.js";
 import { ARROW_RIGHT_THIN } from "@tui/figures.js";
-import type { Mode, ModelOption, SlashCommand } from "@types";
+import type { ApiKeyMenuItem, Mode, ModelOption, SlashCommand } from "@types";
 
 type Props = {
   query: string;
@@ -38,15 +39,29 @@ type Props = {
   filteredModels: ModelOption[];
   modelSelectionIndex: number;
   currentModelId: number;
+  // api keys menu
+  showApiKeysMenu: boolean;
+  apiKeyItems: ApiKeyMenuItem[];
+  apiKeysSelectionIndex: number;
 };
 
-const placeholderForMode = (mode: Mode, showModelMenu: boolean): string => {
+const placeholderForMode = (
+  mode: Mode,
+  showModelMenu: boolean,
+  showApiKeysMenu: boolean,
+): string => {
+  if (showApiKeysMenu) return "Manage API keys…";
   if (showModelMenu) return "Filter models by name or ID…";
   if (mode === "plan") return "Plan something with coda…";
   return "Ask coda anything…";
 };
 
-const borderColorForMode = (mode: Mode, showModelMenu: boolean): string => {
+const borderColorForMode = (
+  mode: Mode,
+  showModelMenu: boolean,
+  showApiKeysMenu: boolean,
+): string => {
+  if (showApiKeysMenu) return themeColor("suggestion");
   if (showModelMenu) return themeColor("suggestion");
   if (mode === "plan") return themeColor("planMode");
   return themeColor("promptBorder");
@@ -75,13 +90,17 @@ export const PromptInput = (props: Props) => {
     filteredModels,
     modelSelectionIndex,
     currentModelId,
+    showApiKeysMenu,
+    apiKeyItems,
+    apiKeysSelectionIndex,
   } = props;
 
-  const borderColor = borderColorForMode(mode, showModelMenu);
+  const borderColor = borderColorForMode(mode, showModelMenu, showApiKeysMenu);
   const promptColor =
     mode === "plan" ? themeColor("planMode") : themeColor("brand");
 
-  const anyMenuOpen = showCommandMenu || showFileSearchMenu || showModelMenu;
+  const anyMenuOpen =
+    showCommandMenu || showFileSearchMenu || showModelMenu || showApiKeysMenu;
   // Reserve 6 cols for the prompt arrow ("> "), horizontal padding (paddingX=1
   // on both sides) and the rounded border (1 col each side) so the cursor
   // wraps at the visual width of the inner box, not the terminal width.
@@ -110,7 +129,7 @@ export const PromptInput = (props: Props) => {
             onImagePaste={onImagePaste}
             onExit={onExit}
             inputFilter={inputFilter}
-            placeholder={placeholderForMode(mode, showModelMenu)}
+            placeholder={placeholderForMode(mode, showModelMenu, showApiKeysMenu)}
             multiline={true}
             showCursor={true}
             focus={true}
@@ -140,6 +159,13 @@ export const PromptInput = (props: Props) => {
           models={filteredModels}
           selectedIndex={modelSelectionIndex}
           currentModelId={currentModelId}
+        />
+      ) : null}
+
+      {showApiKeysMenu ? (
+        <ApiKeysMenu
+          items={apiKeyItems}
+          selectedIndex={apiKeysSelectionIndex}
         />
       ) : null}
     </Box>

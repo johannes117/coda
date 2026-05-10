@@ -66,6 +66,9 @@ export const App = () => {
           filteredModels={appState.filteredModels}
           modelSelectionIndex={appState.modelSelectionIndex}
           currentModelId={appState.currentModelId}
+          showApiKeysMenu={appState.showApiKeysMenu}
+          apiKeyItems={appState.apiKeyItems}
+          apiKeysSelectionIndex={appState.apiKeysSelectionIndex}
         />
         <StatusLine />
       </Box>
