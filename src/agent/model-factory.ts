@@ -23,7 +23,6 @@ export function createChatModel(
         modelKwargs: {
           reasoning_effort: effort,
           verbosity: 'medium',
-          usage: { include: true },
         },
       });
     case 'anthropic':
