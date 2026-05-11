@@ -4,6 +4,22 @@ import { saveSession } from "@lib/storage";
 
 const seenMessageIds = new WeakSet<BaseMessage>();
 
+const normalizeToolOutput = (raw: unknown): string => {
+  if (typeof raw === 'string') return raw;
+  if (Array.isArray(raw)) {
+    const text = raw
+      .filter((block): block is { type: string; text: string } =>
+        typeof block === 'object' &&
+        block !== null &&
+        (block as any).type === 'text' &&
+        typeof (block as any).text === 'string')
+      .map((block) => block.text)
+      .join('\n');
+    if (text) return text;
+  }
+  return JSON.stringify(raw);
+};
+
 export const processStreamUpdate = async (
     chunk: Record<string, any>,
     conversationHistory: { current: BaseMessage[] },
@@ -71,8 +87,7 @@ export const processStreamUpdate = async (
           }
         } else if (type === 'tool') {
           const toolMessage = message as ToolMessage;
-          const raw = toolMessage.content;
-          const output = typeof raw === 'string' ? raw : JSON.stringify(raw);
+          const output = normalizeToolOutput(toolMessage.content);
           const isError = typeof output === 'string' && output.toLowerCase().startsWith('error');
           actions.updateToolExecution({
             toolCallId: toolMessage.tool_call_id,

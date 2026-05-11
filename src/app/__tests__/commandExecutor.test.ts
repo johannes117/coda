@@ -59,4 +59,17 @@ describe('executeSlashCommand', () => {
     expect(ctx.setShowModelMenu).toHaveBeenCalledWith(true);
   });
 
+  it('/clear resets the conversation and requests a UI clear', async () => {
+    const ctx = { ...ctxBase(), requestUiClear: vi.fn() };
+    const handled = await executeSlashCommand('clear', deps as any, ctx as any);
+
+    expect(handled).toBe(true);
+    expect(ctx.resetMessages).toHaveBeenCalledOnce();
+    expect(ctx.addMessage).toHaveBeenCalledWith({
+      author: 'system',
+      chunks: [{ kind: 'text', text: 'New conversation started.' }],
+    });
+    expect(ctx.requestUiClear).toHaveBeenCalledOnce();
+  });
+
 });

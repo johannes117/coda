@@ -1,100 +1,93 @@
 import { slashCommands } from "@app/commands.js";
-import { Author, Chunk, DiffLine, Message, Mode, ModelConfig, ModelOption, SlashCommand } from "@types";
+import type { Key } from "ink";
+import {
+  ApiKeyMenuItem,
+  DiffLine,
+  Message,
+  Mode,
+  ModelConfig,
+  ModelOption,
+  SlashCommand,
+  StructuredPatchHunk,
+} from "@types";
 
 export type AppState = {
-    // UI data
-    cols: number;
-    messages: Message[];
-    busy: boolean;
-    mode: Mode;
-    currentModel: ModelConfig;
-    currentModelId: number;
-    busyText: string;
-    // Prompt
-    query: string;
-    onChange: (v: string) => void;
-    onSubmit: (v: string) => Promise<void>;
-    setQuery: (v: string) => void;
-    // Menus
-    showCommandMenu: boolean;
-    filteredCommands: typeof slashCommands;
-    commandSelectionIndex: number;
-    setCommandSelectionIndex: (i: number) => void;
-    showModelMenu: boolean;
-    filteredModels: ModelOption[];
-    modelSelectionIndex: number;
-    setModelSelectionIndex: (i: number) => void;
-    showFileSearchMenu: boolean;
-    fileSearchMatches: string[];
-    fileSearchSelectionIndex: number;
-    setFileSearchSelectionIndex: (i: number) => void;
+  // UI data
+  cols: number;
+  messages: Message[];
+  busy: boolean;
+  mode: Mode;
+  currentModel: ModelConfig;
+  currentModelId: number;
+  busyText: string;
+  // Prompt
+  query: string;
+  onChange: (v: string) => void;
+  onSubmit: (v: string) => Promise<void>;
+  setQuery: (v: string) => void;
+  cursorOffset: number;
+  onChangeCursorOffset: (offset: number) => void;
+  onPaste: (text: string) => void;
+  onImagePaste: (
+    base64Image: string,
+    mediaType?: string,
+    filename?: string,
+    sourcePath?: string,
+  ) => void;
+  onExit: () => void;
+  inputFilter?: (input: string, key: Key) => string;
+  // Menus
+  showCommandMenu: boolean;
+  filteredCommands: typeof slashCommands;
+  commandSelectionIndex: number;
+  setCommandSelectionIndex: (i: number) => void;
+  showModelMenu: boolean;
+  filteredModels: ModelOption[];
+  modelSelectionIndex: number;
+  setModelSelectionIndex: (i: number) => void;
+  showFileSearchMenu: boolean;
+  fileSearchMatches: string[];
+  fileSearchSelectionIndex: number;
+  setFileSearchSelectionIndex: (i: number) => void;
+  showApiKeysMenu: boolean;
+  apiKeyItems: ApiKeyMenuItem[];
+  apiKeysSelectionIndex: number;
+  setApiKeysSelectionIndex: (i: number) => void;
 };
 
-export type PromptBarProps = {
-    query: string;
-    onChange: (v: string) => void;
-    onSubmit: (v: string) => void | Promise<void>;
-    // command menu
-    showCommandMenu: boolean;
-    filteredCommands: SlashCommand[];
-    commandSelectionIndex: number;
-    // file search
-    showFileSearchMenu: boolean;
-    fileSearchMatches: string[];
-    fileSearchSelectionIndex: number;
-    // model menu
-    showModelMenu: boolean;
-    filteredModels: ModelOption[];
-    modelSelectionIndex: number;
-    currentModelId: number;
-  };
-
-export type BubblePrefixProps = {
-  author: Author;
-};
-
-export type MessageViewProps = {
-  msg: Message;
+export type ApiKeysMenuProps = {
+  items: ApiKeyMenuItem[];
+  selectedIndex: number;
 };
 
 export type ModelMenuProps = {
-    models: ModelOption[];
-    selectedIndex: number;
-    currentModelId: number;
+  models: ModelOption[];
+  selectedIndex: number;
+  currentModelId: number;
 };
 
 export type DiffRowProps = {
-    line: DiffLine;
-    pad: number;
+  line: DiffLine;
+  pad: number;
 };
-  
+
 export type DiffViewProps = {
-    diffLines: DiffLine[];
+  diffLines?: DiffLine[];
+  hunks?: StructuredPatchHunk[];
+  filePath?: string;
+  width?: number;
 };
 
 export type CommandMenuProps = {
-    commands: SlashCommand[];
-    selectedIndex: number;
-};
-
-export type ToolExecutionProps = {
-    chunk: Chunk;
+  commands: SlashCommand[];
+  selectedIndex: number;
 };
 
 export type FileSearchMenuProps = {
-    matches: string[];
-    selectedIndex: number;
-};
-
-export type FooterProps = {
-    mode: Mode;
-};
-
-export type HeaderBarProps = {
-    mode: Mode;
-    modelConfig: ModelConfig;
+  matches: string[];
+  selectedIndex: number;
 };
 
 export type CodeBlockProps = {
-    lines: string[];
+  lines: string[];
 };
