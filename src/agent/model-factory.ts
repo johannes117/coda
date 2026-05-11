@@ -21,11 +21,12 @@ export function createChatModel(
         model: name,
         temperature: 1,
         // gpt-5.x rejects `reasoning_effort` + function tools on
-        // /v1/chat/completions; the Responses API supports both.
+        // /v1/chat/completions; the Responses API supports both, but it
+        // nests these under `reasoning.effort` and `text.verbosity`.
         useResponsesApi: true,
         modelKwargs: {
-          reasoning_effort: effort,
-          verbosity: 'medium',
+          reasoning: { effort },
+          text: { verbosity: 'medium' },
         },
       });
     case 'anthropic':
