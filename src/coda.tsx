@@ -10,8 +10,22 @@ const clearTerminal = () => {
   }
 };
 
+// Ask the terminal to wrap pasted text in `\x1b[200~ … \x1b[201~` so the paste
+// handler can route it through `insertTextAtCursor` instead of the keystroke
+// path — which loses chunks when a paste is split across React batches.
+const enableBracketedPaste = () => {
+  if (process.stdout.isTTY) process.stdout.write('\x1B[?2004h');
+};
+const disableBracketedPaste = () => {
+  if (process.stdout.isTTY) process.stdout.write('\x1B[?2004l');
+};
+
 export async function main() {
   await clearLog();
+
+  // Belt-and-suspenders: also clear bracketed-paste mode on hard exit
+  // (Ctrl+C / uncaught) so the user's shell doesn't inherit it.
+  process.on('exit', disableBracketedPaste);
 
   const storedModelConfig = await getStoredModelConfig();
   if (storedModelConfig) {
@@ -47,6 +61,7 @@ export async function main() {
       }
     }, 120);
 
+    enableBracketedPaste();
     const instance = render(<App />);
     try {
       await instance.waitUntilExit();
@@ -54,6 +69,7 @@ export async function main() {
       clearInterval(blinkInterval);
       clearInterval(tickInterval);
       process.stdout.removeListener('resize', updateSize);
+      disableBracketedPaste();
     }
 
     const { resetRequested, clearRequested } = useStore.getState();

@@ -22,6 +22,7 @@ import { runAgentStream } from "@app/agent-runner.js";
 import { executeSlashCommand } from "@app/command-executor.js";
 import { resolveSlashCommand } from "@app/slash-command.js";
 import { augmentPromptWithFiles } from "@lib/prompt-augmentation.js";
+import { validateApiKey } from "@lib/api-key-format.js";
 import {
   pruneImages,
   buildHumanMessageWithImages,
@@ -389,6 +390,20 @@ export function useAppState(): AppState {
 
     // Escape with menu open closes the menu.
     if (key.escape) {
+      // First priority: cancel an in-progress API-key prompt. Without this
+      // the user has no way out of onboarding once it starts — Enter on an
+      // empty buffer just re-issues "API key cannot be empty.".
+      if (pendingApiKeyProvider) {
+        addMessage({
+          author: "system",
+          chunks: [{ kind: "text", text: "API key entry cancelled." }],
+        });
+        setPendingApiKeyProvider(null);
+        pendingPastedTexts.current.clear();
+        setQuery("");
+        setCursorOffset(0);
+        return;
+      }
       if (showApiKeysMenu) {
         closeApiKeysMenu();
         setQuery("");
@@ -451,11 +466,16 @@ export function useAppState(): AppState {
     async (value: string) => {
       // API key onboarding takes precedence — the user typed an API key, not a prompt.
       if (pendingApiKeyProvider) {
-        const key = value.trim();
-        if (!key) {
+        // Expand a [Pasted text #N] placeholder before validating so the user
+        // gets the same format-check whether their key was inserted inline or
+        // tucked behind a placeholder by the long-paste handler.
+        const expanded = expandPastedTextRefs(value, pendingPastedTexts.current);
+        const key = expanded.trim();
+        const reason = validateApiKey(pendingApiKeyProvider, key);
+        if (reason) {
           addMessage({
             author: "system",
-            chunks: [{ kind: "error", text: "API key cannot be empty." }],
+            chunks: [{ kind: "error", text: reason }],
           });
           setQuery("");
           setCursorOffset(0);
@@ -472,6 +492,10 @@ export function useAppState(): AppState {
             },
           ],
         });
+        // Clear any pasted-text refs that were attached to this onboarding
+        // submission — they're consumed and shouldn't leak into the next
+        // prompt.
+        pendingPastedTexts.current.clear();
         setPendingApiKeyProvider(null);
         setQuery("");
         setCursorOffset(0);

@@ -68,6 +68,40 @@ describe("stripBracketedPasteMarkers", () => {
     expect(out.text).toBe("ab");
     expect(out.hadMarkers).toBe(true);
   });
+
+  it("strips an ESC-less START marker at the beginning (Ink 6 swallows the leading \\x1b)", () => {
+    // Reproduces the original API-key corruption bug: bracketed paste arrives
+    // with the leading ESC stripped by Ink, so the start marker shows up as
+    // `[200~` and the canonical strip leaves it glued to the user's content.
+    const ink = `[200~sk-proj-IBqjslABCDEF${BRACKETED_PASTE_END}`;
+    const out = stripBracketedPasteMarkers(ink);
+    expect(out.text).toBe("sk-proj-IBqjslABCDEF");
+    expect(out.hadMarkers).toBe(true);
+  });
+
+  it("strips an ESC-less END marker arriving in its own chunk", () => {
+    const ink = "[201~";
+    const out = stripBracketedPasteMarkers(ink);
+    expect(out.text).toBe("");
+    expect(out.hadMarkers).toBe(true);
+  });
+
+  it("strips an ESC-less END marker even when followed by a trailing CR/LF", () => {
+    // Multi-chunk paste ending with `\x1b[201~\r` — Ink swallows the leading
+    // ESC of the END marker too, leaving `[201~\r` glued to the user's text.
+    const ink = "[200~sk-proj-IBqjslABCDEF[201~\r";
+    const out = stripBracketedPasteMarkers(ink);
+    expect(out.text).toBe("sk-proj-IBqjslABCDEF\r");
+    expect(out.hadMarkers).toBe(true);
+  });
+
+  it("only strips ESC-less markers at chunk boundaries (not mid-string)", () => {
+    // `[200~` mid-string is real user content (e.g., a regression test name)
+    // and must be preserved.
+    const out = stripBracketedPasteMarkers("hello [200~ world");
+    expect(out.text).toBe("hello [200~ world");
+    expect(out.hadMarkers).toBe(false);
+  });
 });
 
 describe("isImageFilePath after marker stripping", () => {

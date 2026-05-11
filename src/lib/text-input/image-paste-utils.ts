@@ -13,6 +13,17 @@ export const PASTE_THRESHOLD = 800;
 /** Bracketed-paste start / end sequences emitted by xterm-compatible terminals. */
 export const BRACKETED_PASTE_START = "\u001b[200~";
 export const BRACKETED_PASTE_END = "\u001b[201~";
+/**
+ * Ink 6's `use-input.js` strips a single leading `\u001b` from each input
+ * chunk before our handler sees it. When a bracketed-paste begins at the
+ * start of a chunk, we therefore see the START marker as `[200~` (no ESC).
+ * Same applies if the END marker arrives in its own chunk. We strip these
+ * "ESC-less" forms in addition to the canonical sequences so users don't
+ * end up with a `[200~` prefix glued to the front of their pasted content
+ * (most painful when pasting API keys — see GH bug-report).
+ */
+export const BRACKETED_PASTE_START_NO_ESC = "[200~";
+export const BRACKETED_PASTE_END_NO_ESC = "[201~";
 
 /**
  * Image extensions accepted from drag-and-drop or paste. Kept aligned with
@@ -57,22 +68,49 @@ function stripBackslashEscapes(path: string): string {
 /**
  * Strip bracketed-paste markers from a stdin chunk. Returns the cleaned text
  * and a flag noting whether markers were present.
+ *
+ * Also handles the "ESC-stripped" forms (`[200~` at start, `[201~` at end)
+ * that result from Ink 6 swallowing the leading `\u001b` of the first chunk
+ * in a bracketed paste. Without this, every paste begins with a literal
+ * `[200~` prefix glued to the user's content.
  */
 export function stripBracketedPasteMarkers(text: string): {
   text: string;
   hadMarkers: boolean;
 } {
-  const startIdx = text.indexOf(BRACKETED_PASTE_START);
-  const endIdx = text.indexOf(BRACKETED_PASTE_END);
-  if (startIdx === -1 && endIdx === -1) {
+  const hasFullStart = text.includes(BRACKETED_PASTE_START);
+  const hasFullEnd = text.includes(BRACKETED_PASTE_END);
+  const hasStrippedStart = text.startsWith(BRACKETED_PASTE_START_NO_ESC);
+  // Trailing `[201~` may be followed by CR/LF when the user hits Enter
+  // inside the same paste burst.
+  const hasStrippedEnd = /\[201~[\r\n]*$/.test(text);
+
+  if (!hasFullStart && !hasFullEnd && !hasStrippedStart && !hasStrippedEnd) {
     return { text, hadMarkers: false };
   }
+
   let cleaned = text;
   // Replace ALL occurrences (a single chunk can contain multiple bracketed
   // pastes when the terminal coalesces fast strokes).
   cleaned = cleaned.split(BRACKETED_PASTE_START).join("");
   cleaned = cleaned.split(BRACKETED_PASTE_END).join("");
+  // ESC-stripped markers can only legitimately appear flush against the
+  // chunk boundary, modulo a trailing CR/LF when the user hits Enter in the
+  // same paste burst. Pulling them from the middle of a string would risk
+  // eating real user content that happens to contain `[200~`/`[201~`.
+  cleaned = cleaned.replace(
+    new RegExp(`^${escapeRegex(BRACKETED_PASTE_START_NO_ESC)}`),
+    "",
+  );
+  cleaned = cleaned.replace(
+    new RegExp(`${escapeRegex(BRACKETED_PASTE_END_NO_ESC)}([\\r\\n]*)$`),
+    "$1",
+  );
   return { text: cleaned, hadMarkers: true };
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /**

@@ -3,6 +3,7 @@ import type { Key } from "ink";
 import {
   BRACKETED_PASTE_END,
   BRACKETED_PASTE_START,
+  BRACKETED_PASTE_START_NO_ESC,
   getMacOSClipboardImage,
   imageFilenameFromPath,
   isImageFilePath,
@@ -172,8 +173,20 @@ export function usePasteHandler({
     // Bracketed paste: the start marker is the most reliable signal. Any
     // subsequent chunks (until we see the end marker) belong to the same
     // paste, so we keep batching for the timeout window.
-    const containsPasteStart = input.includes(BRACKETED_PASTE_START);
-    const containsPasteEnd = input.includes(BRACKETED_PASTE_END);
+    //
+    // Ink 6 strips a single leading `\u001b` from each input chunk before
+    // we see it, so a bracketed-paste that begins this chunk will arrive
+    // as `[200~…` (no ESC). Match both forms to avoid routing the paste
+    // through normal keystroke handling — which would insert `[200~` as
+    // visible text and silently corrupt the user's pasted content.
+    const containsPasteStart =
+      input.includes(BRACKETED_PASTE_START) ||
+      input.startsWith(BRACKETED_PASTE_START_NO_ESC);
+    const containsPasteEnd =
+      input.includes(BRACKETED_PASTE_END) ||
+      // Trailing `[201~` optionally followed by CR/LF when the user pressed
+      // Enter inside the same paste burst.
+      /\[201~[\r\n]*$/.test(input);
 
     // Image-path detection on the stripped chunk: terminals that DON'T enable
     // bracketed paste still emit drag-and-drop as one input chunk we can match
