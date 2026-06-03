@@ -15,9 +15,9 @@ This document summarizes how to work effectively inside the coda CLI codebase. K
   - `App.tsx`: The main UI entry point.
   - `components/`: Presentational components.
   - `hooks/`: Custom React hooks for UI state and logic.
+  - `tools/`: UI renderers for agent tool calls and results.
 - `src/agent/` contains all agent-related logic:
-  - `graph.ts`: LangGraph setup and agent definition.
-  - `tools/`: Individual tools the agent can use (filesystem, shell).
+  - `graph.ts`: LangGraph setup and agent definition. Runtime tools are provided by `deepagents`.
   - `prompts.ts`: System prompts for the agent.
 - `src/lib/` contains framework-agnostic helpers:
   - `storage.ts`, `logger.ts`, `diff.ts`, `time.ts`, etc.

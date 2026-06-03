@@ -17,7 +17,6 @@
       "@app/*": ["src/app/*"],
       "@tui/*": ["src/tui/*"],
       "@agent/*": ["src/agent/*"],
-      "@agent/tools": ["src/agent/tools/index.ts"],
       "@agent/prompts": ["src/agent/prompts.ts"],
       "@agent/graph": ["src/agent/graph.ts"],
       "@lib/*": ["src/lib/*"],
