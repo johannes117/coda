@@ -10,7 +10,7 @@
 
 # coda
 
-coda is an AI coding-agent CLI for local code tasks. It provides an Ink-based terminal UI, streams agent activity through LangGraph/deepagents, and can use filesystem and shell tools in the current working directory.
+coda is an AI coding agent CLI for local code tasks. It provides an Ink-based terminal UI, streams agent activity through LangGraph/deepagents, and can use filesystem and shell tools in the current working directory.
 
 ## Features
 
