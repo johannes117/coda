@@ -9,8 +9,10 @@ export const modelOptions: ModelOption[] = [
   { id: 5, label: 'gpt-5.5-medium', name: 'gpt-5.5', provider: 'openai', effort: 'medium', contextWindow: 400000 },
   { id: 6, label: 'gpt-5.5-high', name: 'gpt-5.5', provider: 'openai', effort: 'high', contextWindow: 400000 },
   { id: 7, label: 'gpt-5.5-xhigh', name: 'gpt-5.5', provider: 'openai', effort: 'xhigh', contextWindow: 400000 },
-  { id: 8, label: 'glm-5.2', name: 'accounts/fireworks/models/glm-5p2', provider: 'fireworks', effort: 'medium', contextWindow: 200000 },
-  { id: 9, label: 'kimi-k2.7', name: 'accounts/fireworks/models/kimi-k2p7-instruct', provider: 'fireworks', effort: 'medium', contextWindow: 256000 },
+  { id: 8, label: 'glm-5.2-none', name: 'accounts/fireworks/models/glm-5p2', provider: 'fireworks', effort: 'none', contextWindow: 200000 },
+  { id: 9, label: 'glm-5.2-high', name: 'accounts/fireworks/models/glm-5p2', provider: 'fireworks', effort: 'high', contextWindow: 200000 },
+  { id: 10, label: 'glm-5.2-max', name: 'accounts/fireworks/models/glm-5p2', provider: 'fireworks', effort: 'max', contextWindow: 200000 },
+  { id: 11, label: 'kimi-k2.7', name: 'accounts/fireworks/models/kimi-k2p7-instruct', provider: 'fireworks', effort: 'medium', contextWindow: 256000 },
 ];
 
 export function getProviderForModel(modelName: string): Provider | null {

@@ -11,7 +11,7 @@ export type SlashCommandName =
   | "review"
   | "apikeys";
 export type Provider = "openai" | "anthropic" | "fireworks";
-export type Effort = "low" | "medium" | "high" | "xhigh";
+export type Effort = "none" | "low" | "medium" | "high" | "xhigh" | "max";
 
 export type ApiKeys = {
   openai?: string;

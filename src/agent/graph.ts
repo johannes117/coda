@@ -1,6 +1,7 @@
 import { createDeepAgent, LocalShellBackend } from 'deepagents';
 import type { DeepAgent } from 'deepagents';
 import { createChatModel } from '@agent/model-factory.js';
+import { toolErrorRecoveryMiddleware } from '@agent/tool-error-middleware.js';
 import { defaultSystemPrompt, evalSystemPrompt } from '@agent/prompts';
 import type { ApiKeys, ModelConfig } from '@types';
 
@@ -21,6 +22,7 @@ export const createAgent = async (
     model: model as any,
     systemPrompt: prompt,
     backend,
+    middleware: [toolErrorRecoveryMiddleware],
   }) as unknown as DeepAgent<any>;
 };
 

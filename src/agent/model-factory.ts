@@ -51,6 +51,12 @@ export function createChatModel(
         configuration: {
           baseURL: FIREWORKS_BASE_URL,
         },
+        // Fireworks exposes reasoning control through the OpenAI-compatible
+        // `reasoning_effort` field on /chat/completions. For glm-5.2 the
+        // meaningful values are 'none' (reasoning off), 'high', and 'max'.
+        modelKwargs: {
+          reasoning_effort: effort,
+        },
       });
     default:
       throw new Error(`Unknown provider: ${provider}`);
