@@ -48,11 +48,11 @@ describe('storage utils', () => {
   it('retrieves all API keys at once', async () => {
     await withTempHome(async (home, storage) => {
       await storage.storeApiKey('openai', 'sk-openai');
-      await storage.storeApiKey('google', 'sk-google');
+      await storage.storeApiKey('fireworks', 'fw_fireworks');
 
       const keys = await storage.getStoredApiKeys();
       expect(keys.openai).toBe('sk-openai');
-      expect(keys.google).toBe('sk-google');
+      expect(keys.fireworks).toBe('fw_fireworks');
       expect(keys.anthropic).toBeUndefined();
     });
   });

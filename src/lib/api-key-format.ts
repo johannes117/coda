@@ -46,13 +46,13 @@ export function validateApiKey(provider: Provider, key: string): string | null {
         return "Anthropic API key looks too short — likely truncated during paste.";
       }
       return null;
-    case "google":
-      // Google AI Studio keys typically start with "AIza" and are ~39 chars.
-      if (!key.startsWith("AIza")) {
-        return 'Google AI Studio API keys start with "AIza". The pasted value does not.';
+    case "fireworks":
+      // Fireworks API keys are issued with an "fw_" prefix.
+      if (!key.startsWith("fw_")) {
+        return 'Fireworks API keys start with "fw_". The pasted value does not — re-copy from https://fireworks.ai/account/api-keys.';
       }
-      if (key.length < 30) {
-        return "Google API key looks too short — likely truncated during paste.";
+      if (key.length < 20) {
+        return "Fireworks API key looks too short — likely truncated during paste.";
       }
       return null;
     default:

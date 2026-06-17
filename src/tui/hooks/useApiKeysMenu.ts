@@ -4,10 +4,10 @@ import type { ApiKeyMenuItem, ApiKeys, Provider } from '@types';
 const PROVIDER_LABELS: Record<Provider, string> = {
   openai: 'OpenAI',
   anthropic: 'Anthropic',
-  google: 'Google',
+  fireworks: 'Fireworks',
 };
 
-const PROVIDER_ORDER: Provider[] = ['openai', 'anthropic', 'google'];
+const PROVIDER_ORDER: Provider[] = ['openai', 'anthropic', 'fireworks'];
 
 function maskKey(key: string | undefined): string {
   if (!key) return 'not set';

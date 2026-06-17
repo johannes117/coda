@@ -85,7 +85,7 @@ describe("Zustand Store", () => {
   });
 
   it("should set all API keys at once", () => {
-    const apiKeys = { openai: "sk-1", anthropic: "sk-2", google: "sk-3" };
+    const apiKeys = { openai: "sk-1", anthropic: "sk-2", fireworks: "fw_3" };
     useStore.getState().setApiKeys(apiKeys);
     expect(useStore.getState().apiKeys).toEqual(apiKeys);
   });

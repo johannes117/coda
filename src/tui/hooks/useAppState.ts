@@ -119,7 +119,7 @@ export function useAppState(): AppState {
   const providerNames: Record<Provider, string> = {
     openai: "OpenAI",
     anthropic: "Anthropic",
-    google: "Google",
+    fireworks: "Fireworks",
   };
 
   const hasApiKeyForProvider = (provider: Provider) => !!apiKeys[provider];

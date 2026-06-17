@@ -44,12 +44,12 @@ describe("validateApiKey", () => {
     });
   });
 
-  describe("google", () => {
-    it("accepts a plausible AIza key", () => {
-      expect(validateApiKey("google", "AIza" + "a".repeat(35))).toBeNull();
+  describe("fireworks", () => {
+    it("accepts a plausible fw_ key", () => {
+      expect(validateApiKey("fireworks", "fw_" + "a".repeat(40))).toBeNull();
     });
-    it("rejects keys missing the AIza prefix", () => {
-      expect(validateApiKey("google", "sk-" + "a".repeat(40))).toMatch(/AIza/);
+    it("rejects keys missing the fw_ prefix", () => {
+      expect(validateApiKey("fireworks", "sk-" + "a".repeat(40))).toMatch(/fw_/);
     });
   });
 });

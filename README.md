@@ -16,7 +16,7 @@ coda is an AI coding-agent CLI for local code tasks. It provides an Ink-based te
 
 - Interactive terminal UI built with Ink and React.
 - Agent and plan modes; press `Tab` to switch between them.
-- Model support for Anthropic, OpenAI, and Google.
+- Model support for Anthropic, OpenAI, and Fireworks.
 - Local API key and model configuration storage under `~/.coda`.
 - Slash commands for help, status, model selection, API key management, reviews, clearing, resetting, and quitting.
 - File references with `@...`, image paste support, and long-paste placeholders.

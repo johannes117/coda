@@ -50,7 +50,7 @@ export const useStore = create<Store>((set, get) => ({
     return { apiKeys: next };
   }),
   clearApiKeys: () => set({ apiKeys: {} }),
-  modelConfig: { name: 'claude-opus-4-7', provider: 'anthropic', effort: 'high' },
+  modelConfig: { name: 'claude-opus-4-8', provider: 'anthropic', effort: 'high' },
   setModelConfig: (config: ModelConfig) => set({ modelConfig: config }),
   messages: [createWelcomeMessage()],
   addMessage: (msg: Omit<Message, 'id'>) => set((state) => ({ messages: [...state.messages, { ...msg, id: randomUUID() }] })),

@@ -10,13 +10,13 @@ export type SlashCommandName =
   | "model"
   | "review"
   | "apikeys";
-export type Provider = "openai" | "anthropic" | "google";
+export type Provider = "openai" | "anthropic" | "fireworks";
 export type Effort = "low" | "medium" | "high" | "xhigh";
 
 export type ApiKeys = {
   openai?: string;
   anthropic?: string;
-  google?: string;
+  fireworks?: string;
 };
 
 export type SlashCommand = {

@@ -1,7 +1,10 @@
 import { ChatOpenAI } from '@langchain/openai';
 import { ChatAnthropic } from '@langchain/anthropic';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import type { ModelConfig, ApiKeys } from '@types';
+
+// Fireworks exposes an OpenAI-compatible Chat Completions API, so we reuse
+// ChatOpenAI and just point it at the Fireworks inference endpoint.
+const FIREWORKS_BASE_URL = 'https://api.fireworks.ai/inference/v1';
 
 type ChatModelOptions = {
   bindTools?: boolean;
@@ -40,11 +43,14 @@ export function createChatModel(
           output_config: { effort },
         },
       });
-    case 'google':
-      return new ChatGoogleGenerativeAI({
-        apiKey: apiKeys.google,
+    case 'fireworks':
+      return new ChatOpenAI({
+        apiKey: apiKeys.fireworks,
         model: name,
         temperature: 1,
+        configuration: {
+          baseURL: FIREWORKS_BASE_URL,
+        },
       });
     default:
       throw new Error(`Unknown provider: ${provider}`);

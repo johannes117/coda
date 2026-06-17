@@ -58,7 +58,7 @@ export async function getStoredApiKeys(): Promise<ApiKeys> {
     return {
       openai: authData.openai || undefined,
       anthropic: authData.anthropic || undefined,
-      google: authData.google || undefined,
+      fireworks: authData.fireworks || undefined,
     };
   } catch (error) {
     return {};

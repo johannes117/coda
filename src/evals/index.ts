@@ -14,14 +14,14 @@ async function runCodaAgent(inputs: { task: string }): Promise<string> {
   const apiKeys: ApiKeys = {
     openai: process.env.OPENAI_API_KEY,
     anthropic: process.env.ANTHROPIC_API_KEY,
-    google: process.env.GOOGLE_API_KEY,
+    fireworks: process.env.FIREWORKS_API_KEY,
   };
 
   if (!apiKeys.anthropic) {
     throw new Error("ANTHROPIC_API_KEY not found in environment");
   }
 
-  const modelConfig: ModelConfig = { name: "claude-opus-4-7", provider: "anthropic", effort: "high" };
+  const modelConfig: ModelConfig = { name: "claude-opus-4-8", provider: "anthropic", effort: "high" };
   const agent = createEvalAgent(apiKeys, modelConfig, evalSystemPrompt);
 
   const messages = [new HumanMessage(inputs.task)];
