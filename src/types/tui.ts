@@ -7,6 +7,7 @@ import {
   Mode,
   ModelConfig,
   ModelOption,
+  SessionMenuItem,
   SlashCommand,
   StructuredPatchHunk,
 } from "@types";
@@ -53,10 +54,20 @@ export type AppState = {
   apiKeyItems: ApiKeyMenuItem[];
   apiKeysSelectionIndex: number;
   setApiKeysSelectionIndex: (i: number) => void;
+  // resume menu
+  showResumeMenu: boolean;
+  sessionItems: SessionMenuItem[];
+  resumeSelectionIndex: number;
+  setResumeSelectionIndex: (i: number) => void;
 };
 
 export type ApiKeysMenuProps = {
   items: ApiKeyMenuItem[];
+  selectedIndex: number;
+};
+
+export type ResumeMenuProps = {
+  items: SessionMenuItem[];
   selectedIndex: number;
 };
 

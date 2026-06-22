@@ -25,6 +25,10 @@ describe("slash command parsing", () => {
       kind: "command",
       command: { name: "quit" },
     });
+    expect(resolveSlashCommand("/continue")).toMatchObject({
+      kind: "command",
+      command: { name: "resume" },
+    });
   });
 
   it("treats unknown slash-prefixed text as a prompt", () => {

@@ -89,4 +89,79 @@ describe('storage utils', () => {
       await expect(storage.loadSession(sessionId)).resolves.toEqual(history);
     });
   });
+
+  it('saves and loads session envelopes with metadata', async () => {
+    await withTempHome(async (home, storage) => {
+      const sessionId = 'sesh-1';
+      const modelConfig = { name: 'claude-opus-4-8', provider: 'anthropic' as const, effort: 'high' as const };
+      const tokenUsage = { input: 100, output: 50, total: 150 };
+      const history = [
+        { type: 'human', content: 'Fix the bug' },
+        { type: 'ai', content: 'Done!' },
+      ] as any;
+      const uiMessages = [
+        { id: 'm1', author: 'user', chunks: [{ kind: 'text', text: 'Fix the bug' }] },
+        { id: 'm2', author: 'agent', chunks: [{ kind: 'text', text: 'Done!' }] },
+      ] as any;
+
+      await storage.saveSessionEnvelope(
+        sessionId, history, uiMessages, modelConfig, tokenUsage,
+        'Fix the bug', '2025-01-01T00:00:00.000Z',
+      );
+
+      const loaded = await storage.loadSessionEnvelope(sessionId);
+      expect(loaded).not.toBeNull();
+      expect(loaded!.sessionId).toBe(sessionId);
+      expect(loaded!.firstPrompt).toBe('Fix the bug');
+      expect(loaded!.modelConfig).toEqual(modelConfig);
+      expect(loaded!.tokenUsage).toEqual(tokenUsage);
+      expect(loaded!.messages).toEqual(history);
+      expect(loaded!.uiMessages).toEqual(uiMessages);
+    });
+  });
+
+  it('lists sessions most-recent first', async () => {
+    await withTempHome(async (_home, storage) => {
+      const modelConfig = { name: 'claude-opus-4-8', provider: 'anthropic' as const, effort: 'high' as const };
+      const tokenUsage = { input: 0, output: 0, total: 0 };
+      const history = [] as any;
+      const uiMessages = [] as any;
+
+      // Save three sessions with different createdAt/updatedAt timestamps.
+      // saveSessionEnvelope stamps updatedAt to "now", so we save them in
+      // order with small delays is impractical — instead we verify sorting
+      // by writing files directly with known timestamps.
+      const { promises: fs2 } = await import('fs');
+      const path2 = (await import('path')).default;
+      const sessionsDir = path2.join(process.env.HOME!, '.coda', 'sessions');
+      await fs2.mkdir(sessionsDir, { recursive: true });
+
+      const sessions = [
+        { sessionId: 'old', createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-01-01T00:00:00Z', firstPrompt: 'old prompt', modelConfig, tokenUsage, messages: [], uiMessages: [] },
+        { sessionId: 'new', createdAt: '2025-03-01T00:00:00Z', updatedAt: '2025-03-01T00:00:00Z', firstPrompt: 'new prompt', modelConfig, tokenUsage, messages: [], uiMessages: [] },
+        { sessionId: 'mid', createdAt: '2025-02-01T00:00:00Z', updatedAt: '2025-02-01T00:00:00Z', firstPrompt: 'mid prompt', modelConfig, tokenUsage, messages: [], uiMessages: [] },
+      ];
+
+      for (const s of sessions) {
+        await fs2.writeFile(
+          path2.join(sessionsDir, `${s.sessionId}.json`),
+          JSON.stringify(s, null, 2),
+        );
+      }
+
+      const metas = await storage.listSessions();
+      expect(metas).toHaveLength(3);
+      expect(metas[0].sessionId).toBe('new');
+      expect(metas[1].sessionId).toBe('mid');
+      expect(metas[2].sessionId).toBe('old');
+      expect(metas[0].firstPrompt).toBe('new prompt');
+      expect(metas[0].messageCount).toBe(0);
+    });
+  });
+
+  it('returns null for missing session envelope', async () => {
+    await withTempHome(async (_home, storage) => {
+      await expect(storage.loadSessionEnvelope('nonexistent')).resolves.toBeNull();
+    });
+  });
 });
