@@ -1,5 +1,6 @@
-import { createDeepAgent, LocalShellBackend } from 'deepagents';
+import { createDeepAgent } from 'deepagents';
 import type { DeepAgent } from 'deepagents';
+import { ScopedLocalShellBackend } from '@agent/scoped-backend.js';
 import { createChatModel } from '@agent/model-factory.js';
 import { toolErrorRecoveryMiddleware } from '@agent/tool-error-middleware.js';
 import { defaultSystemPrompt, evalSystemPrompt } from '@agent/prompts';
@@ -11,7 +12,7 @@ export const createAgent = async (
   prompt: string = defaultSystemPrompt
 ): Promise<DeepAgent<any>> => {
   const model = createChatModel(apiKeys, modelConfig, { bindTools: false });
-  const backend = await LocalShellBackend.create({
+  const backend = await ScopedLocalShellBackend.createScoped({
     rootDir: process.cwd(),
     virtualMode: false,
     inheritEnv: true,
