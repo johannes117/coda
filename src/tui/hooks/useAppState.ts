@@ -4,7 +4,9 @@ import { useApp, useInput } from "ink";
 import { randomUUID } from "crypto";
 import { BaseMessage, HumanMessage } from "@langchain/core/messages";
 import {
-  saveSession,
+  saveSessionEnvelope,
+  loadSessionEnvelope,
+  listSessions,
   storeModelConfig,
   storeApiKey,
   deleteStoredApiKey,
@@ -18,6 +20,7 @@ import { useFileSearchMenu } from "@tui/hooks/useFileSearchMenu.js";
 import { useCommandMenu } from "@tui/hooks/useCommandMenu.js";
 import { useModelMenu } from "@tui/hooks/useModelMenu.js";
 import { useApiKeysMenu } from "@tui/hooks/useApiKeysMenu.js";
+import { useResumeMenu } from "@tui/hooks/useResumeMenu.js";
 import { runAgentStream } from "@app/agent-runner.js";
 import { executeSlashCommand } from "@app/command-executor.js";
 import { resolveSlashCommand } from "@app/slash-command.js";
@@ -93,8 +96,19 @@ export function useAppState(): AppState {
   const [mode, setMode] = useState<Mode>("agent");
   const [query, setQuery] = useState("");
   const [cursorOffset, setCursorOffsetState] = useState(0);
-  const [sessionId] = useState(() => randomUUID());
-  const conversationHistory = useRef<BaseMessage[]>([]);
+  // Session state lives in the Zustand store so it survives the
+  // unmount/remount cycle when clearRequested triggers a re-render
+  // (used by /clear and /resume). We read it into a ref for the
+  // { current: BaseMessage[] } interface expected by agent-runner.
+  const storeSessionId = useStore((store) => store.sessionId);
+  const setStoreSessionId = useStore((store) => store.setSessionId);
+  const storeConversationHistory = useStore((store) => store.conversationHistory);
+  const setStoreConversationHistory = useStore((store) => store.setConversationHistory);
+  const storeSessionCreatedAt = useStore((store) => store.sessionCreatedAt);
+  const setStoreSessionCreatedAt = useStore((store) => store.setSessionCreatedAt);
+  const storeSessionFirstPrompt = useStore((store) => store.sessionFirstPrompt);
+  const setStoreSessionFirstPrompt = useStore((store) => store.setSessionFirstPrompt);
+  const conversationHistory = useRef<BaseMessage[]>(storeConversationHistory);
   const [pendingApiKeyProvider, setPendingApiKeyProvider] =
     useState<Provider | null>(null);
   // Mirror of cursorOffset that updates synchronously. setState is async, so a
@@ -155,6 +169,15 @@ export function useAppState(): AppState {
   } = useApiKeysMenu(apiKeys);
 
   const {
+    showResumeMenu,
+    sessionItems,
+    resumeSelectionIndex,
+    setResumeSelectionIndex,
+    open: openResumeMenu,
+    close: closeResumeMenu,
+  } = useResumeMenu();
+
+  const {
     showFileSearchMenu,
     fileSearchMatches,
     fileSearchSelectionIndex,
@@ -173,6 +196,25 @@ export function useAppState(): AppState {
   const currentModelId = currentOption ? currentOption.id : 1;
 
   const busyText = useBusyText();
+
+  // Session save callback — wraps saveSessionEnvelope with current session
+  // metadata. Passed via RunnerDeps so agent-runner and stream-processor can
+  // persist without knowing the session ID or UI state.
+  const saveSessionCb = useCallback(
+    async (history: BaseMessage[]) => {
+      const state = useStore.getState();
+      await saveSessionEnvelope(
+        state.sessionId,
+        history,
+        state.messages,
+        currentModel,
+        state.tokenUsage,
+        state.sessionFirstPrompt,
+        state.sessionCreatedAt,
+      );
+    },
+    [currentModel],
+  );
 
   // Splice text at the current cursor position. Used by paste handlers when
   // a placeholder ([Image #N], [Pasted text #N]) needs to be injected without
@@ -348,6 +390,19 @@ export function useAppState(): AppState {
       }
     }
 
+    if (showResumeMenu) {
+      if (key.upArrow) {
+        setResumeSelectionIndex((prev) => (prev > 0 ? prev - 1 : prev));
+        return;
+      }
+      if (key.downArrow) {
+        setResumeSelectionIndex((prev) =>
+          prev < sessionItems.length - 1 ? prev + 1 : prev,
+        );
+        return;
+      }
+    }
+
     if (showModelMenu) {
       if (key.upArrow) {
         setModelSelectionIndex((prev) => (prev > 0 ? prev - 1 : prev));
@@ -406,6 +461,12 @@ export function useAppState(): AppState {
       }
       if (showApiKeysMenu) {
         closeApiKeysMenu();
+        setQuery("");
+        setCursorOffset(0);
+        return;
+      }
+      if (showResumeMenu) {
+        closeResumeMenu();
         setQuery("");
         setCursorOffset(0);
         return;
@@ -540,6 +601,46 @@ export function useAppState(): AppState {
         return;
       }
 
+      if (showResumeMenu) {
+        const selectedItem = sessionItems[resumeSelectionIndex];
+        if (!selectedItem) {
+          closeResumeMenu();
+          setQuery("");
+          setCursorOffset(0);
+          return;
+        }
+        const sessionData = await loadSessionEnvelope(selectedItem.sessionId);
+        if (!sessionData) {
+          addMessage({
+            author: "system",
+            chunks: [
+              { kind: "error", text: "Failed to load conversation." },
+            ],
+          });
+          closeResumeMenu();
+          setQuery("");
+          setCursorOffset(0);
+          return;
+        }
+        // Restore conversation history, UI messages, session ID, model, and
+        // token usage from the saved session envelope.
+        conversationHistory.current = sessionData.messages;
+        setStoreConversationHistory(sessionData.messages);
+        useStore.getState().setMessages(sessionData.uiMessages);
+        setStoreSessionId(sessionData.sessionId);
+        setStoreSessionCreatedAt(sessionData.createdAt);
+        setStoreSessionFirstPrompt(sessionData.firstPrompt);
+        if (sessionData.modelConfig) {
+          setModelConfig(sessionData.modelConfig);
+        }
+        useStore.getState().updateTokenUsage(sessionData.tokenUsage);
+        closeResumeMenu();
+        // Clear the terminal so the resumed conversation starts fresh visually.
+        useStore.setState({ clearRequested: true });
+        exit();
+        return;
+      }
+
       if (showModelMenu) {
         const selectedModel = filteredModels[modelSelectionIndex];
         if (!selectedModel) return;
@@ -637,12 +738,20 @@ export function useAppState(): AppState {
             updateToolExecution,
             updateTokenUsage,
             setBusy,
+            saveSession: saveSessionCb,
           },
           {
             addMessage,
             resetMessages: () => {
               resetMessages();
               conversationHistory.current = [];
+              setStoreConversationHistory([]);
+              // Generate a new session ID so the cleared conversation
+              // doesn't overwrite the previous session's file.
+              const newId = randomUUID();
+              setStoreSessionId(newId);
+              setStoreSessionCreatedAt('');
+              setStoreSessionFirstPrompt('');
             },
             clearApiKeys,
             setShowModelMenu: openModelMenu,
@@ -660,9 +769,12 @@ export function useAppState(): AppState {
             openApiKeysMenu: () => {
               openApiKeysMenu();
             },
+            openResumeMenu: () => {
+              openResumeMenu();
+            },
             apiKeys,
             currentModel,
-            sessionId,
+            sessionId: storeSessionId,
           },
         );
         resetCommandMenu();
@@ -704,7 +816,19 @@ export function useAppState(): AppState {
       pendingPastedTexts.current.clear();
       nextRefId.current = 1;
 
-      await saveSession("last_session", conversationHistory.current);
+      // Stamp session metadata on first prompt.
+      if (!useStore.getState().sessionCreatedAt) {
+        setStoreSessionCreatedAt(new Date().toISOString());
+      }
+      if (!useStore.getState().sessionFirstPrompt) {
+        setStoreSessionFirstPrompt(value);
+      }
+
+      // Keep the store's conversation history in sync so it survives
+      // any future unmount/remount cycle (e.g. /clear → re-render).
+      setStoreConversationHistory(conversationHistory.current);
+
+      await saveSessionCb(conversationHistory.current);
       setBusy(true);
       try {
         const systemPrompt =
@@ -717,6 +841,7 @@ export function useAppState(): AppState {
             updateToolExecution,
             updateTokenUsage,
             setBusy,
+            saveSession: saveSessionCb,
           },
           conversationHistory,
           userMessage,
@@ -762,8 +887,18 @@ export function useAppState(): AppState {
       pendingApiKeyProvider,
       setApiKey,
       clearApiKeys,
-      sessionId,
+      storeSessionId,
       resetModelMenu,
+      showResumeMenu,
+      sessionItems,
+      resumeSelectionIndex,
+      closeResumeMenu,
+      openResumeMenu,
+      saveSessionCb,
+      setStoreConversationHistory,
+      setStoreSessionId,
+      setStoreSessionCreatedAt,
+      setStoreSessionFirstPrompt,
     ],
   );
 
@@ -801,5 +936,9 @@ export function useAppState(): AppState {
     apiKeyItems,
     apiKeysSelectionIndex,
     setApiKeysSelectionIndex,
+    showResumeMenu,
+    sessionItems,
+    resumeSelectionIndex,
+    setResumeSelectionIndex,
   };
 }

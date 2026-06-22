@@ -1,4 +1,5 @@
 import { render } from 'ink';
+import { randomUUID } from 'crypto';
 import { App } from './tui/App.js';
 import { getStoredApiKeys, deleteAllApiKeys, getStoredModelConfig } from '@lib/storage';
 import { clearLog } from '@lib/logger';
@@ -78,6 +79,10 @@ export async function main() {
         resetRequested: false,
         apiKeys: {},
         messages: [],
+        conversationHistory: [],
+        sessionId: randomUUID(),
+        sessionCreatedAt: '',
+        sessionFirstPrompt: '',
       });
       await deleteAllApiKeys();
     } else if (clearRequested) {

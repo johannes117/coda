@@ -1,6 +1,5 @@
 import { Chunk, StreamProcessorActions } from "@types";
 import { BaseMessage, AIMessage, ToolMessage } from "@langchain/core/messages";
-import { saveSession } from "@lib/storage";
 
 const seenMessageIds = new WeakSet<BaseMessage>();
 
@@ -40,7 +39,6 @@ export const processStreamUpdate = async (
       }
       if (newMessages.length === 0) continue;
       conversationHistory.current.push(...newMessages);
-      await saveSession('last_session', conversationHistory.current);
       for (const message of newMessages) {
         const type = typeof message.getType === 'function' ? message.getType() : (message as any).type;
         if (type === 'ai') {

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { ModelConfig, Message, TokenUsage, ToolExecution, ApiKeys } from '@types';
+import { BaseMessage } from '@langchain/core/messages';
 import { randomUUID } from 'crypto';
 
 // The Welcome banner UI replaces the textual greeting. We still seed an initial
@@ -22,6 +23,7 @@ type Store = {
   setModelConfig: (config: ModelConfig) => void;
   messages: Message[];
   addMessage: (msg: Omit<Message, 'id'>) => void;
+  setMessages: (messages: Message[]) => void;
   resetMessages: () => void;
   updateToolExecution: (toolExecution: ToolExecution) => void;
   tokenUsage: TokenUsage;
@@ -36,6 +38,17 @@ type Store = {
   terminalRows: number;
   resetRequested: boolean;
   clearRequested: boolean;
+  // Session persistence — stored in Zustand so conversation history and
+  // metadata survive the unmount/remount cycle when clearRequested triggers
+  // a re-render (used by /clear and /resume).
+  conversationHistory: BaseMessage[];
+  setConversationHistory: (history: BaseMessage[]) => void;
+  sessionId: string;
+  setSessionId: (id: string) => void;
+  sessionCreatedAt: string;
+  setSessionCreatedAt: (ts: string) => void;
+  sessionFirstPrompt: string;
+  setSessionFirstPrompt: (prompt: string) => void;
 };
 
 export const useStore = create<Store>((set, get) => ({
@@ -54,6 +67,7 @@ export const useStore = create<Store>((set, get) => ({
   setModelConfig: (config: ModelConfig) => set({ modelConfig: config }),
   messages: [createWelcomeMessage()],
   addMessage: (msg: Omit<Message, 'id'>) => set((state) => ({ messages: [...state.messages, { ...msg, id: randomUUID() }] })),
+  setMessages: (messages: Message[]) => set({ messages }),
   resetMessages: () => set({ messages: [createWelcomeMessage()], tokenUsage: { input: 0, output: 0, total: 0 } }),
   updateToolExecution: (toolExecution: ToolExecution) =>
     set((state) => ({
@@ -86,4 +100,12 @@ export const useStore = create<Store>((set, get) => ({
   terminalRows: process.stdout.rows ?? 24,
   resetRequested: false,
   clearRequested: false,
+  conversationHistory: [],
+  setConversationHistory: (history) => set({ conversationHistory: history }),
+  sessionId: randomUUID(),
+  setSessionId: (id) => set({ sessionId: id }),
+  sessionCreatedAt: '',
+  setSessionCreatedAt: (ts) => set({ sessionCreatedAt: ts }),
+  sessionFirstPrompt: '',
+  setSessionFirstPrompt: (prompt) => set({ sessionFirstPrompt: prompt }),
 }));
