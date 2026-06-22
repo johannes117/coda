@@ -1,24 +1,23 @@
-import { render } from "ink-testing-library";
+import { renderToString } from "@tui/test-utils/render.js";
 import { Message } from "./Message.js";
 import type { Message as MessageType } from "@types";
 
 describe("Message", () => {
-  it("renders a user prompt without a leading bullet", () => {
+  it("renders a user prompt without a leading bullet", async () => {
     const message: MessageType = {
       id: "1",
       author: "user",
       chunks: [{ kind: "text", text: "How do I install bun?" }],
     };
 
-    const { lastFrame } = render(<Message message={message} />);
-    const frame = lastFrame() ?? "";
+    const frame = await renderToString(<Message message={message} />);
 
     expect(frame).toContain("How do I install bun?");
     expect(frame).toContain("> ");
     expect(frame).not.toMatch(/^[●⏺]/m);
   });
 
-  it("shows the leading dot only on the first assistant text chunk", () => {
+  it("shows the leading dot only on the first assistant text chunk", async () => {
     const message: MessageType = {
       id: "1",
       author: "agent",
@@ -28,8 +27,7 @@ describe("Message", () => {
       ],
     };
 
-    const { lastFrame } = render(<Message message={message} />);
-    const frame = lastFrame() ?? "";
+    const frame = await renderToString(<Message message={message} />);
 
     const dotMatches = frame.match(/[●⏺]/g) ?? [];
     expect(dotMatches.length).toBe(1);
@@ -37,7 +35,7 @@ describe("Message", () => {
     expect(frame).toContain("Second paragraph.");
   });
 
-  it("renders a tool execution under a separate AssistantToolUseMessage", () => {
+  it("renders a tool execution under a separate AssistantToolUseMessage", async () => {
     const message: MessageType = {
       id: "1",
       author: "system",
@@ -53,8 +51,7 @@ describe("Message", () => {
       ],
     };
 
-    const { lastFrame } = render(<Message message={message} />);
-    const frame = lastFrame() ?? "";
+    const frame = await renderToString(<Message message={message} />);
 
     expect(frame).toContain("Bash(");
     expect(frame).toContain("ls");
@@ -63,7 +60,7 @@ describe("Message", () => {
     expect(frame).toContain("README.md");
   });
 
-  it("uses the structured Read summary even when no diff is parseable", () => {
+  it("uses the structured Read summary even when no diff is parseable", async () => {
     const message: MessageType = {
       id: "1",
       author: "system",
@@ -79,8 +76,7 @@ describe("Message", () => {
       ],
     };
 
-    const { lastFrame } = render(<Message message={message} />);
-    const frame = lastFrame() ?? "";
+    const frame = await renderToString(<Message message={message} />);
 
     expect(frame).toContain("Read(");
     expect(frame).toContain("Read 4 lines");

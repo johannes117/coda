@@ -1,4 +1,4 @@
-import { Box, Static } from "ink";
+import { Box } from "ink";
 import { Welcome } from "./components/Welcome.js";
 import { Message } from "./components/Message.js";
 import { PromptInput } from "./components/PromptInput.js";
@@ -9,37 +9,17 @@ import { useAppState } from "./hooks/useAppState.js";
 export const App = () => {
   const appState = useAppState();
 
-  // Split messages: all messages except the last one go in <Static> scrollback
-  // (they never re-render, which is what we want for tool results, etc.).
-  // The most recent message stays "live" so streaming updates still mutate.
-  const messages = appState.messages;
-  const staticMessages = messages.length > 1 ? messages.slice(0, -1) : [];
-  const liveMessage =
-    messages.length > 0 ? messages[messages.length - 1] : null;
-
+  // The vendored renderer diffs at the cell level and lets unchanged earlier
+  // rows scroll into terminal history without rewrites, so we render the whole
+  // conversation live in one tree. No <Static> — that was a stock-Ink crutch
+  // whose scrollback-unaware erase caused the growing-gap glitch.
   return (
     <Box flexDirection="column">
-      <Static
-        items={[
-          { kind: "welcome" as const, key: "welcome" },
-          ...staticMessages.map((message) => ({
-            kind: "message" as const,
-            key: message.id,
-            message,
-          })),
-        ]}
-      >
-        {(item) => {
-          if (item.kind === "welcome") {
-            return (
-              <Welcome key="welcome" modelConfig={appState.currentModel} />
-            );
-          }
-          return <Message key={item.key} message={item.message} />;
-        }}
-      </Static>
+      <Welcome modelConfig={appState.currentModel} />
 
-      {liveMessage ? <Message message={liveMessage} /> : null}
+      {appState.messages.map((message) => (
+        <Message key={message.id} message={message} />
+      ))}
 
       {appState.busy ? <BusyLine label={appState.busyText} /> : null}
 

@@ -1,9 +1,9 @@
-import { render } from "ink-testing-library";
+import { renderToString } from "@tui/test-utils/render.js";
 import { AssistantToolUseMessage } from "./AssistantToolUseMessage.js";
 import type { Chunk } from "@types";
 
 describe("AssistantToolUseMessage", () => {
-  it("renders edit_file calls as Update(path) with a diff body", () => {
+  it("renders edit_file calls as Update(path) with a diff body", async () => {
     const chunk: Chunk = {
       kind: "tool-execution",
       toolCallId: "tool-1",
@@ -17,8 +17,7 @@ describe("AssistantToolUseMessage", () => {
       output: "Successfully replaced 1 occurrence(s) in '/tmp/example.ts'",
     };
 
-    const { lastFrame } = render(<AssistantToolUseMessage chunk={chunk} />);
-    const frame = lastFrame() ?? "";
+    const frame = await renderToString(<AssistantToolUseMessage chunk={chunk} />);
 
     expect(frame).toContain("Update(");
     expect(frame).toContain("/tmp/example.ts");
@@ -28,7 +27,7 @@ describe("AssistantToolUseMessage", () => {
     expect(frame).not.toContain("new_string=");
   });
 
-  it("renders bash calls as Bash(command) with output indented under ⎿", () => {
+  it("renders bash calls as Bash(command) with output indented under ⎿", async () => {
     const chunk: Chunk = {
       kind: "tool-execution",
       toolCallId: "tool-bash",
@@ -38,8 +37,7 @@ describe("AssistantToolUseMessage", () => {
       output: "hello\n",
     };
 
-    const { lastFrame } = render(<AssistantToolUseMessage chunk={chunk} />);
-    const frame = lastFrame() ?? "";
+    const frame = await renderToString(<AssistantToolUseMessage chunk={chunk} />);
 
     expect(frame).toContain("Bash(");
     expect(frame).toContain("echo hello");
@@ -47,7 +45,7 @@ describe("AssistantToolUseMessage", () => {
     expect(frame).toContain("hello");
   });
 
-  it("renders read_file results as a Read N lines summary", () => {
+  it("renders read_file results as a Read N lines summary", async () => {
     const chunk: Chunk = {
       kind: "tool-execution",
       toolCallId: "tool-read",
@@ -57,14 +55,13 @@ describe("AssistantToolUseMessage", () => {
       output: "line one\nline two\nline three",
     };
 
-    const { lastFrame } = render(<AssistantToolUseMessage chunk={chunk} />);
-    const frame = lastFrame() ?? "";
+    const frame = await renderToString(<AssistantToolUseMessage chunk={chunk} />);
 
     expect(frame).toContain("Read(");
     expect(frame).toContain("Read 3 lines");
   });
 
-  it("renders running tool as Running… without output", () => {
+  it("renders running tool as Running… without output", async () => {
     const chunk: Chunk = {
       kind: "tool-execution",
       toolCallId: "tool-running",
@@ -73,8 +70,7 @@ describe("AssistantToolUseMessage", () => {
       status: "running",
     };
 
-    const { lastFrame } = render(<AssistantToolUseMessage chunk={chunk} />);
-    const frame = lastFrame() ?? "";
+    const frame = await renderToString(<AssistantToolUseMessage chunk={chunk} />);
 
     expect(frame).toContain("Bash(");
     expect(frame).toContain("Running…");

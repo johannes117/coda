@@ -20,6 +20,7 @@ export default defineConfig({
       { find: /^@config\//, replacement: r('./src/config/') },
       { find: /^@types$/, replacement: r('./src/types/index.ts') },
       { find: /^@types\//, replacement: r('./src/types/') },
+      { find: /^ink$/, replacement: r('./src/vendor/ink/index.ts') },
     ],
   },
 });

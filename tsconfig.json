@@ -28,7 +28,8 @@
       "@lib/tool-result": ["src/lib/tool-result.ts"],
       "@config/*": ["src/config/*"],
       "@types": ["src/types/index.ts"],
-      "@types/*": ["src/types/*"]
+      "@types/*": ["src/types/*"],
+      "ink": ["src/vendor/ink/index.ts"]
     }
   },
   "include": [
