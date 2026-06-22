@@ -13,7 +13,7 @@ export const createAgent = async (
   const model = createChatModel(apiKeys, modelConfig, { bindTools: false });
   const backend = await LocalShellBackend.create({
     rootDir: process.cwd(),
-    virtualMode: true,
+    virtualMode: false,
     inheritEnv: true,
     timeout: 120,
   });
