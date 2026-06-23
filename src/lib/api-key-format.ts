@@ -34,7 +34,7 @@ export function validateApiKey(provider: Provider, key: string): string | null {
       if (!key.startsWith("sk-")) {
         return 'OpenAI API keys start with "sk-". The pasted value does not — re-copy from https://platform.openai.com/api-keys.';
       }
-      if (key.length < 40) {
+      if (key.length > 40) {
         return "OpenAI API key looks too short — likely truncated during paste.";
       }
       return null;

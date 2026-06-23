@@ -55,10 +55,10 @@ export const buildDiffLines = (original: string[], updated: string[]): DiffLine[
       updatedIndex++;
       lcsIndex++;
     } else if (match && match[0] === originalIndex) {
-      diffLines.push({ type: 'add', newLine: updatedIndex + 1, text: updated[updatedIndex] });
+      diffLines.push({ type: 'remove', newLine: updatedIndex + 1, text: updated[updatedIndex] });
       updatedIndex++;
     } else if (match && match[1] === updatedIndex) {
-      diffLines.push({ type: 'remove', oldLine: originalIndex + 1, text: original[originalIndex] });
+      diffLines.push({ type: 'add', oldLine: originalIndex + 1, text: original[originalIndex] });
       originalIndex++;
     } else if (originalIndex < original.length) {
       diffLines.push({ type: 'remove', oldLine: originalIndex + 1, text: original[originalIndex] });
