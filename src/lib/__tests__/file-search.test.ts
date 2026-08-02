@@ -17,6 +17,7 @@ async function createTestDirectory(): Promise<string> {
     'README.md',
     'src/index.ts',
     'src/components/App.tsx',
+    'src/Components/Widget.tsx',
     'src/components/Header.tsx',
     'src/lib/utils.ts',
     'src/lib/helpers.js',
@@ -72,10 +73,16 @@ describe('file search functionality', () => {
     expect(results).toContain('src/components/App.tsx');
   });
 
-  it('performs case-insensitive search', async () => {
+  it('performs case-insensitive search across filenames and directories', async () => {
     const results = await searchFiles('app', testDir);
     expect(results).toContain('src/components/App.tsx');
     expect(results).toContain('tests/app.test.ts');
+
+    const mixedCasePathResults = await searchFiles('components/widget', testDir);
+    expect(mixedCasePathResults).toContain('src/Components/Widget.tsx');
+
+    const readmeResults = await searchFiles('readme', testDir);
+    expect(readmeResults).toContain('README.md');
   });
 
   it('finds files by extension', async () => {

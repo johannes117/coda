@@ -23,7 +23,7 @@ export async function searchFiles(query: string, rootDir: string): Promise<strin
   try {
     for await (const filePath of walk(rootDir)) {
       const relativePath = path.relative(rootDir, filePath);
-      if (relativePath.includes(query)) {
+      if (relativePath.toLowerCase().includes(query.toLowerCase())) {
         results.push(relativePath);
         if (results.length >= SEARCH_RESULTS_LIMIT) {
           break;
