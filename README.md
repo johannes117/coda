@@ -22,6 +22,7 @@ coda is an AI coding-agent CLI for local code tasks. It provides an Ink-based te
 - File references with `@...`, image paste support, and long-paste placeholders.
 - Tool-call rendering for shell, file, search, todo, and subagent activity.
 - Optional LangSmith tracing and evaluation support.
+- A compact example project for experimenting with the agent.
 
 ## Requirements
 

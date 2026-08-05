@@ -9,6 +9,7 @@ A simple todo list application built with React and TypeScript.
 - Delete todos
 - Filter todos (all, active, completed)
 - Automatically sorted by creation date
+- Responsive layout for small screens
 
 ## Getting Started
 
