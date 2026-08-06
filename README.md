@@ -110,3 +110,7 @@ Keyboard shortcuts:
 - `examples/` - Example projects for trying the agent.
 
 See `AGENTS.md` for contributor guidelines.
+
+## Contributing
+
+Pull requests are welcome. Please follow the conventions in `AGENTS.md`.
