@@ -110,3 +110,5 @@ Keyboard shortcuts:
 - `examples/` - Example projects for trying the agent.
 
 See `AGENTS.md` for contributor guidelines.
+
+Temporary test note.
