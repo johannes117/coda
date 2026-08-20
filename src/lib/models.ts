@@ -13,6 +13,7 @@ export const modelOptions: ModelOption[] = [
   { id: 9, label: 'glm-5.2-high', name: 'accounts/fireworks/models/glm-5p2', provider: 'fireworks', effort: 'high', contextWindow: 200000 },
   { id: 10, label: 'glm-5.2-max', name: 'accounts/fireworks/models/glm-5p2', provider: 'fireworks', effort: 'max', contextWindow: 200000 },
   { id: 11, label: 'kimi-k2.7', name: 'accounts/fireworks/models/kimi-k2p7-instruct', provider: 'fireworks', effort: 'medium', contextWindow: 256000 },
+  { id: 12, label: 'kimi-k3', name: 'accounts/fireworks/models/kimi-k3', provider: 'fireworks', effort: 'medium', contextWindow: 1048576 },
 ];
 
 export function getProviderForModel(modelName: string): Provider | null {
