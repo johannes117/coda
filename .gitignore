@@ -4,7 +4,17 @@ dist
 
 # Environment variables
 .env
+.env.*
 .env.local
 .env.development
 .env.production
+
+# Secrets and local artifacts
+*.pem
+*.key
+*.crt
+credentials.json
+__pycache__/
+.venv/
+.DS_Store
 .tmp
