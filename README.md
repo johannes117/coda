@@ -113,3 +113,5 @@ Keyboard shortcuts:
 - `examples/` - Example projects for trying the agent.
 
 See `AGENTS.md` for contributor guidelines.
+
+> Test PR follow-up: harmless documentation-only marker.
