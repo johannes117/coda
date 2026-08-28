@@ -12,6 +12,9 @@
 
 coda is an AI coding-agent CLI for local code tasks. It provides an Ink-based terminal UI, streams agent activity through LangGraph/deepagents, and can use filesystem and shell tools in the current working directory.
 
+> Test PR: this line is intentionally harmless and can be removed.
+> Follow-up commit: also intentionally harmless.
+
 ## Features
 
 - Interactive terminal UI built with Ink and React.
@@ -110,3 +113,5 @@ Keyboard shortcuts:
 - `examples/` - Example projects for trying the agent.
 
 See `AGENTS.md` for contributor guidelines.
+
+> Test PR follow-up: harmless documentation-only marker.
