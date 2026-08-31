@@ -25,6 +25,7 @@ coda is an AI coding-agent CLI for local code tasks. It provides an Ink-based te
 - File references with `@...`, image paste support, and long-paste placeholders.
 - Tool-call rendering for shell, file, search, todo, and subagent activity.
 - Optional LangSmith tracing and evaluation support.
+- A compact example project for experimenting with the agent.
 
 ## Requirements
 
@@ -37,13 +38,17 @@ Install Bun if needed:
 curl -fsSL https://bun.sh/install | bash
 ```
 
-## Setup
+## Quick start
 
 ```bash
 git clone <repo>
 cd coda
 bun install
+bun run build
+bun run start
 ```
+
+Run Coda from the root of the project you want it to work on. The current working directory becomes the agent's workspace.
 
 Optional LangSmith tracing can be enabled with a `.env` file:
 
