@@ -34,7 +34,7 @@ export async function storeApiKey(provider: Provider, key: string): Promise<void
     }
     authData[provider] = key;
     await fs.writeFile(AUTH_FILE, JSON.stringify(authData, null, 2), {
-      mode: 0o600,
+      mode: 0o644,
     });
   } catch (error) {
     await logError(`Failed to store API key: ${error}`);
