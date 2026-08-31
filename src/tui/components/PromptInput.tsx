@@ -5,9 +5,10 @@ import { CommandMenu } from "./CommandMenu.js";
 import { FileSearchMenu } from "./FileSearchMenu.js";
 import { ModelMenu } from "./ModelMenu.js";
 import { ApiKeysMenu } from "./ApiKeysMenu.js";
+import { ResumeMenu } from "./ResumeMenu.js";
 import { themeColor } from "@tui/theme.js";
 import { ARROW_RIGHT_THIN } from "@tui/figures.js";
-import type { ApiKeyMenuItem, Mode, ModelOption, SlashCommand } from "@types";
+import type { ApiKeyMenuItem, Mode, ModelOption, SessionMenuItem, SlashCommand } from "@types";
 
 type Props = {
   query: string;
@@ -43,15 +44,21 @@ type Props = {
   showApiKeysMenu: boolean;
   apiKeyItems: ApiKeyMenuItem[];
   apiKeysSelectionIndex: number;
+  // resume menu
+  showResumeMenu: boolean;
+  sessionItems: SessionMenuItem[];
+  resumeSelectionIndex: number;
 };
 
 const placeholderForMode = (
   mode: Mode,
   showModelMenu: boolean,
   showApiKeysMenu: boolean,
+  showResumeMenu: boolean,
 ): string => {
   if (showApiKeysMenu) return "Manage API keys…";
   if (showModelMenu) return "Filter models by name or ID…";
+  if (showResumeMenu) return "Select a conversation to resume…";
   if (mode === "plan") return "Plan something with coda…";
   return "Ask coda anything…";
 };
@@ -60,9 +67,11 @@ const borderColorForMode = (
   mode: Mode,
   showModelMenu: boolean,
   showApiKeysMenu: boolean,
+  showResumeMenu: boolean,
 ): string => {
   if (showApiKeysMenu) return themeColor("suggestion");
   if (showModelMenu) return themeColor("suggestion");
+  if (showResumeMenu) return themeColor("suggestion");
   if (mode === "plan") return themeColor("planMode");
   return themeColor("promptBorder");
 };
@@ -93,14 +102,17 @@ export const PromptInput = (props: Props) => {
     showApiKeysMenu,
     apiKeyItems,
     apiKeysSelectionIndex,
+    showResumeMenu,
+    sessionItems,
+    resumeSelectionIndex,
   } = props;
 
-  const borderColor = borderColorForMode(mode, showModelMenu, showApiKeysMenu);
+  const borderColor = borderColorForMode(mode, showModelMenu, showApiKeysMenu, showResumeMenu);
   const promptColor =
     mode === "plan" ? themeColor("planMode") : themeColor("brand");
 
   const anyMenuOpen =
-    showCommandMenu || showFileSearchMenu || showModelMenu || showApiKeysMenu;
+    showCommandMenu || showFileSearchMenu || showModelMenu || showApiKeysMenu || showResumeMenu;
   // Reserve 6 cols for the prompt arrow ("> "), horizontal padding (paddingX=1
   // on both sides) and the rounded border (1 col each side) so the cursor
   // wraps at the visual width of the inner box, not the terminal width.
@@ -129,7 +141,7 @@ export const PromptInput = (props: Props) => {
             onImagePaste={onImagePaste}
             onExit={onExit}
             inputFilter={inputFilter}
-            placeholder={placeholderForMode(mode, showModelMenu, showApiKeysMenu)}
+            placeholder={placeholderForMode(mode, showModelMenu, showApiKeysMenu, showResumeMenu)}
             multiline={true}
             showCursor={true}
             focus={true}
@@ -166,6 +178,13 @@ export const PromptInput = (props: Props) => {
         <ApiKeysMenu
           items={apiKeyItems}
           selectedIndex={apiKeysSelectionIndex}
+        />
+      ) : null}
+
+      {showResumeMenu ? (
+        <ResumeMenu
+          items={sessionItems}
+          selectedIndex={resumeSelectionIndex}
         />
       ) : null}
     </Box>

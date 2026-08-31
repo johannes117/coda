@@ -120,4 +120,32 @@ describe("Zustand Store", () => {
     useStore.getState().toggleBlink();
     expect(useStore.getState().blink).toBe(initialBlink);
   });
+
+  it("should replace all messages via setMessages", () => {
+    const replacement = [
+      { id: "x1", author: "user" as const, chunks: [{ kind: "text" as const, text: "A" }] },
+      { id: "x2", author: "agent" as const, chunks: [{ kind: "text" as const, text: "B" }] },
+    ];
+    useStore.getState().setMessages(replacement);
+    expect(useStore.getState().messages).toEqual(replacement);
+  });
+
+  it("should manage session state (conversationHistory, sessionId, metadata)", () => {
+    expect(useStore.getState().conversationHistory).toEqual([]);
+    expect(useStore.getState().sessionCreatedAt).toBe("");
+    expect(useStore.getState().sessionFirstPrompt).toBe("");
+
+    const history = [{ type: "human", content: "hi" }] as any;
+    useStore.getState().setConversationHistory(history);
+    expect(useStore.getState().conversationHistory).toBe(history);
+
+    useStore.getState().setSessionId("test-id-123");
+    expect(useStore.getState().sessionId).toBe("test-id-123");
+
+    useStore.getState().setSessionCreatedAt("2025-01-01T00:00:00Z");
+    expect(useStore.getState().sessionCreatedAt).toBe("2025-01-01T00:00:00Z");
+
+    useStore.getState().setSessionFirstPrompt("Fix the bug");
+    expect(useStore.getState().sessionFirstPrompt).toBe("Fix the bug");
+  });
 });

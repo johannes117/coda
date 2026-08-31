@@ -49,6 +49,9 @@ export const App = () => {
           showApiKeysMenu={appState.showApiKeysMenu}
           apiKeyItems={appState.apiKeyItems}
           apiKeysSelectionIndex={appState.apiKeysSelectionIndex}
+          showResumeMenu={appState.showResumeMenu}
+          sessionItems={appState.sessionItems}
+          resumeSelectionIndex={appState.resumeSelectionIndex}
         />
         <StatusLine />
       </Box>

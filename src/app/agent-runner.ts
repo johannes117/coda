@@ -2,7 +2,6 @@ import { BaseMessage, HumanMessage } from '@langchain/core/messages';
 import { createAgent } from '@agent/graph';
 import { defaultSystemPrompt, reviewSystemPrompt } from '@agent/prompts';
 import { processStreamUpdate } from '@app/stream-processor.js';
-import { saveSession } from '@lib/storage';
 import { logError } from '@lib/logger';
 import { AGENT_RECURSION_LIMIT } from '@lib/constants';
 import type { RunnerDeps, StreamProcessorActions } from '@types';
@@ -13,12 +12,12 @@ export async function runAgentStream(
   finalPrompt: string | BaseMessage,
   systemPrompt: string = defaultSystemPrompt
 ) {
-  const { apiKeys, modelConfig, addMessage, updateToolExecution, updateTokenUsage, setBusy } = deps;
+  const { apiKeys, modelConfig, addMessage, updateToolExecution, updateTokenUsage, setBusy, saveSession } = deps;
   const agentInstance = await createAgent(apiKeys, modelConfig, systemPrompt);
   const userMessage =
     typeof finalPrompt === 'string' ? new HumanMessage(finalPrompt) : finalPrompt;
   conversationHistory.current.push(userMessage);
-  await saveSession('last_session', conversationHistory.current);
+  await saveSession(conversationHistory.current);
   setBusy(true);
   try {
     const actions: StreamProcessorActions = { addMessage, updateToolExecution, updateTokenUsage };
@@ -43,14 +42,14 @@ export async function runReview(
   conversationHistory: { current: BaseMessage[] },
   systemPrompt: string = reviewSystemPrompt
 ) {
-  const { apiKeys, modelConfig, addMessage, updateToolExecution, updateTokenUsage, setBusy } = deps;
+  const { apiKeys, modelConfig, addMessage, updateToolExecution, updateTokenUsage, setBusy, saveSession } = deps;
   const reviewAgent = await createAgent(apiKeys, modelConfig, systemPrompt);
   const userMessage = new HumanMessage(
     'Please conduct a code review of the current branch against the base branch (main or master).'
   );
   conversationHistory.current.push(userMessage);
   addMessage({ author: 'system', chunks: [{ kind: 'text', text: 'Starting code review...' }] });
-  await saveSession('last_session', conversationHistory.current);
+  await saveSession(conversationHistory.current);
   setBusy(true);
   try {
     const actions: StreamProcessorActions = { addMessage, updateToolExecution, updateTokenUsage };

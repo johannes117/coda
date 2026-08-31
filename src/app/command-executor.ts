@@ -1,5 +1,6 @@
 import { existsSync } from 'fs';
-import { deleteAllApiKeys, saveSession } from '@lib/storage';
+import { randomUUID } from 'crypto';
+import { deleteAllApiKeys } from '@lib/storage';
 import { useStore } from '@app/store.js';
 import { modelOptions } from '@lib/models.js';
 import { runReview } from '@app/agent-runner.js';
@@ -36,7 +37,14 @@ export async function executeSlashCommand(
       await deleteAllApiKeys();
       clearApiKeys();
       resetMessages();
-      useStore.setState({ resetRequested: true });
+      // Reset session state so a fresh session is generated on next render.
+      useStore.setState({
+        resetRequested: true,
+        conversationHistory: [],
+        sessionId: randomUUID(),
+        sessionCreatedAt: '',
+        sessionFirstPrompt: '',
+      });
       exit();
       return true;
     }
@@ -81,8 +89,16 @@ export async function executeSlashCommand(
         addMessage({ author: 'system', chunks: [{ kind: 'error', text: `API key for ${provider} not found. Please set it first.` }] });
         return true;
       }
-      await saveSession('last_session', useStore.getState().messages as any);
       await runReview(deps, { current: [] as any });
+      return true;
+    }
+    case 'resume': {
+      if (ctx.openResumeMenu) {
+        ctx.openResumeMenu();
+        setQuery('');
+      } else {
+        addMessage({ author: 'system', chunks: [{ kind: 'error', text: 'Resume menu unavailable in this context.' }] });
+      }
       return true;
     }
     default:

@@ -1,3 +1,5 @@
+import { BaseMessage } from "@langchain/core/messages";
+
 export type Author = "user" | "agent" | "system" | "tool";
 export type ChunkKind = "text" | "code" | "error" | "list" | "tool-execution";
 export type Mode = "agent" | "plan";
@@ -9,7 +11,8 @@ export type SlashCommandName =
   | "clear"
   | "model"
   | "review"
-  | "apikeys";
+  | "apikeys"
+  | "resume";
 export type Provider = "openai" | "anthropic" | "fireworks";
 export type Effort = "none" | "low" | "medium" | "high" | "xhigh" | "max";
 
@@ -94,6 +97,7 @@ export type RunnerDeps = {
   updateToolExecution: (toolExecution: ToolExecution) => void;
   updateTokenUsage: (usage: TokenUsage) => void;
   setBusy: (busy: boolean) => void;
+  saveSession: (history: BaseMessage[]) => Promise<void>;
 };
 
 export type CommandCtx = {
@@ -107,6 +111,7 @@ export type CommandCtx = {
   exit: () => void;
   requestUiClear?: () => void;
   openApiKeysMenu?: () => void;
+  openResumeMenu?: () => void;
   apiKeys: ApiKeys;
   currentModel: ModelConfig;
   sessionId: string;
@@ -122,6 +127,40 @@ export type ToolExecution = {
   toolCallId: string;
   status: ToolExecutionStatus;
   output: string;
+};
+
+// ── Session persistence types ─────────────────────────────────────────
+//
+// SessionData is the full envelope written to ~/.coda/sessions/<id>.json.
+// SessionMeta is the lightweight metadata returned by listSessions() for
+// the picker — it omits the message arrays.
+
+export type SessionData = {
+  sessionId: string;
+  createdAt: string;
+  updatedAt: string;
+  modelConfig: ModelConfig;
+  tokenUsage: TokenUsage;
+  firstPrompt: string;
+  messages: BaseMessage[];
+  uiMessages: Message[];
+};
+
+export type SessionMeta = {
+  sessionId: string;
+  createdAt: string;
+  updatedAt: string;
+  firstPrompt: string;
+  modelConfig: ModelConfig;
+  tokenUsage: TokenUsage;
+  messageCount: number;
+};
+
+export type SessionMenuItem = {
+  sessionId: string;
+  label: string;
+  detail: string;
+  meta: SessionMeta;
 };
 
 export type Result<T> = { ok: true; data: T } | { ok: false; error: string };
