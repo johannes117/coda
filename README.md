@@ -116,3 +116,4 @@ See `AGENTS.md` for contributor guidelines.
 
 > Test PR follow-up: harmless documentation-only marker.
 > Test PR marker: another harmless documentation-only change.
+> Test PR current: harmless documentation-only workflow check.
