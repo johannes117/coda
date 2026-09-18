@@ -13,6 +13,16 @@ export const modelOptions: ModelOption[] = [
   { id: 9, label: 'glm-5.2-high', name: 'accounts/fireworks/models/glm-5p2', provider: 'fireworks', effort: 'high', contextWindow: 200000 },
   { id: 10, label: 'glm-5.2-max', name: 'accounts/fireworks/models/glm-5p2', provider: 'fireworks', effort: 'max', contextWindow: 200000 },
   { id: 11, label: 'kimi-k2.7', name: 'accounts/fireworks/models/kimi-k2p7-instruct', provider: 'fireworks', effort: 'medium', contextWindow: 256000 },
+  { id: 12, label: 'claude-fable-5.1-low', name: 'claude-fable-5-1', provider: 'anthropic', effort: 'low', contextWindow: 1000000 },
+  { id: 13, label: 'claude-fable-5.1-medium', name: 'claude-fable-5-1', provider: 'anthropic', effort: 'medium', contextWindow: 1000000 },
+  { id: 14, label: 'claude-fable-5.1-high', name: 'claude-fable-5-1', provider: 'anthropic', effort: 'high', contextWindow: 1000000 },
+  { id: 15, label: 'claude-fable-5.1-xhigh', name: 'claude-fable-5-1', provider: 'anthropic', effort: 'xhigh', contextWindow: 1000000 },
+  { id: 16, label: 'claude-fable-5.1-max', name: 'claude-fable-5-1', provider: 'anthropic', effort: 'max', contextWindow: 1000000 },
+  { id: 17, label: 'gpt-6-astra-low', name: 'gpt-6-astra', provider: 'openai', effort: 'low', contextWindow: 1050000 },
+  { id: 18, label: 'gpt-6-astra-medium', name: 'gpt-6-astra', provider: 'openai', effort: 'medium', contextWindow: 1050000 },
+  { id: 19, label: 'gpt-6-astra-high', name: 'gpt-6-astra', provider: 'openai', effort: 'high', contextWindow: 1050000 },
+  { id: 20, label: 'gpt-6-astra-xhigh', name: 'gpt-6-astra', provider: 'openai', effort: 'xhigh', contextWindow: 1050000 },
+  { id: 21, label: 'gpt-6-astra-max', name: 'gpt-6-astra', provider: 'openai', effort: 'max', contextWindow: 1050000 },
 ];
 
 export function getProviderForModel(modelName: string): Provider | null {
