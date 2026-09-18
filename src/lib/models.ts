@@ -13,6 +13,11 @@ export const modelOptions: ModelOption[] = [
   { id: 9, label: 'glm-5.2-high', name: 'accounts/fireworks/models/glm-5p2', provider: 'fireworks', effort: 'high', contextWindow: 200000 },
   { id: 10, label: 'glm-5.2-max', name: 'accounts/fireworks/models/glm-5p2', provider: 'fireworks', effort: 'max', contextWindow: 200000 },
   { id: 11, label: 'kimi-k2.7', name: 'accounts/fireworks/models/kimi-k2p7-instruct', provider: 'fireworks', effort: 'medium', contextWindow: 256000 },
+  { id: 12, label: 'claude-fable-5-low', name: 'claude-fable-5', provider: 'anthropic', effort: 'low', contextWindow: 1000000 },
+  { id: 13, label: 'claude-fable-5-medium', name: 'claude-fable-5', provider: 'anthropic', effort: 'medium', contextWindow: 1000000 },
+  { id: 14, label: 'claude-fable-5-high', name: 'claude-fable-5', provider: 'anthropic', effort: 'high', contextWindow: 1000000 },
+  { id: 15, label: 'claude-fable-5-xhigh', name: 'claude-fable-5', provider: 'anthropic', effort: 'xhigh', contextWindow: 1000000 },
+  { id: 16, label: 'claude-fable-5-max', name: 'claude-fable-5', provider: 'anthropic', effort: 'max', contextWindow: 1000000 },
 ];
 
 export function getProviderForModel(modelName: string): Provider | null {
