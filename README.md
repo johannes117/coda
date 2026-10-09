@@ -12,9 +12,6 @@
 
 coda is an AI coding-agent CLI for local code tasks. It provides an Ink-based terminal UI, streams agent activity through LangGraph/deepagents, and can use filesystem and shell tools in the current working directory.
 
-> Test PR: this line is intentionally harmless and can be removed.
-> Follow-up commit: also intentionally harmless.
-
 ## Features
 
 - Interactive terminal UI built with Ink and React.
@@ -63,7 +60,7 @@ bun run dev        # Run TypeScript in watch mode
 bun run start      # Run the compiled CLI
 bun run test       # Run Vitest, excluding evals
 bun run eval       # Run LangSmith evals
-bun run logs:tail  # Tail ~/.coda/logs/coda.log
+bun run logs:tail  # Tail the log file at ~/.coda/logs/coda.log
 ```
 
 ## Linking the CLI locally
@@ -98,6 +95,8 @@ Keyboard shortcuts:
 
 - `Tab` - Switch between agent and plan modes, or complete menu selections.
 - `Esc` - Close open menus or interrupt busy work.
+- `@` - Reference a file from the current workspace.
+- `Enter` - Send the current message.
 
 ## Project structure
 
@@ -113,6 +112,3 @@ Keyboard shortcuts:
 - `examples/` - Example projects for trying the agent.
 
 See `AGENTS.md` for contributor guidelines.
-
-> Test PR follow-up: harmless documentation-only marker.
-> Test PR marker: another harmless documentation-only change.
